@@ -1,0 +1,5 @@
+{
+  "//": "绘图引擎与校验脚本是 CommonJS，此文件隔断仓库根 package.json 的 type:module",
+  "type": "commonjs",
+  "private": true
+}

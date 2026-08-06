@@ -1,0 +1,37 @@
+{
+  "name": "graduation-kit",
+  "version": "1.0.0",
+  "description": "毕业设计一件套 agent skills：需求定义、数据库/接口设计、代码生成、代码审查、UI 设计、论文写作与配图绘制",
+  "keywords": [
+    "agent-skills",
+    "claude-skills",
+    "zed",
+    "graduation-project",
+    "thesis"
+  ],
+  "license": "MIT",
+  "author": "浅梦听晚 <1905541720@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Soulmte/graduation-kit.git"
+  },
+  "homepage": "https://github.com/Soulmte/graduation-kit#readme",
+  "bugs": {
+    "url": "https://github.com/Soulmte/graduation-kit/issues"
+  },
+  "type": "module",
+  "bin": {
+    "graduation-kit": "bin/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "src",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "test": "node bin/cli.js doctor"
+  }
+}

@@ -1,0 +1,4 @@
+python-docx>=0.8.11
+markdown>=3.5
+beautifulsoup4>=4.12
+Pillow>=10.0
