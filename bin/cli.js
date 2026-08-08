@@ -9,6 +9,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(HERE, '..');
 const SRC_SKILLS = join(PKG_ROOT, 'src', 'skills');
 const SRC_VENDOR = join(PKG_ROOT, 'src', 'vendor');
+const SRC_SCAFFOLDS = join(PKG_ROOT, 'src', 'scaffolds');
 
 /** 本包原创，默认全装 */
 const CORE = [
@@ -257,22 +258,35 @@ const HELP = `
 graduation-kit — 毕业设计一件套 agent skills
 
 用法：
-  npx graduation-kit install [选项]     安装到 .agents/skills/
+  npx graduation-kit create [名称]      分步向导：脚手架 + SQL + skills
+  npx graduation-kit install [选项]     只安装 skills 到 .agents/skills/
   npx graduation-kit list               列出包内 skill
   npx graduation-kit uninstall [选项]   移除已安装的 skill
   npx graduation-kit doctor             校验 frontmatter 规范
 
-选项：
-  -g, --global          装到 ~/.agents/skills/（所有项目可用）
-  -d, --dir <path>      指定项目目录（默认当前目录）
+通用选项：
+  -d, --dir <path>      指定工作目录（默认当前目录）
   -f, --force           覆盖已存在的 skill
-  -o, --only <a,b>      只处理指定 skill（跳过上游询问）
   -y, --with-upstream   直接带上三个上游增强，不询问
       --no-upstream     只装六个核心 skill
 
+install 专属：
+  -g, --global          装到 ~/.agents/skills/（所有项目可用）
+  -o, --only <a,b>      只处理指定 skill（跳过上游询问）
+
+create 专属（全部给出则跳过向导，适合脚本）：
+      --be <id>         后端，只能一个：springboot | express | flask
+      --fe <a,b>        前端，可多个：react | vue-elementplus | vue-antd
+                                    | vue-naive | uniapp | wxapp
+      --db <name>       数据库名（默认 scaffold_db）
+      --db-pass <pwd>   MySQL root 密码
+      --no-skills       不安装 skills，只要脚手架
+
 例：
+  npx graduation-kit create
+  npx graduation-kit create smart-library --be springboot --fe react
+  npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
   npx graduation-kit install -g
-  npx graduation-kit install --with-upstream
   npx graduation-kit install --only thesis-writer
 `;
 
@@ -288,8 +302,16 @@ function parse(argv) {
     else if (a === '-y' || a === '--with-upstream') opts.withUpstream = true;
     else if (a === '--no-upstream') opts.noUpstream = true;
     else if (a === '-h' || a === '--help') opts.help = true;
+    else if (a === '--be') opts.be = argv[++i];
+    else if (a === '--fe') opts.fe = argv[++i];
+    else if (a === '--db') opts.db = argv[++i];
+    else if (a === '--db-pass') opts.dbPass = argv[++i];
+    else if (a === '--no-skills') opts.noSkills = true;
+    else if (a === '-l' || a === '--list') opts.list = true;
+    else if (a.startsWith('-')) opts.unknown = a;
     else rest.push(a);
   }
+  if (rest[1]) opts.name = rest[1];
   return { cmd: rest[0], opts };
 }
 
@@ -297,8 +319,21 @@ const { cmd, opts } = parse(process.argv.slice(2));
 
 if (opts.help || !cmd) {
   info(HELP);
+} else if (opts.unknown) {
+  fail(`未知选项：${opts.unknown}`);
+  info(HELP);
+  process.exit(1);
 } else if (cmd === 'install') {
   await install(opts);
+} else if (cmd === 'create' || cmd === 'new') {
+  const { create } = await import('./create.js');
+  try {
+    await create(opts, { SRC_SCAFFOLDS, installSkills: install });
+  } catch (e) {
+    info('');
+    fail(e.message);
+    process.exit(1);
+  }
 } else if (cmd === 'list') {
   list();
 } else if (cmd === 'uninstall') {

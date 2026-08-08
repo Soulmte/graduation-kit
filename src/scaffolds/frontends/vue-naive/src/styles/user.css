@@ -1,0 +1,130 @@
+/* 用户端 Layout 样式 (Naive UI) */
+
+.u-layout {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.u-header {
+  background: var(--color-bg-card);
+  height: var(--h-header);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+}
+.u-header-inner {
+  max-width: var(--w-container);
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.u-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.u-logo-mark {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.u-logo-text {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.u-nav {
+  flex: 1;
+  min-width: 0;
+}
+
+.u-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.u-theme-toggle {
+  cursor: pointer;
+  color: var(--color-text-sub);
+  transition: color 0.2s;
+  display: inline-flex;
+}
+.u-theme-toggle:hover {
+  color: var(--color-primary);
+}
+.u-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.u-user:hover {
+  background: var(--color-bg-hover);
+}
+.u-user-name {
+  color: var(--color-text);
+}
+
+.u-content {
+  padding: 24px;
+  min-height: calc(100vh - var(--h-header) - var(--h-footer));
+}
+.u-content-inner {
+  max-width: var(--w-container);
+  margin: 0 auto;
+}
+
+.detail-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.detail-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 4px;
+}
+.detail-subtitle {
+  font-size: 14px;
+  color: var(--color-text-mute);
+  margin: 0 0 24px;
+}
+.detail-section {
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.text-primary {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.text-muted {
+  color: var(--color-text-mute);
+  font-size: 13px;
+}

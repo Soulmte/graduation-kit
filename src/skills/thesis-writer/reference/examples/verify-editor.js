@@ -163,9 +163,9 @@ ok('拖动改变坐标',
   byId(n0.id).cx === startX + 40 && byId(n0.id).cy === startY + 30,
   `${startX},${startY} → ${byId(n0.id).cx},${byId(n0.id).cy}`)
 
-// ===== 2. 撑销 / 重做 =====
+// ===== 2. 撤销 / 重做 =====
 E.doUndo()
-ok('撑销恢复位置', byId(n0.id).cx === startX && byId(n0.id).cy === startY)
+ok('撤销恢复位置', byId(n0.id).cx === startX && byId(n0.id).cy === startY)
 E.doRedo()
 ok('重做恢复位置', byId(n0.id).cx === startX + 40)
 E.doUndo()
@@ -193,7 +193,7 @@ const allMoved = before.every(b =>
 ok('多选整体平移', allMoved,
   before.map(b => `${b.id}:${byId(b.id).cx - b.cx},${byId(b.id).cy - b.cy}`).join(' '))
 E.doUndo()
-ok('多选拖动可一步撑销', before.every(b => byId(b.id).cx === b.cx))
+ok('多选拖动可一步撤销', before.every(b => byId(b.id).cx === b.cx))
 
 // ===== 5. 框选 =====
 E.load('05a-entity-user')
@@ -259,13 +259,13 @@ E.snapToGrid()
 ok('吸到 8px 网格', rects.every(n => n.cx % 8 === 0 && n.cy % 8 === 0),
   `${rects[0].cx},${rects[0].cy}`)
 
-// ===== 9. 增 / 删 / 复制（含撑销）=====
+// ===== 9. 增 / 删 / 复制（含撤销）=====
 E.load('06-er')
 const count0 = E.spec.nodes.length
 E.addNode('rect')
 ok('添加元素', E.spec.nodes.length === count0 + 1 && E.selection.length === 1)
 E.doUndo()
-ok('添加可撑销', E.spec.nodes.length === count0, `${E.spec.nodes.length} vs ${count0}`)
+ok('添加可撤销', E.spec.nodes.length === count0, `${E.spec.nodes.length} vs ${count0}`)
 
 E.setSelection([E.spec.nodes[0], E.spec.nodes[1]])
 const gone = E.selection.map(n => n.id)
@@ -274,7 +274,7 @@ ok('批量删除', E.spec.nodes.length === count0 - 2 && E.selection.length === 
 ok('删除后连线已清理',
   !(E.spec.links || []).some(l => gone.includes(l.from) || gone.includes(l.to)))
 E.doUndo()
-ok('删除可撑销', E.spec.nodes.length === count0
+ok('删除可撤销', E.spec.nodes.length === count0
   && gone.every(id => E.spec.nodes.some(n => n.id === id)))
 
 E.setSelection([E.spec.nodes[0], E.spec.nodes[1]])
@@ -283,7 +283,7 @@ ok('批量复制', E.spec.nodes.length === count0 + 2 && E.selection.length === 
 const dupIds = E.spec.nodes.map(n => n.id)
 ok('复制后 id 仍唯一', new Set(dupIds).size === dupIds.length)
 E.doUndo()
-ok('复制可撑销', E.spec.nodes.length === count0)
+ok('复制可撤销', E.spec.nodes.length === count0)
 
 // ===== 10. 约束维度在拖拽时锁定 =====
 E.load('09-sequence')
@@ -426,7 +426,7 @@ ok('拐点可拖动',
   L2.points[1].x === Math.round(vpt.x + 35) && L2.points[1].y === Math.round(vpt.y + 25),
   JSON.stringify(L2.points[1]))
 E.doUndo()
-ok('拖拐点可撑销', E.spec.links[0].points[1].x === Math.round(vpt.x))
+ok('拖拐点可撤销', E.spec.links[0].points[1].x === Math.round(vpt.x))
 
 // 双击拐点删除
 E.selLink = E.spec.links[0]
@@ -445,14 +445,14 @@ E.selLink = L3
 E.flipLink()
 ok('反转两端', L3.from === ta && L3.to === fa)
 E.doUndo()
-ok('反转可撑销', E.spec.links[0].from === fa)
+ok('反转可撤销', E.spec.links[0].from === fa)
 
 const lc0 = E.spec.links.length
 E.selLink = E.spec.links[0]
 E.deleteLink()
 ok('删除连线', E.spec.links.length === lc0 - 1 && E.selLink === null)
 E.doUndo()
-ok('删除连线可撑销', E.spec.links.length === lc0)
+ok('删除连线可撤销', E.spec.links.length === lc0)
 
 E.selLink = null
 E.setSelection([E.spec.nodes[0], E.spec.nodes[1], E.spec.nodes[2]])
@@ -464,7 +464,7 @@ const allIds = Object.keys(E.rd.links)
 ok('新建后 id 仍唯一', new Set(allIds).size === allIds.length
   && allIds.length === E.spec.links.length)
 E.doUndo()
-ok('新建连线可撑销', E.spec.links.length === lc0)
+ok('新建连线可撤销', E.spec.links.length === lc0)
 
 // ===== 16. 删节点时清理 points 式连线 =====
 E.load('08-flowchart')
@@ -528,7 +528,7 @@ ok('箭头水平位置跟随 at',
   `x=${Math.round(newTail.x)}`)
 
 E.doUndo()
-ok('拖箭头可撑销', E.spec.links[0].toSide === undefined)
+ok('拖箭头可撤销', E.spec.links[0].toSide === undefined)
 
 // 中点应该不写 at（保持数据干净）
 E.selLink = E.spec.links[0]

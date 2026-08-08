@@ -3,34 +3,39 @@
 本文件定义：**基于脚手架项目的代码编写规范**，确保生成的代码与现有脚手架风格一致。
 
 > 前置阅读：本文件只规定代码怎么写。阶段流程看 `SKILL.md §2`，自检清单看 `self-check.md`。
+>
+> **适用范围**：react / vue-antd / vue-elementplus / vue-naive 四个 Web 前端。项目用的是 **uniapp 或 wxapp 时请读 `crossplatform-standards.md`**，那两个的目录结构、状态管理、请求封装与本文件完全不同。但 §0.3（接口协议）、§8（注释）、§9（命名）两边通用。
 
 ---
 
 ## 0. 写代码之前：必读清单
 
-在创建任何文件之前，**必须先读取目标前端的以下 5 个文件**，确保生成的代码风格完全一致：
+在创建任何文件之前，**必须先读取目标前端的以下 5 个文件**，确保生成的代码风格完全一致。React 和 Vue 的路径不一样，别读错：
 
-| # | 文件 | 看什么 |
-|---|------|--------|
-| 1 | `src/router/index.js` 或 `src/App.jsx` | 路由表结构、守卫写法、路径别名 |
-| 2 | `src/stores/user.js` 或 `src/stores/userStore.js` | Store API 风格、action 命名 |
-| 3 | `src/api/request.js` 或 `src/utils/request.js` | 拦截器写法、token 注入方式、进度条方案 |
-| 4 | `src/views/admin/UserManage.vue` 或 `.jsx` | 页面结构模板：Card→Toolbar→Table→Modal |
-| 5 | `src/styles/global.css` 或 `src/styles/admin.css` | 已有 CSS 变量、class 命名约定 |
+| # | React 路径 | Vue 三版路径 | 看什么 |
+|---|---|---|--------|
+| 1 | `<FE>/src/App.jsx` | `<FE>/src/router/index.js` | 路由表结构、守卫写法、路径别名 |
+| 2 | `<FE>/src/stores/userStore.js` | `<FE>/src/stores/user.js` | Store API 风格、action 命名 |
+| 3 | `<FE>/src/utils/request.js` | `<FE>/src/api/request.js` | 拦截器写法、token 注入方式、进度条方案 |
+| 4 | `<FE>/src/views/admin/UserManage.jsx` | `<FE>/src/views/admin/UserManage.vue` | 页面结构模板：Card→Toolbar→Table→Modal |
+| 5 | `<FE>/src/styles/global.css` | 同左 | 已有 CSS 变量、class 命名约定 |
+
+跨端项目（uniapp / wxapp）目录结构完全不同，**改读 `crossplatform-standards.md`**。
 
 ---
 
 ### 0.1 速查表
 
-| 层级 | React | Vue | 关键差异 |
+| 层级 | React | Vue 三版 | 关键差异 |
 |------|-------|-----|---------|
 | API 层 | `api/user.js` ← 相对路径导入 | `api/user.js` ← `@/` 别名导入 | 导入路径风格不同 |
-| Store 层 | `stores/userStore.js` (Zustand) | `stores/user.js` (Pinia Composition) | API 完全不同 |
+| Store 层 | `stores/userStore.js`（Zustand）| `stores/user.js`（Pinia setup 写法）| API 完全不同 |
 | 路由层 | `App.jsx` 内 Routes + 组件守卫 | `router/index.js` + `beforeEach` | 守卫机制不同 |
 | 组件层 | `views/` + `components/` | `views/` + `components/` | JSX vs SFC |
 | 样式层 | `styles/global.css` | `styles/global.css` + `<style scoped>` | Vue 多 scoped |
-| request | `utils/request.js` | `api/request.js` | 位置和 401 处理不同 |
-| Token 注入 | 拦截器读 `localStorage` | 拦截器读 `useUserStore()` | 来源不同 |
+| request | `utils/request.js` | `api/request.js` | 位置不同 |
+| Token 注入 | 拦截器读 `localStorage.getItem('token')` | 拦截器读 `useUserStore().token` | 来源不同 |
+| 清登录态 | `useUserStore.getState().logout()` | `useUserStore().logout()` | Zustand 非组件内要 `.getState()` |
 
 ### 0.2 导入路径规范（按框架分）
 
@@ -43,6 +48,12 @@
 
 **`@/` 指向 `src/`**。写 Vue 代码时一律用 `@/`，写 React 代码时一律用相对路径。
 
+**一个例外**：Vue 的 `api/*.js` 引 `request` 用的是同目录相对路径 `'./request'`，不是 `'@/api/request'`。四个现成 API 文件都这么写，跟着保持。
+
+**已实测的基准线**（`src/` 全目录）：react 相对路径 36 次 / `@/` **0** 次；vue 三版 `@/` 31–34 次 / 相对路径（`../`）**0** 次。两边零交叉。
+
+注意：react 的 `vite.config.js` 里**其实配了 `@` 别名**（`alias: { "@": ./src }`），写 `@/` 不会报错。但整个项目一行都没用，**这是风格统一问题而非技术限制**——跟着现有风格用相对路径，不要两种混着写。
+
 ### 0.3 脚手架已有 API 路径（新增接口必须遵守此协议）
 
 ```
@@ -52,6 +63,7 @@ POST   /api/user/pageQuery      → { code:200, data:{ records, total } }
 GET    /api/user/listAll        → { code:200, data:[...] }
 GET    /api/user/getById/:id    → { code:200, data:{...} }
 PUT    /api/user/update         → { code:200, message:"更新成功" }
+PUT    /api/user/updatePassword → { code:200, message:"密码修改成功" }
 DELETE /api/user/deleteById/:id → { code:200, message:"删除成功" }
 DELETE /api/user/deleteBatch    → { code:200, message:"批量删除成功" }
 
@@ -64,6 +76,8 @@ DELETE /api/notice/deleteById/:id → { code:200 }
 DELETE /api/notice/deleteBatch  → { code:200 }
 
 POST   /api/log/pageQuery       → { code:200, data:{ records, total } }
+GET    /api/log/listAll         → { code:200, data:[...] }
+GET    /api/log/getById/:id     → { code:200, data:{...} }
 DELETE /api/log/deleteById/:id  → { code:200 }
 DELETE /api/log/deleteBatch     → { code:200 }
 
@@ -74,10 +88,24 @@ DELETE /api/file/delete         → { code:200 }
 GET    /api/health              → { code:200, data:"ok" }
 ```
 
+上面 27 条已校对 **springboot / express / flask 三个后端，路径与方法完全一致**，换后端不需要改前端。
+
 统一响应格式：`{ code: number, message?: string, data?: any }`
 - `code === 200` → 成功
 - `code !== 200` → 业务异常
-- HTTP 401 → 未登录/Token 过期
+- **HTTP 状态码一律 200**，只有 Token 失效用 HTTP 401
+
+完整业务码（三后端 `ResultCode` 已对齐）：
+
+| code | 含义 | code | 含义 |
+|---|---|---|---|
+| 200 | 成功 | 1001 | 登录失败 |
+| 400 | 参数错误 | 1002 | 用户名已存在 |
+| 403 | 权限不足 | 1004 | 原密码错误 |
+| 404 | 资源不存在 | 2001 | 数据已存在 |
+| 500 | 服务器错误 | 2002 | 数据不存在 |
+
+**403 / 404 是业务码不是 HTTP 状态码**。权限拦截返回的是 HTTP 200 + `code:403`，前端在响应拦截器里统一弹错误提示。新增业务码从 **1005** 起（1003 空号不占用）。
 
 ---
 
@@ -85,892 +113,217 @@ GET    /api/health              → { code:200, data:"ok" }
 
 ### 1.1 文件结构
 
-```
-src/api/
-├── user.js      ← 用户相关 API（脚手架已有，直接复用）
-├── notice.js    ← 公告相关 API（脚手架已有，直接复用）
-├── log.js       ← 日志相关 API（脚手架已有，直接复用）
-├── file.js      ← 文件上传 API（脚手架已有，直接复用）
-└── <module>.js  ← 新增业务模块 API（按需创建）
-```
+`<FE>/src/api/` 下已有四个文件：`user.js`、`notice.js`、`log.js`、`file.js`，**直接复用不要重写**。新增业务模块按 `<module>.js` 建一个新文件。
 
-### 1.2 标准模板
+`request` 的位置分两种：react 在 `src/utils/request.js`，vue 三版在 `src/api/request.js`。
 
-**React 版**（相对路径导入 `request`）：
+### 1.2 写 API 文件的规范
 
-```js
-// api/user.js
-import request from '../utils/request'
+**范本就是脚手架的 `api/user.js`**，9 个导出函数覆盖了全部写法。新建模块时复制它改名字最快。
 
-export const login = (username, password) => {
-  return request.post('/user/login', { username, password })
-}
+写法要点：
 
-export const pageQueryUser = (query) => {
-  return request.post('/user/pageQuery', query)
-}
-
-export const getUserById = (id) => {
-  return request.get(`/user/getById/${id}`)
-}
-
-export const updateUser = (data) => {
-  return request.put('/user/update', data)
-}
-
-export const deleteUser = (id) => {
-  return request.delete(`/user/deleteById/${id}`)
-}
-
-export const deleteUserBatch = (ids) => {
-  return request.delete('/user/deleteBatch', { data: ids })
-}
-```
-
-**Vue 版**（`@/` 别名导入 `request`）：
-
-```js
-// api/user.js
-import request from '@/api/request'
-
-export const login = (username, password) => {
-  return request.post('/user/login', { username, password })
-}
-
-export const pageQueryUser = (query) => {
-  return request.post('/user/pageQuery', query)
-}
-
-export const getUserById = (id) => {
-  return request.get(`/user/getById/${id}`)
-}
-
-export const updateUser = (data) => {
-  return request.put('/user/update', data)
-}
-
-export const deleteUser = (id) => {
-  return request.delete(`/user/deleteById/${id}`)
-}
-
-export const deleteUserBatch = (ids) => {
-  return request.delete('/user/deleteBatch', { data: ids })
-}
-```
-
-### 1.3 规则
-
-- **函数名 = 动作 + 模块名**：`login` / `pageQueryUser` / `deleteUserBatch`
-- **导出方式**：`export const fnName = (...) => request.method(url, data)`
-- **参数风格**：简单参数直接传（`login(username, password)`），复杂参数传对象（`pageQueryUser(query)`）
-- **返回值**：直接 `return request.xxx(...)`，不做 `.then()` 二次处理
-- **禁止**：在 API 文件中写 `try-catch`，错误处理交给 request 拦截器
-- **禁止**：在 API 文件中处理 token，token 在 request 拦截器统一注入
-- **复用优先**：脚手架已有的 `user.js` / `notice.js` / `log.js` / `file.js` 不要重写，只新增业务模块的 API 文件
-- **新增接口**：路径格式遵循 `POST /api/<模块>/<动作>`，响应格式 `{ code, message, data }`
+- **一个函数一个接口**，用 `export const` 箭头函数，函数体只有一行 `return request.method(...)`
+- **函数名 = 动作 + 模块名**：`pageQueryUser`、`getUserById`、`deleteUserBatch`。登录注册这类全局唯一的动作可以省略模块名（`login`、`register`）
+- **路径省略 `/api` 前缀**，因为 `baseURL` 已经是 `/api`。写 `'/user/login'` 而不是 `'/api/user/login'`
+- **导入 request 的路径**：react 用 `'../utils/request'`，vue 用 `'./request'`（同目录，**不是 `@/api/request'`**）
+- **参数风格**：字段少且固定的直接传形参（`login(username, password)`），查询条件多的传对象（`pageQueryUser(query)`）
+- **路径参数用模板串拼进 URL**：`` request.get(`/user/getById/${id}`) ``
+- **DELETE 传数组要包一层 `config`**：`request.delete('/user/deleteBatch', { data: ids })`。axios 的 delete 第二个参数是 config 不是 body，直接传数组发不出去
+- **不写 try-catch**，错误由 request 拦截器统一处理
+- **不碰 token**，拦截器统一注入
+- **不做 `.then()` 二次加工**，原样 return 给页面
+- **注释**：每个函数上面一行块注释标用途（`/** 用户注册 */`）是脚手架风格，跟着写。禁的是带 `@param` / `@returns` 标签的完整 JSDoc（见 §8）
 
 ---
 
-## 2. request.js 规范（按框架分，三套模板）
+## 2. request.js 规范
 
-> **如果脚手架已有此文件，不要重写，直接复用。** 仅在脚手架无此文件或需要新增拦截逻辑时参考以下模板。
+**四个前端的 request 都已写好，不要重写。** 需要加逻辑时往现有拦截器里补，不要新建文件。
 
-### 2.1 React 版（`utils/request.js`）
+### 2.1 四版差异对照
 
-**特征**：Token 从 `localStorage` 读取，401 跳转用 `window.location.href`，无进度条。
+| 项目 | 文件位置 | token 来源 | 提示组件 | 进度条 | 401 跳转 | 防抖 |
+|---|---|---|---|---|---|---|
+| react | `utils/request.js` | `localStorage.getItem('token')` | `message`（antd） | NProgress | `window.location.href` | 有 |
+| vue-antd | `api/request.js` | `useUserStore().token` | `message`（ant-design-vue） | NProgress | `router.push` | 有 |
+| vue-elementplus | `api/request.js` | `useUserStore().token` | `ElMessage` | NProgress | `router.push` | 有 |
+| vue-naive | `api/request.js` | `useUserStore().token` | `window.$message` | `window.$loadingBar` | `router.push` | 无 |
 
-```js
-import axios from 'axios'
-import { message } from 'antd'
+naive 版用 `window.$message` 是因为 Naive UI 的 `useMessage()` 必须在 setup 内调用，拦截器里拿不到。它包了一个 `notifyError()`，取不到 `window.$message` 时降级到 `console.error`。
 
-const request = axios.create({
-  baseURL: '/api',
-  timeout: 10000
-})
+**react 版在拦截器里直读 localStorage 是故意的**——在非组件上下文读 Zustand 要写 `getState()`，直读更直白。这不违反 §3.4 的 Store 规则，那条管的是组件。
 
-request.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  error => Promise.reject(error)
-)
+### 2.2 不能破坏的四个设计
 
-request.interceptors.response.use(
-  response => {
-    const res = response.data
-    if (res.code === 200) return res
-    if (res.code === 401) {
-      message.error('登录已过期，请重新登录')
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      window.location.href = '/login'
-      return Promise.reject(new Error(res.message))
-    }
-    message.error(res.message || '请求失败')
-    return Promise.reject(new Error(res.message))
-  },
-  error => {
-    if (error.response?.status === 401) {
-      message.error('登录已过期，请重新登录')
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      window.location.href = '/login'
-    } else {
-      message.error(error.message || '网络错误')
-    }
-    return Promise.reject(error)
-  }
-)
+1. **两个 401 分支都要留，且调同一个清理函数**。响应回调里的 `res.code === 401` 是未携带 token 的情况（后端返 HTTP 200 + body 401）；error 回调里的 `error.response?.status === 401` 是 token 无效或过期（后端返 HTTP 401）。两处各写一套清理逻辑，迟早出现"弹了提示但没跳登录"的半死状态
 
-export default request
-```
+2. **`res.code === 401` 必须判在 `res.code !== 200` 之前**。顺序反了 401 会被后面那个分支接走，只弹提示不清 token，用户卡在页面上反复失败
 
-### 2.2 Vue-Antd / Vue-ElementPlus 版（`api/request.js`）
+3. **`redirecting` 防抖标志不要删**。页面同时发几个请求都 401 时，没它会弹好几条提示并反复跳转。vue 版在 `router.push().finally()` 里重置，**不要改成同步重置**——跳转未完成就重置等于防抖失效
 
-**特征**：Token 从 `useUserStore()` 读取，401 走 `userStore.logout()` + `router.push`，**有 NProgress**。
+4. **清理走 Store 的 `logout()`**，不要在拦截器里手写 `localStorage.removeItem`。后者会造成 store 内存状态与本地存储不一致
 
-```js
-import axios from 'axios'
-import { message } from 'ant-design-vue'           // Vue-Antd
-// import { ElMessage } from 'element-plus'         // Vue-ElementPlus 用这行替代
-import { useUserStore } from '@/stores/user'
-import router from '@/router'
-import NProgress from 'nprogress'
-import 'nprogress/nprogress.css'
+### 2.3 通用规则
 
-NProgress.configure({ showSpinner: false })
+- **baseURL 统一 `/api`**，走 vite proxy，真实后端地址在 `vite.config.js` 读 `VITE_API_BASE_URL`（默认 `http://localhost:8080`）。不要改成完整 URL 或环境变量拼接
+- **`/uploads` 也配了代理**。头像、附件直接用后端返回的 `/uploads/xxx.jpg` 相对路径，不要拼 `http://localhost:8080`（那会在部署时失效）
+- **换后端只改 `.env` 里的 `VITE_API_BASE_URL`**，Spring Boot 8080 / Express 8081 / Flask 8082，不用动任何业务代码
+- **timeout 10000ms**
+- **进度条不增不删**，各版保持原样。naive 版没有 `redirecting` 防抖也是现状，`$loadingBar` 本身有去重，不必专门补
+- **错误提示走组件库的 message**，不用 `alert()`
+- **业务码不在拦截器里分支处理**。403 / 404 / 1001 这些都走 `res.code !== 200` 的统一弹提示，页面只需 `try/catch` 或不管
+- **成功响应返回的是 `res` 不是 `res.data`**。拦截器已剥掉 axios 的外层，页面里写 `res.data.records` 取列表、`res.data.total` 取总数
 
-const request = axios.create({
-  baseURL: '/api',
-  timeout: 10000
-})
-
-request.interceptors.request.use(
-  config => {
-    NProgress.start()
-    const userStore = useUserStore()
-    if (userStore.token) {
-      config.headers.Authorization = `Bearer ${userStore.token}`
-    }
-    return config
-  },
-  error => {
-    NProgress.done()
-    return Promise.reject(error)
-  }
-)
-
-request.interceptors.response.use(
-  response => {
-    NProgress.done()
-    const res = response.data
-    if (res.code !== 200) {
-      message.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
-    }
-    return res
-  },
-  error => {
-    NProgress.done()
-    if (error.response?.status === 401) {
-      message.error('登录已过期，请重新登录')
-      const userStore = useUserStore()
-      userStore.logout()
-      router.push('/login')
-    } else {
-      message.error(error.message || '网络错误')
-    }
-    return Promise.reject(error)
-  }
-)
-
-export default request
-```
-
-### 2.3 Vue-Naive 版（`api/request.js`）
-
-**特征**：Token 从 `useUserStore()` 读取，用 `window.$message` / `window.$loadingBar` 全局访问（因为 Naive UI 的 `useMessage` 必须在 setup 内调用），**无 NProgress**。
-
-```js
-import axios from 'axios'
-import { useUserStore } from '@/stores/user'
-import router from '@/router'
-
-const notifyError = (msg) => {
-  if (window.$message) window.$message.error(msg)
-  else console.error(msg)
-}
-
-const request = axios.create({
-  baseURL: '/api',
-  timeout: 10000
-})
-
-request.interceptors.request.use(
-  config => {
-    window.$loadingBar?.start()
-    const userStore = useUserStore()
-    if (userStore.token) {
-      config.headers.Authorization = `Bearer ${userStore.token}`
-    }
-    return config
-  },
-  error => {
-    window.$loadingBar?.error()
-    return Promise.reject(error)
-  }
-)
-
-request.interceptors.response.use(
-  response => {
-    window.$loadingBar?.finish()
-    const res = response.data
-    if (res.code !== 200) {
-      notifyError(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
-    }
-    return res
-  },
-  error => {
-    window.$loadingBar?.error()
-    if (error.response?.status === 401) {
-      notifyError('登录已过期，请重新登录')
-      const userStore = useUserStore()
-      userStore.logout()
-      router.push('/login')
-    } else {
-      notifyError(error.message || '网络错误')
-    }
-    return Promise.reject(error)
-  }
-)
-
-export default request
-```
-
-### 2.4 通用规则（三套都遵守）
-
-- **baseURL**：统一为 `/api`（走 vite proxy）
-- **timeout**：10000ms
-- **401 处理**：清除 token + 跳转登录页（响应体 `code===401` 和 HTTP 状态码 `401` 两端都要处理）
-- **进度条**：不增不删。脚手架有的保留，没有的不加
-- **错误提示**：走组件库的 message/notification，不用 `alert()`
 
 ---
 
 ## 3. Store 层规范
 
-### 3.1 React (Zustand)
+**四个前端的 Store 都已写好，直接复用。** 范本是 `stores/userStore.js`（react）或 `stores/user.js`（vue）。
 
-```js
-import { create } from 'zustand'
+### 3.1 两种技术栈的写法
 
-export const useUserStore = create((set) => ({
-  token: localStorage.getItem('token') || '',
-  userInfo: JSON.parse(localStorage.getItem('userInfo') || 'null'),
+| | React | Vue 三版 |
+|---|---|---|
+| 库 | Zustand | Pinia |
+| 文件名 | `stores/userStore.js` | `stores/user.js` |
+| 定义方式 | `create((set) => ({ ... }))` | `defineStore('user', () => { ... })`（**Setup Store 风格**，不是 Options） |
+| 状态声明 | 对象字面量属性 | `ref()`，读写要 `.value` |
+| 改状态 | `set({ token, userInfo })` | `token.value = ...` |
+| 组件读取 | `useUserStore(state => state.token)` | `userStore.token` |
+| 暴露方式 | 对象里的都能访问 | 必须写进 `return {}` 才能访问 |
 
-  login: async (username, password) => {
-    const res = await loginApi(username, password)
-    const { token, userInfo } = res.data
-    set({ token, userInfo })
-    localStorage.setItem('token', token)
-    localStorage.setItem('userInfo', JSON.stringify(userInfo))
-    return res
-  },
+Vue 的 Setup Store 里**不要用 `this`**。
 
-  logout: () => {
-    set({ token: '', userInfo: null })
-    localStorage.removeItem('token')
-    localStorage.removeItem('userInfo')
-  },
+### 3.2 只有三个 action，名字四版统一
 
-  updateUserInfo: (userInfo) => {
-    set({ userInfo })
-    localStorage.setItem('userInfo', JSON.stringify(userInfo))
-  }
-}))
-```
+| 方法 | 作用 | 何时调 |
+|---|---|---|
+| `login(username, password)` | 调登录接口 + 写 token/userInfo + 同步 localStorage | 登录页 |
+| `logout()` | 清空两个状态 + 清 localStorage | 退出按钮、request 拦截器 401 |
+| `updateUserInfo(info)` | 只更新 userInfo + 同步 localStorage | 改完个人资料后 |
 
-### 3.2 Vue (Pinia — Composition API / Setup Store)
+**是 `updateUserInfo` 不是 `setUserInfo`**，写错会报 undefined。
 
-> **三个 Vue 脚手架全部使用 Composition API 风格的 Pinia Store**（`defineStore('name', () => {...})`），不是 Options API 风格。
+**改完个人资料必须调 `updateUserInfo`**，否则顶部头像和昵称不刷新、要刷页面才变——这是很容易被导师当场撞到的 bug。
 
-```js
-// stores/user.js
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { login as loginApi } from '@/api/user'
+### 3.3 使用规则
 
-export const useUserStore = defineStore('user', () => {
-  const token = ref(localStorage.getItem('token') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
-
-  const login = async (username, password) => {
-    const res = await loginApi(username, password)
-    token.value = res.data.token
-    userInfo.value = res.data.userInfo
-    localStorage.setItem('token', res.data.token)
-    localStorage.setItem('userInfo', JSON.stringify(res.data.userInfo))
-    return res
-  }
-
-  const logout = () => {
-    token.value = ''
-    userInfo.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('userInfo')
-  }
-
-  const setUserInfo = (info) => {
-    userInfo.value = info
-    localStorage.setItem('userInfo', JSON.stringify(info))
-  }
-
-  return { token, userInfo, login, logout, setUserInfo }
-})
-```
-
-**关键点**：
-- `ref()` 定义响应式状态，`.value` 读写
-- `return` 暴露的属性和方法才能在组件中访问
-- 不要在 Setup Store 内使用 `this`
-
-### 3.3 Store 使用规则（React + Vue 通用）
-
-- Store 只存 `token` 和 `userInfo`，业务数据不走 Store
-- localStorage 同步写入**在 Store action 内部完成**，组件不感知
-- React 组件通过 `useUserStore(state => state.token)` 获取，Vue 通过 `userStore.token` 获取
-- **不直接读 localStorage**：所有对 token/userInfo 的读取都走 Store
-- **不创建额外的 Store**：除非有独立的大模块（如购物车/订单），否则一个 Store 够用
-- 脚手架已有 Store 文件**直接复用**，不要重写
+- **只存 `token` 和 `userInfo` 两个状态**，业务数据不进 Store，页面自己用局部状态管
+- **localStorage 同步写在 action 内部**，组件不感知。初始值也从 localStorage 读（`localStorage.getItem('token') || ''`）
+- **组件里不直接读 localStorage**，一律走 Store。两处例外：Store 自身初始化，以及 react 的 `utils/request.js` 拦截器
+- **不新建额外 Store**。除非有购物车、订单这种独立大模块，一个 user store 够用
+- **不引入持久化插件**。四个前端都是手写 `localStorage.setItem`，不要装 `pinia-plugin-persistedstate` 或用 zustand 的 `persist`，多一层抽象反而难调
 
 ---
 
 ## 4. 路由规范
 
-### 4.1 React (react-router-dom v6)
+### 4.1 路由定义在哪
 
-```jsx
-<Routes>
-  <Route path="/" element={<Navigate to="/user/home" replace />} />
-  <Route path="/user" element={<UserLayout />}>
-    <Route path="home" element={<UserHome />} />
-    <Route path="profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-  </Route>
-  <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-    <Route path="dashboard" element={<Dashboard />} />
-    <Route path="user" element={<UserManage />} />
-  </Route>
-  <Route path="/login" element={<Login />} />
-  <Route path="*" element={<NotFound />} />
-</Routes>
-```
+| 项目 | 位置 | 组件加载 |
+|---|---|---|
+| react | `src/App.jsx`（**没有 `router/` 目录**） | 顶部直接 import，不用 `lazy()` |
+| vue 三版 | `src/router/index.js` | 懒加载 `() => import('@/views/...')` |
 
-### 4.2 Vue (Vue Router 4)
+React 新增页面要改两处：文件顶部加 import，`<Routes>` 里加 `<Route>`。
 
-```js
-// router/index.js
-import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+### 4.2 两种守卫机制
 
-const routes = [
-  {
-    path: '/',
-    redirect: '/user/home'
-  },
-  {
-    path: '/user',
-    component: () => import('@/layouts/UserLayout.vue'),
-    children: [
-      { path: 'home', name: 'UserHome', component: () => import('@/views/user/Home.vue'), meta: { title: '首页' } },
-      { path: 'notice', name: 'UserNotice', component: () => import('@/views/user/Notice.vue'), meta: { title: '公告' } },
-      { path: 'profile', name: 'UserProfile', component: () => import('@/views/user/Profile.vue'), meta: { title: '个人中心', requiresAuth: true } }
-    ]
-  },
-  {
-    path: '/admin',
-    component: () => import('@/layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true },
-    children: [
-      { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/admin/Dashboard.vue'), meta: { title: '仪表盘' } },
-      { path: 'user', name: 'UserManage', component: () => import('@/views/admin/UserManage.vue'), meta: { title: '用户管理' } }
-    ]
-  },
-  { path: '/login', name: 'Login', component: () => import('@/views/Login.vue'), meta: { title: '登录' } },
-  { path: '/register', name: 'Register', component: () => import('@/views/Register.vue'), meta: { title: '注册' } },
-  { path: '/:pathMatch(.*)*', component: () => import('@/views/NotFound.vue') }
-]
+**React——守卫是组件**，`ProtectedRoute` 和 `AdminRoute` 定义在 `App.jsx` 底部：
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
+- `ProtectedRoute` 只查 token，没有就 `<Navigate to="/login" replace />`
+- `AdminRoute` 先查 token，再查 `userInfo?.role !== 'admin'`，不是管理员踢到 `/user/home`
+- 用法：需登录的页面用 `<ProtectedRoute>` 包住 element。管理端是**整个 AdminLayout 包一次**，子路由不必逐个包
+- 两个守卫都用**单字段 selector**（`useUserStore((state) => state.token)`），不要一次取整个 store，否则任何字段变化都触发重渲染
+- 用 `<Navigate>` 重定向而非 `useEffect` 里跳转，避免登录前页面闪帧
 
-router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
+**Vue——守卫是全局钩子**，`router.beforeEach` 里读路由 `meta`：
 
-  if (to.meta.requiresAuth && !userStore.token) {
-    next('/login')
-    return
-  }
+- 路由上标 `meta: { requiresAuth: true }` 表示需登录，`meta: { requiresAdmin: true }` 表示需管理员
+- `beforeEach` 里先判 `to.meta.requiresAuth && !userStore.token` → `next('/login')`；再判 `to.meta.requiresAdmin && userStore.userInfo?.role !== 'admin'` → `next('/user/home')`；都过了 `next()`
+- 管理端的两个 meta 标在 `/admin` 父路由上，子路由继承，不用重复标
+- **新增需登录的页面必须同步加 meta**。光添路由不加 meta 就是开放页
 
-  if (to.meta.requiresAdmin && userStore.userInfo?.role !== 'admin') {
-    next('/user/home')
-    return
-  }
-
-  next()
-})
-
-export default router
-```
-
-### 4.3 路由规则（React + Vue 通用）
+### 4.3 通用规则
 
 - 嵌套路由：`/user` 和 `/admin` 分别对应 UserLayout 和 AdminLayout
-- Vue：懒加载用 `() => import('@/views/...')`，**走 `@/` 别名**
-- React：直接 import 组件，路由守卫用组件包裹（`<ProtectedRoute>` / `<AdminRoute>`）
-- Vue：路由守卫用 `router.beforeEach` + `meta.requiresAuth` / `meta.requiresAdmin`
-- 管理员路由：额外检查 `userInfo?.role !== 'admin'` → 踢到 `/user/home`
-- 404 兜底路由必须有
-- 路由路径用 kebab-case：`/user/order-history`（不是 `/user/orderHistory`）
-- 新增路由添加到已有路由表中，不要重写整个路由文件
+- 404 兜底必须有：Vue 用 `/:pathMatch(.*)*`，React 用 `path="*"`
+- 路由路径用 kebab-case：`/user/order-history` 而非 `/user/orderHistory`
+- 详情页用路径参数：`notice/:id`，页面里用 `useParams()`（React）或 `route.params.id`（Vue）读
+- 新增路由追加到已有路由表，不要重写整个文件
+
+**前端守卫只是菜单级屏蔽，不是安全边界。** 用户改本地 `userInfo.role` 就能绕过路由，真正的权限校验在后端（`@RequireAdmin` / `adminMiddleware` / `admin_required`），越权接口会返 `code:403`。答辩被问到权限设计时这么答。
+
+
+**两个存在但未被使用的东西，不要误判为缺陷**：
+
+1. **`meta.title` 定义了却没人消费** —— 三个 Vue 项目全局搜 `document.title` 与 `meta.title` 的读取，结果都是 0。它目前只是路由说明。想让浏览器标签页跟着变，在 `beforeEach` 里加一行 `document.title = to.meta.title || '系统名'` 即可——**这是个不错的细节分**，但不加也不算错
+2. **`/user` 下只有 `profile` 带 `requiresAuth`** —— 首页、公告列表、公告详情都是开放页，未登录可浏览。这是故意的设计，不要给整个 `/user` 加上鉴权
 
 ---
 
 ## 5. 页面组件规范
 
-### 5.1 页面标准四段结构
+### 5.1 管理后台页面的四段结构
 
-**所有脚手架页面都遵循同一个结构。** 写任何管理后台页面都按这个骨架来：
+所有管理端页面都是同一个骨架，从外到内四层：
 
-```
-<Card title="模块名" extra={操作按钮(添加/批量删除)}>
-  ├── 1. toolbar 区 — 搜索框 + 下拉筛选 + 搜索按钮
-  ├── 2. Table 区  — 带 rowSelection、pagination、loading
-  ├── 3. Modal 区  — 内联编辑弹窗（页面专属，不抽组件）
-  │     ├── AvatarUpload（如涉及头像）
-  │     └── Form（layout="vertical" + 双列 grid 布局）
-  └── 4. 样式区  — scoped 或 CSS Module
-</Card>
-```
+1. **最外一层 Card**，`title` 放模块名，`extra` 放顶部操作按钮（添加、批量删除）
+2. **toolbar 区**，紧贴在表格上方，放搜索框、下拉筛选、搜索按钮
+3. **Table 区**，带 `loading`、`rowSelection`（批量操作）、`pagination`
+4. **Modal 区**，页面专属的新增/编辑弹窗，**内联在页面文件里**不抽组件。涉及头像的放 `AvatarUpload`，表单用 `layout="vertical"` + 双列 grid
 
-### 5.2 React 页面完整模板
+Vue 版第五段是 `<style scoped>`。React 版没有样式段，样式写在 `styles/admin.css` 里。
 
-```jsx
-import { useState, useEffect } from 'react'
-import { Card, Table, Button, Input, InputNumber, Select, Space, Modal, Form, Tag, message } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { pageQueryUser, register, updateUser, deleteUser, deleteUserBatch } from '../../api/user'
-import AvatarUpload from '../../components/AvatarUpload'
+### 5.2 写页面前先读一个同类页面
 
-const { Search } = Input
+**不要照文档里的模板写页面，直接读脚手架里最接近的那个页面文件，照它的写法改。**
 
-export default function UserManage() {
-  // --- 表格状态 ---
-  const [loading, setLoading] = useState(false)
-  const [list, setList] = useState([])
-  const [total, setTotal] = useState(0)
-  const [pageNum, setPageNum] = useState(1)
-  const pageSize = 10
-  const [selectedIds, setSelectedIds] = useState([])
+脚手架每个前端都带 13 个成品页面，覆盖了毕设会遇到的全部页面类型。按你要写的东西挑一个当范本（行数为 react 版，Vue 三版因含模板与样式段普遍多 0–50%）：
 
-  // --- 筛选状态 ---
-  const [username, setUsername] = useState('')
-  const [role, setRole] = useState('')
+| 你要写的页面 | 读这个文件 | react 行数 | 里面有什么 |
+|---|---|---|---|
+| 管理端列表页（增删改查全套） | `views/admin/UserManage.*` | 350 | 搜索筛选 + 表格 + 批量删除 + 内联新增/编辑弹窗 + 头像上传 |
+| 管理端列表页（带富文本） | `views/admin/NoticeManage.*` | 264 | 同上 + 富文本编辑器 |
+| 管理端只读列表页 | `views/admin/LogManage.*` | 264 | 搜索 + 表格 + 批量删除，无编辑弹窗 |
+| 管理端图表页 | `views/admin/Dashboard.*` | 164 | 统计卡片 + ECharts 图表 |
+| 管理端信息展示页（无表格）| `views/admin/SystemStatus.*` | 164 | 描述列表 + 进度条，纯展示无交互 |
+| 个人资料页（改信息 + 改密码）| `views/admin/Profile.*` | 258 | 详情/编辑双态切换 + 修改密码弹窗 |
+| 用户端首页 | `views/user/Home.*` | 59 | Banner + 统计卡片 + 内容区 |
+| 用户端列表页 | `views/user/Notice.*` | 81 | 卡片列表（**不是表格**）+ 分页 |
+| 用户端详情页 | `views/user/NoticeDetail.*` | 69 | 返回按钮 + 描述列表 + 正文 |
+| 登录/注册页 | `views/Login.*` / `views/Register.*` | 92 / 133 | 表单校验 + 验证码组件 |
+| 404 页 | `views/NotFound.*` | 33 | 最短的一个，看基础结构 |
 
-  // --- 弹窗状态 ---
-  const [modalVisible, setModalVisible] = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [avatar, setAvatar] = useState('')
-  const [form] = Form.useForm()
+**为什么不给完整代码模板**：脚手架会改。比如 `UserManage.jsx` 现在有 `useCallback`、`Alert` 提示条、`ResizableTitle` 可拖拽列宽、`GENDER_OPTIONS` 常量提取——这些都是后来加的，写死在文档里的模板必然滞后。**读真实文件永远不会过期。**
 
-  // 筛选条件变化 → 重置页码 + 重新加载
-  useEffect(() => { fetchList() }, [pageNum, username, role])
+### 5.2.2 两处故意的重复，不要重构
 
-  const fetchList = async () => {
-    setLoading(true)
-    try {
-      const res = await pageQueryUser({ pageNum, pageSize, username, role })
-      setList(res.data.records)
-      setTotal(res.data.total)
-    } finally {
-      setLoading(false)
-    }
-  }
+以下两组文件内容高度重叠，**这是故意的，不是缺陷**。审查代码时不要报为重复代码，也不要自作主张抽公共组件：
 
-  const handleAdd = () => {
-    setEditing(null); setAvatar('')
-    form.resetFields()
-    form.setFieldsValue({ role: 'user' })
-    setModalVisible(true)
-  }
+1. **`admin/Profile.*` 与 `user/Profile.*`** —— 四个前端都是两份几乎逐字相同的文件（vue-elementplus 完全一致，其余三版仅差 1–2 行）。两端共用同一个 `PUT /api/user/update` 接口，但分属不同路由与 Layout（`/admin/profile` 在 AdminLayout 内，`/user/profile` 在 UserLayout 内）。抽成公共组件反而要多传一堆 props 区分两套视觉，**保持两份更好改**
+2. **`Dashboard.*` 与 `SystemStatus.*`** —— 行数相同且都是统计展示页，但前者是业务数据图表，后者是运行环境信息，职责不同
 
-  const handleEdit = (record) => {
-    setEditing(record)
-    setAvatar(record.avatar || '')
-    form.setFieldsValue(record)
-    setModalVisible(true)
-  }
+你新增业务模块时同样适用：**两个页面长得像不是重构的理由**，除非它们真的会一起变。毕设阶段过度抽象反而难给导师解释。
 
-  const handleDelete = (id) => {
-    Modal.confirm({
-      title: '确认删除', content: '确定要删除吗？',
-      okButtonProps: { danger: true },
-      onOk: async () => { await deleteUser(id); message.success('删除成功'); fetchList() }
-    })
-  }
+### 5.2.1 读的时候重点看这六处
 
-  const handleBatchDelete = () => {
-    if (!selectedIds.length) return message.warning('请先选择要删除的用户')
-    Modal.confirm({
-      title: '确认批量删除', content: `确定要删除选中的 ${selectedIds.length} 个吗？`,
-      okButtonProps: { danger: true },
-      onOk: async () => {
-        await deleteUserBatch(selectedIds)
-        message.success('批量删除成功')
-        setSelectedIds([]); fetchList()
-      }
-    })
-  }
+| # | 看什么 | 为什么 |
+|---|---|---|
+| 1 | import 段 | 哪些组件从哪个库来、API 函数怎么引、路径用相对还是 `@/` |
+| 2 | 状态声明段 | 分页/筛选/弹窗状态的命名习惯（`pageNum` `loading` `editing` `modalVisible`） |
+| 3 | `fetchList` 函数 | 请求怎么发、`res.data.records` 怎么取、`loading` 怎么收尾 |
+| 4 | 表格 columns 定义 | 序号列算法、Tag 用法、操作列 `fixed: 'right'` |
+| 5 | 弹窗部分 | add 和 edit 怎么共用一个弹窗（靠 `editing` 是否为 null 区分） |
+| 6 | 样式段 | 用了哪些约定 class（见 §7.4），有没有 scoped |
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields()
-    const payload = { ...values, avatar }
-    if (editing) {
-      await updateUser({ ...payload, id: editing.id })
-      message.success('更新成功')
-    } else {
-      await register(payload)
-      message.success('添加成功')
-    }
-    setModalVisible(false); fetchList()
-  }
+**新增业务模块时，正确做法是复制整个页面文件再改**，比从零写快，也不会漏掉 loading、批量选择这些容易忘的细节。
 
-  const columns = [
-    { title: '序号', key: 'idx', width: 70, render: (_, __, i) => (pageNum - 1) * pageSize + i + 1 },
-    { title: '用户名', dataIndex: 'username', width: 120 },
-    { title: '昵称',   dataIndex: 'nickname', width: 120, render: v => v || '-' },
-    { title: '邮箱',   dataIndex: 'email', ellipsis: true, render: v => v || '-' },
-    {
-      title: '角色', dataIndex: 'role', width: 110,
-      render: r => <Tag color={r === 'admin' ? 'red' : 'blue'}>{r === 'admin' ? '管理员' : '普通用户'}</Tag>
-    },
-    {
-      title: '操作', key: 'op', width: 180, fixed: 'right',
-      render: (_, r) => (
-        <div className="table-actions">
-          <Button size="small" className="btn-edit"   icon={<EditOutlined />}   onClick={() => handleEdit(r)}>编辑</Button>
-          <Button size="small" className="btn-delete" icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)}>删除</Button>
-        </div>
-      )
-    }
-  ]
+---
 
-  return (
-    <Card
-      title="用户管理"
-      extra={
-        <Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>添加</Button>
-          <Button danger icon={<DeleteOutlined />} disabled={!selectedIds.length} onClick={handleBatchDelete}>批量删除</Button>
-        </Space>
-      }
-    >
-      {/* === toolbar 筛选区 === */}
-      <div className="toolbar">
-        <Search placeholder="搜索用户名" onSearch={v => { setUsername(v); setPageNum(1) }} style={{ width: 220 }} allowClear />
-        <Select placeholder="选择角色" onChange={v => { setRole(v || ''); setPageNum(1) }} style={{ width: 150 }} allowClear>
-          <Select.Option value="admin">管理员</Select.Option>
-          <Select.Option value="user">普通用户</Select.Option>
-        </Select>
-      </div>
-
-      {/* === 数据表格 === */}
-      <Table
-        loading={loading}
-        columns={columns}
-        dataSource={list}
-        rowKey="id"
-        scroll={{ x: 1200 }}
-        rowSelection={{ selectedRowKeys: selectedIds, onChange: setSelectedIds }}
-        pagination={{ current: pageNum, pageSize, total, onChange: setPageNum, showTotal: t => `共 ${t} 条` }}
-      />
-
-      {/* === 内联编辑弹窗 === */}
-      <Modal
-        title={editing ? '编辑用户' : '添加用户'}
-        open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        width={640}
-        okText={editing ? '保存' : '添加'}
-        cancelText="取消"
-      >
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
-          <AvatarUpload value={avatar} onChange={setAvatar} size={88} />
-        </div>
-
-        <Form form={form} layout="vertical">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-              <Input placeholder="请输入用户名" disabled={!!editing} />
-            </Form.Item>
-            <Form.Item
-              label="密码" name="password"
-              rules={editing ? [] : [{ required: true, message: '请输入密码' }]}
-              help={editing ? '留空表示不修改密码' : undefined}
-            >
-              <Input.Password placeholder={editing ? '留空表示不修改' : '请输入密码'} />
-            </Form.Item>
-            <Form.Item label="昵称" name="nickname">
-              <Input placeholder="请输入昵称" maxLength={50} />
-            </Form.Item>
-            <Form.Item label="年龄" name="age">
-              <InputNumber min={1} max={150} placeholder="年龄" style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item label="性别" name="gender">
-              <Select placeholder="请选择性别" allowClear options={[
-                { value: 'male', label: '男' }, { value: 'female', label: '女' }, { value: 'other', label: '其他' }
-              ]} />
-            </Form.Item>
-            <Form.Item label="手机号" name="phone" rules={[{ pattern: /^1\d{10}$/, message: '手机号格式不正确' }]}>
-              <Input placeholder="请输入手机号" maxLength={11} />
-            </Form.Item>
-            <Form.Item label="邮箱" name="email" rules={[{ type: 'email', message: '邮箱格式不正确' }]}>
-              <Input placeholder="请输入邮箱" />
-            </Form.Item>
-            <Form.Item label="角色" name="role" rules={[{ required: true, message: '请选择角色' }]}>
-              <Select placeholder="请选择角色">
-                <Select.Option value="admin">管理员</Select.Option>
-                <Select.Option value="user">普通用户</Select.Option>
-              </Select>
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
-    </Card>
-  )
-}
-```
-
-### 5.3 Vue 页面完整模板（以 Ant Design Vue 为例）
-
-```vue
-<template>
-  <a-card title="用户管理">
-    <template #extra>
-      <a-space>
-        <a-button type="primary" @click="handleAdd">
-          <template #icon><plus-outlined /></template> 添加
-        </a-button>
-        <a-button danger :disabled="!selectedIds.length" @click="handleBatchDelete">
-          <template #icon><delete-outlined /></template> 批量删除
-        </a-button>
-      </a-space>
-    </template>
-
-    <!-- === toolbar 筛选区 === -->
-    <div class="toolbar">
-      <a-input-search v-model:value="filters.username" placeholder="搜索用户名" style="width:220px" allow-clear @search="onFilter" />
-      <a-select v-model:value="filters.role" placeholder="选择角色" style="width:150px" allow-clear @change="onFilter">
-        <a-select-option value="admin">管理员</a-select-option>
-        <a-select-option value="user">普通用户</a-select-option>
-      </a-select>
-    </div>
-
-    <!-- === 数据表格 === -->
-    <a-table
-      :loading="loading"
-      :columns="columns"
-      :data-source="list"
-      row-key="id"
-      :scroll="{ x: 1200 }"
-      :row-selection="{ selectedRowKeys: selectedIds, onChange: v => selectedIds = v }"
-      :pagination="{ current: pageNum, pageSize, total, onChange: p => { pageNum = p; fetchList() }, showTotal: t => `共 ${t} 条` }"
-    >
-      <template #bodyCell="{ column, record, index }">
-        <template v-if="column.key === 'idx'">
-          {{ (pageNum - 1) * pageSize + index + 1 }}
-        </template>
-        <template v-else-if="column.key === 'role'">
-          <a-tag :color="record.role === 'admin' ? 'red' : 'blue'">
-            {{ record.role === 'admin' ? '管理员' : '普通用户' }}
-          </a-tag>
-        </template>
-        <template v-else-if="column.key === 'op'">
-          <div class="table-actions">
-            <a-button size="small" class="btn-edit" @click="handleEdit(record)">
-              <template #icon><edit-outlined /></template> 编辑
-            </a-button>
-            <a-button size="small" class="btn-delete" @click="handleDelete(record.id)">
-              <template #icon><delete-outlined /></template> 删除
-            </a-button>
-          </div>
-        </template>
-      </template>
-    </a-table>
-
-    <!-- === 内联编辑弹窗 === -->
-    <a-modal
-      v-model:open="modalVisible"
-      :title="editing ? '编辑用户' : '添加用户'"
-      :width="640"
-      :ok-text="editing ? '保存' : '添加'"
-      cancel-text="取消"
-      @ok="handleSubmit"
-    >
-      <div style="text-align:center;margin-bottom:16px">
-        <avatar-upload :value="avatar" @update:value="avatar = $event" :size="88" />
-      </div>
-      <a-form :model="form" layout="vertical" ref="formRef">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
-          <a-form-item label="用户名" name="username" :rules="[{ required: true, message: '请输入用户名' }]">
-            <a-input v-model:value="form.username" placeholder="请输入用户名" :disabled="!!editing" />
-          </a-form-item>
-          <a-form-item label="密码" name="password"
-            :rules="editing ? [] : [{ required: true, message: '请输入密码' }]"
-            :help="editing ? '留空表示不修改密码' : undefined"
-          >
-            <a-input-password v-model:value="form.password" :placeholder="editing ? '留空表示不修改' : '请输入密码'" />
-          </a-form-item>
-          <a-form-item label="昵称" name="nickname">
-            <a-input v-model:value="form.nickname" placeholder="请输入昵称" :maxlength="50" />
-          </a-form-item>
-          <a-form-item label="年龄" name="age">
-            <a-input-number v-model:value="form.age" :min="1" :max="150" placeholder="年龄" style="width:100%" />
-          </a-form-item>
-          <a-form-item label="性别" name="gender">
-            <a-select v-model:value="form.gender" placeholder="请选择性别" allow-clear :options="GENDER_OPTIONS" />
-          </a-form-item>
-          <a-form-item label="手机号" name="phone" :rules="[{ pattern: /^1\d{10}$/, message: '手机号格式不正确' }]">
-            <a-input v-model:value="form.phone" placeholder="请输入手机号" :maxlength="11" />
-          </a-form-item>
-          <a-form-item label="邮箱" name="email" :rules="[{ type: 'email', message: '邮箱格式不正确' }]">
-            <a-input v-model:value="form.email" placeholder="请输入邮箱" />
-          </a-form-item>
-          <a-form-item label="角色" name="role" :rules="[{ required: true, message: '请选择角色' }]">
-            <a-select v-model:value="form.role" placeholder="请选择角色">
-              <a-select-option value="admin">管理员</a-select-option>
-              <a-select-option value="user">普通用户</a-select-option>
-            </a-select>
-          </a-form-item>
-        </div>
-      </a-form>
-    </a-modal>
-  </a-card>
-</template>
-
-<script setup>
-import { reactive, ref, onMounted } from 'vue'
-import { Modal, message } from 'ant-design-vue'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
-import { pageQueryUser, register, updateUser, deleteUser, deleteUserBatch } from '@/api/user'
-import AvatarUpload from '@/components/AvatarUpload.vue'
-
-const GENDER_OPTIONS = [
-  { value: 'male', label: '男' }, { value: 'female', label: '女' }, { value: 'other', label: '其他' }
-]
-
-// --- 表格状态 ---
-const loading = ref(false)
-const list = ref([])
-const total = ref(0)
-const pageNum = ref(1)
-const pageSize = 10
-const selectedIds = ref([])
-const filters = reactive({ username: '', role: undefined })
-
-// --- 弹窗状态 ---
-const modalVisible = ref(false)
-const editing = ref(null)
-const avatar = ref('')
-const formRef = ref(null)
-const form = reactive({
-  username: '', password: '', nickname: '',
-  age: null, gender: undefined, phone: '', email: '', role: 'user'
-})
-
-// --- 表格列定义 ---
-const columns = [
-  { title: '序号', key: 'idx', width: 70 },
-  { title: '用户名', dataIndex: 'username', key: 'username', width: 120 },
-  { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 120 },
-  { title: '邮箱', dataIndex: 'email', key: 'email', ellipsis: true },
-  { title: '角色', dataIndex: 'role', key: 'role', width: 110 },
-  { title: '操作', key: 'op', width: 180, fixed: 'right' }
-]
-
-// --- 数据获取 ---
-const fetchList = async () => {
-  loading.value = true
-  try {
-    const res = await pageQueryUser({ pageNum: pageNum.value, pageSize, username: filters.username, role: filters.role || '' })
-    list.value = res.data.records
-    total.value = res.data.total
-  } finally {
-    loading.value = false
-  }
-}
-
-const onFilter = () => { pageNum.value = 1; fetchList() }
-
-// --- 表单重置 ---
-const resetForm = (u = {}) => {
-  form.username = u.username || ''; form.password = ''
-  form.nickname = u.nickname || ''; form.age = u.age ?? null
-  form.gender = u.gender || undefined; form.phone = u.phone || ''
-  form.email = u.email || ''; form.role = u.role || 'user'
-  avatar.value = u.avatar || ''
-}
-
-// --- 事件处理 ---
-const handleAdd = () => { editing.value = null; resetForm(); modalVisible.value = true }
-const handleEdit = (r) => { editing.value = r; resetForm(r); modalVisible.value = true }
-
-const handleDelete = (id) => {
-  Modal.confirm({
-    title: '确认删除', content: '确定要删除吗？',
-    okButtonProps: { danger: true },
-    onOk: async () => { await deleteUser(id); message.success('删除成功'); fetchList() }
-  })
-}
-
-const handleBatchDelete = () => {
-  if (!selectedIds.value.length) return message.warning('请先选择要删除的用户')
-  Modal.confirm({
-    title: '确认批量删除', content: `确定要删除选中的 ${selectedIds.value.length} 个吗？`,
-    okButtonProps: { danger: true },
-    onOk: async () => {
-      await deleteUserBatch(selectedIds.value)
-      message.success('批量删除成功')
-      selectedIds.value = []; fetchList()
-    }
-  })
-}
-
-const handleSubmit = async () => {
-  await formRef.value.validate()
-  const payload = { ...form, avatar: avatar.value }
-  if (editing.value) {
-    await updateUser({ ...payload, id: editing.value.id })
-    message.success('更新成功')
-  } else {
-    await register(payload)
-    message.success('添加成功')
-  }
-  modalVisible.value = false; fetchList()
-}
-
-onMounted(fetchList)
-</script>
-```
-
-### 5.4 页面规则（React + Vue 通用）
+### 5.3 页面规则（React + Vue 通用）
 
 - **Card 包裹**：管理后台页面一律用 `<Card title="...">` / `<a-card>` / `<el-card>` / `<n-card>` 包裹
 - **toolbar 筛选区**：固定在表格上方，用 `class="toolbar"`，flex 横向排列
@@ -984,11 +337,11 @@ onMounted(fetchList)
 
 ---
 
-### 5.5 用户端 vs 管理端：两套视觉语言
+### 5.4 用户端 vs 管理端：两套视觉语言
 
-**管理端页面和管理端页面长得一模一样是毕设常见扣分点。** 用户端页面需要有独立的视觉语言，让导师一眼看出"这是给普通用户用的"。
+**用户端页面和管理端页面长得一模一样是毕设常见扣分点。** 用户端页面需要有独立的视觉语言，让导师一眼看出"这是给普通用户用的"。
 
-### 5.5.1 两套设计体系对比
+### 5.4.1 两套设计体系对比
 
 | 维度 | 管理端页面 | 用户端页面 |
 |------|----------|----------|
@@ -1001,242 +354,78 @@ onMounted(fetchList)
 | 最大宽度 | 无限制（表格横向滚动） | **max-width: 720-900px** 居中 |
 | 典型场景 | 用户管理、日志管理、公告管理 | 首页仪表盘、个人信息、业务详情、用户端表单 |
 
-### 5.5.2 用户端页面结构模板
+### 5.4.2 用户端页面从上到下的结构
 
-```
-用户端页面结构（从上到下）：
-┌──────────────────────────────────────┐
-│  Banner / Hero 区                     │
-│  <h1> 页面大标题 </h1>                │
-│  <p>  副标题或描述 </p>                │
-├──────────────────────────────────────┤
-│  统计卡片区（可选）                     │
-│  ┌──────┐ ┌──────┐ ┌──────┐          │
-│  │ 统计1 │ │ 统计2 │ │ 统计3 │          │
-│  └──────┘ └──────┘ └──────┘          │
-├──────────────────────────────────────┤
-│  详情卡片区                            │
-│  <h2> 基本信息 </h2>                   │
-│  ┌─ 描述列表（label + value 纵向排列）─┐ │
-│  │  姓名：张三                         │ │
-│  │  部门：技术部                       │ │
-│  │  入职时间：2024-01-15              │ │
-│  └───────────────────────────────────┘ │
-│  <h2> 其他信息 </h2>                   │
-│  ┌───────────────────────────────────┐ │
-│  │  ...                              │ │
-│  └───────────────────────────────────┘ │
-├──────────────────────────────────────┤
-│  表单卡片区                            │
-│  <h2> 编辑信息 </h2>                   │
-│  <Form layout="vertical" max-width>    │
-│    <Form.Item label="字段名">          │
-│    ...（单列堆叠，字段多时分卡片）       │
-│    <Button type="primary">提交</Button> │
-│  </Form>                               │
-└──────────────────────────────────────┘
-```
+范本是 `views/user/Home.*`（59 行）和 `views/user/NoticeDetail.*`（69 行），直接读。
 
-### 5.5.3 详情页规范（Detail Page）
+结构顺序：
 
-**详情页是只读展示页**，用于查看某条数据的完整信息。不要用 Modal 弹窗替代详情页。
+1. **Banner / Hero 区** —— 用脚手架已有的 `.banner` class（渐变底 + 白字），里面 `<h1>` 放页面大标题、`<p>` 放副标题
+2. **统计卡片区**（可选）—— 横排 3–4 个卡片，放数量类指标
+3. **内容区** —— 每个分区一个 Card，Card 内顶部一行 `<h2>` 分区标题
+4. **表单区**（如果有）—— 单列堆叠，限宽居中
 
-**模板**：
+### 5.4.3 详情页规范
 
-```vue
-<template>
-  <div class="detail-page">
-    <!-- 返回按钮 -->
-    <a-button type="link" @click="$router.back()">
-      <template #icon><arrow-left-outlined /></template> 返回
-    </a-button>
-
-    <!-- 页面标题 -->
-    <h1 class="detail-title">{{ detail.title }}</h1>
-    <p class="detail-subtitle">创建于 {{ detail.createTime }}</p>
-
-    <!-- 分区1：核心信息（用主色大字突出） -->
-    <a-card class="detail-section">
-      <h2 class="section-title">基本信息</h2>
-      <a-descriptions :column="2" bordered size="middle">
-        <a-descriptions-item label="编号">
-          <span class="text-primary">{{ detail.id }}</span>
-        </a-descriptions-item>
-        <a-descriptions-item label="状态">
-          <a-tag :color="statusColor(detail.status)">{{ detail.status }}</a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item label="负责人">
-          <span class="text-strong">{{ detail.owner }}</span>
-        </a-descriptions-item>
-        <a-descriptions-item label="联系方式">
-          {{ detail.phone || '-' }}
-        </a-descriptions-item>
-      </a-descriptions>
-    </a-card>
-
-    <!-- 分区2：详细信息（普通字号） -->
-    <a-card class="detail-section">
-      <h2 class="section-title">详细内容</h2>
-      <div class="detail-content" v-html="detail.content" />
-    </a-card>
-
-    <!-- 分区3：附加信息（灰色小字） -->
-    <a-card class="detail-section">
-      <h2 class="section-title">操作记录</h2>
-      <a-timeline>
-        <a-timeline-item v-for="log in detail.logs" :key="log.id" :color="log.color">
-          {{ log.action }} — <span class="text-muted">{{ log.time }}</span>
-        </a-timeline-item>
-      </a-timeline>
-    </a-card>
-  </div>
-</template>
-```
-
-**React 版**：
-
-```jsx
-<div className="detail-page">
-  <Button type="link" icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>返回</Button>
-
-  <h1 className="detail-title">{detail.title}</h1>
-  <p className="detail-subtitle">创建于 {detail.createTime}</p>
-
-  <Card className="detail-section">
-    <h2 className="section-title">基本信息</h2>
-    <Descriptions bordered column={2} size="middle">
-      <Descriptions.Item label="编号">
-        <span className="text-primary">{detail.id}</span>
-      </Descriptions.Item>
-      <Descriptions.Item label="状态">
-        <Tag color={statusColor(detail.status)}>{detail.status}</Tag>
-      </Descriptions.Item>
-    </Descriptions>
-  </Card>
-</div>
-```
-
-**详情页关键规则**：
+**详情页是独立路由的只读页，不是 Modal。** 范本 `views/user/NoticeDetail.*`。
 
 | 规则 | 说明 |
-|------|------|
-| 有返回按钮 | 详情页左上角必须有 `< 返回` 按钮 |
-| h1 是数据标题 | 不是"详情页"三个字，而是数据本身的名称（如公告标题、用户名） |
-| h2 分区 | 每个 Card 内用 `<h2>` 作为分区标题 |
-| 核心数据用主色 | 编号、金额、状态等关键字段用 `var(--primary)` 或 `<span class="text-primary">` |
-| 次要数据灰色 | 时间戳、备注、辅助说明用 `var(--text-secondary)` 灰色 |
-| 状态用彩色 Tag | 通过/待审/拒绝 → green/blue/red；不是纯文字 |
-| 描述列表（Descriptions） | 只读数据用 `<Descriptions>` 或 `<dl>`，**不要用 Table** |
-| UI 组件库的 Descriptions | Ant Design: `<a-descriptions>` / Element Plus: `<el-descriptions>` / Naive UI 用 `<n-descriptions>` 或手写 grid |
+|---|---|
+| 独立路由 | `/user/notice/:id` 这种形式，不要用弹窗代替 |
+| 左上角有返回 | Vue 用 `router.back()`，React 用 `navigate(-1)` |
+| h1 是数据标题 | 放数据本身的名称（公告标题、用户名），不是"详情页"三个字 |
+| h2 分区标题 | 每个 Card 内一个，用 `user.css` 里的 `.section-title` |
+| 只读数据用 Descriptions | antd 系 `<a-descriptions>` / `<Descriptions>`，ElementPlus `<el-descriptions>`，Naive 用 `<n-descriptions>`。**不要用 Table** |
+| 状态用彩色 Tag | 通过/待审/拒绝 → green/blue/red，不要写成纯文字 |
+| 富文本正文 | 用 `v-html` / `dangerouslySetInnerHTML`，外层套脚手架的 `.rich-content` class |
 
-### 5.5.4 用户端表单规范（User Form）
+### 5.4.4 用户端表单规范
 
-用户端表单**不要用 Table 列表形式**，不要用双列紧凑 grid。应该：
+按字段数量决定布局：
 
-- **字段 ≤ 5 个**：单列堆叠（`layout="vertical"`）+ `max-width: 480px` 居中
-- **字段 6-10 个**：分 2-3 个 Card 区块，每区 3-5 个字段，单列堆叠
-- **字段 > 10 个**：分步骤（Steps/Wizard），每步一个 Card
+- **≤ 5 个字段**：单列堆叠（`layout="vertical"`），`max-width: 480px` 居中
+- **6–10 个字段**：分 2–3 个 Card，每个 Card 3–5 个字段，各自单列堆叠
+- **> 10 个字段**：分步骤（Steps），每步一个 Card
 
-```vue
-<!-- 用户端表单模板（字段少） -->
-<a-card class="user-form-card">
-  <h2 class="section-title">编辑资料</h2>
-  <a-form layout="vertical" style="max-width:480px">
-    <a-form-item label="昵称">
-      <a-input v-model:value="form.nickname" size="large" />
-    </a-form-item>
-    <a-form-item label="个人简介">
-      <a-textarea v-model:value="form.bio" :rows="4" />
-    </a-form-item>
-    <a-form-item>
-      <a-button type="primary" size="large" block>保存</a-button>
-    </a-form-item>
-  </a-form>
-</a-card>
-```
+与管理端的区别：
 
-```vue
-<!-- 用户端表单模板（字段多 → 分区卡片） -->
-<div class="user-form-stack">
-  <a-card class="user-form-card">
-    <h2 class="section-title">基本信息</h2>
-    <a-form layout="vertical" style="max-width:600px">
-      <!-- 单列堆叠 4-5 个字段 -->
-    </a-form>
-  </a-card>
+| | 管理端 | 用户端 |
+|---|---|---|
+| 布局 | 弹窗内双列 grid `1fr 1fr` | 单列堆叠，`max-width: 480–600px` |
+| 按钮 | 弹窗底部 `okText="保存"` | 页面底部 `size="large"` + `block` 通栏 |
+| 分区 | 无，一个弹窗一个 Form | 多个 Card 分区，每区带 `<h2>` |
+| 输入框 | 默认尺寸 | `size="large"` |
+| 占位提示 | 简短（"请输入用户名"） | 更友好（"请输入你的昵称"） |
 
-  <a-card class="user-form-card">
-    <h2 class="section-title">联系方式</h2>
-    <a-form layout="vertical" style="max-width:600px">
-      <!-- 单列堆叠 3-4 个字段 -->
-    </a-form>
-  </a-card>
+### 5.4.5 标题与颜色的层级
 
-  <a-button type="primary" size="large" block>提交</a-button>
-</div>
-```
+**用脚手架已有的 class 和变量，不要自己造。** 用户端的标题与文字 class 分两处：公共的在 `global.css`，用户端专用的在 `user.css`。
 
-**用户端表单规则**：
+| 用途 | class | 定义在 |
+|---|---|---|
+| 页面大标题（管理端）| `.page-title` | `global.css` |
+| Banner 内标题 | `.banner` 里的 `h1` | `global.css` |
+| 次要文字 | `.text-sub` | `global.css` |
+| 更淡的说明文字 | `.text-mute` | `global.css` |
+| 两行截断 | `.text-ellipsis-2` | `global.css` |
+| 富文本正文容器 | `.rich-content` | `global.css` |
+| 详情页外层 | `.detail-page` | `user.css` |
+| 详情页大标题 / 副标题 | `.detail-title` / `.detail-subtitle` | `user.css` |
+| 详情页分区容器 / 分区标题 | `.detail-section` / `.section-title` | `user.css` |
+| 主色强调文字 | `.text-primary` | `user.css` |
+| 用户端置灰文字 | `.text-muted` | `user.css` |
 
-| 规则 | 管理端 | 用户端 |
-|------|--------|--------|
-| 布局 | 双列 grid `1fr 1fr` | **单列堆叠**，`max-width: 480-600px` |
-| 按钮 | 弹窗底部 `okText="保存"` | **页面底部 `size="large" block`** |
-| 分区 | 无（一个弹窗一个 Form） | **多个 Card 分区**，每区有 `<h2>` 标题 |
-| 输入框大小 | 默认 | `size="large"`（更大、更好点） |
-| 占位提示 | 简短 | 更友好："请输入你的昵称" |
+注意 `global.css` 是 `.text-mute`，`user.css` 是 `.text-muted`（多一个 d），**两个名字都存在且各自生效**，写用户端页面时用哪个都行但要与同页面保持一致。
 
-### 5.5.5 标题和颜色的层级体系
+数据重要性靶三档区分：
 
-```css
-/* 用户端页面的标题层级 */
-.detail-title, .page-title {
-  font-size: 24px;        /* h1 — 页面唯一大标题 */
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 8px;
-}
+1. **最核心**（编号、金额、状态）—— `.text-primary`，或 `color: var(--color-primary)` + `font-weight: 600`
+2. **重要**（名称、标题）—— 默认色 + `font-weight: 600`
+3. **次要**（时间、备注）—— `.text-muted` / `.text-mute`，字号小一档
 
-.section-title {
-  font-size: 16px;        /* h2 — 分区标题 */
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);  /* 分区标题下划线 */
-}
+真的需要新 class 时写进 `user.css`，并且**必须用 `--color-*` 前缀的变量**（不存在 `--primary`、`--text`、`--text-secondary` 这类简写，详见 `style-integration.md §3`）。
 
-.subsection-title {
-  font-size: 14px;        /* h3 — 子区块 */
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-/* 数据重要性的颜色层级 */
-.text-primary   { color: var(--primary); font-weight: 600; }   /* 最核心：编号、金额 */
-.text-strong    { color: var(--text);     font-weight: 600; }   /* 重要：姓名、标题 */
-.text-muted     { color: var(--text-secondary); font-size: 13px; }  /* 次要：时间、备注 */
-```
-
-**颜色使用示例**：
-
-```
-┌─────────────────────────────────────────────┐
-│  ← 返回                                      │
-│                                              │
-│  公告 #2024-001          ← h1 + 主色         │
-│  发布于 2024-03-15       ← 灰色小字          │
-│  ┌─────────────────────────────────────┐     │
-│  │ 基本信息                      h2    │     │
-│  │ 标题：关于系统升级的通知    ← 加粗  │     │
-│  │ 状态：✅ 已发布           ← 彩色Tag │     │
-│  │ 作者：管理员              ← 普通   │     │
-│  │ 更新时间：2024-03-16     ← 灰色   │     │
-│  └─────────────────────────────────────┘     │
-└─────────────────────────────────────────────┘
-```
-
-### 5.5.6 禁止的用户端写法
+### 5.4.6 禁止的用户端写法
 
 | 禁止 | 原因 | 替代方案 |
 |------|------|---------|
@@ -1263,146 +452,132 @@ onMounted(fetchList)
 
 脚手架的所有管理页面（UserManage / NoticeManage 等）都把 add/edit Modal **内联在同一文件中**。
 
-### 6.2 内联弹窗标准结构
+### 6.2 内联弹窗的结构
 
-弹窗内结构：**AvatarUpload（如涉及）→ Form（vertical + 双列 grid）→ 提交**
+从上到下：头像上传（如涉及）→ 提示条（可选）→ Form。
 
-```jsx
-// React 弹窗核心结构
-<Modal
-  title={editing ? '编辑XXX' : '添加XXX'}
-  open={modalVisible}
-  onOk={handleSubmit}
-  onCancel={() => setModalVisible(false)}
-  width={640}
-  okText={editing ? '保存' : '添加'}
-  cancelText="取消"
->
-  <div style={{ textAlign: 'center', marginBottom: 16 }}>
-    <AvatarUpload value={avatar} onChange={setAvatar} size={88} />
-  </div>
-  <Form form={form} layout="vertical">
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-      {/* Form.Item 双列排列 */}
-    </div>
-  </Form>
-</Modal>
-```
+要点：
 
-### 6.3 表单状态管理模式
+- **Modal 宽度 640**，`title` 和 `okText` 都靠 `editing` 是否为 null 切换（`editing ? '编辑XXX' : '添加XXX'`）
+- **Form 用 `layout="vertical"`**，内部套一层双列 grid 容器（`display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px`），grid 写在内联 style 里是脚手架现状
+- **需要跨列的字段**（如富文本、长文本域）在该 Form.Item 上加 `gridColumn: '1 / -1'`
+- **头像上传居中**，外层 div 加 `textAlign: 'center'` + 下边距
 
-| 框架 | 表单实例 | 编辑数据回填 | 提交校验 |
-|------|---------|------------|---------|
+`UserManage` 的弹窗里还有一个 `<Alert type="info">` 说明"角色与密码不在本表单修改"，这是因为后端限制了该接口只能改基本资料。**新增模块有类似的字段限制时，照这个做法给用户一句说明**，比让用户改完发现没生效要好。
+
+### 6.3 表单状态管理
+
+| 框架 | 表单实例 | 编辑回填 | 提交校验 |
+|---|---|---|---|
 | React | `Form.useForm()` | `form.setFieldsValue(record)` | `form.validateFields()` |
-| Vue-Antd | `ref(null)` 绑定到 `<a-form ref="formRef">` | `resetForm(record)` | `formRef.value.validate()` |
-| Vue-ElementPlus | `ref(null)` 绑定到 `<el-form ref="formRef">` | `resetForm(record)` | `formRef.value.validate()` |
-| Vue-Naive | `ref(null)` 绑定到 `<n-form ref="formRef">` | `resetForm(record)` | `formRef.value.validate(callback)` |
+| Vue-Antd | `ref(null)` 绑到 `<a-form ref="formRef">` | 自写 `resetForm(record)` | `formRef.value.validate()` |
+| Vue-ElementPlus | `ref(null)` 绑到 `<el-form ref="formRef">` | 自写 `resetForm(record)` | `formRef.value.validate()` |
+| Vue-Naive | `ref(null)` 绑到 `<n-form ref="formRef">` | 自写 `resetForm(record)` | `formRef.value.validate(callback)` |
 
-**关键细节**：
-- 编辑时编辑用户名框 **disabled**（用户名不可改）
-- 编辑时密码框留空 = 不修改密码（`help="留空表示不修改密码"`）
-- 新增/编辑共享同一个 Modal，通过 `editing` 状态区分（`null` = 新增，`record对象` = 编辑）
-- `resetForm()` 函数处理两种场景：传 record → 回填，不传 → 清空 + 默认值
+关键细节：
+
+- **新增和编辑共用一个 Modal**，靠 `editing` 区分：`null` = 新增，record 对象 = 编辑
+- **`resetForm()` 处理两种场景**：传 record 就回填，不传就清空并填默认值
+- **编辑时用户名框 disabled**，用户名不可改
+- **新增时才显示密码框**，编辑态直接不渲染这个字段（`{!isEdit && <Form.Item ...>}`）。改密码走独立的 `updatePassword` 接口
+- **Naive 的 `validate()` 是回调风格**，不返回 Promise，写法和另外三个不同
 
 ---
 
 ## 7. 样式规范
 
-### 7.1 先检查已有变量
+### 7.1 三件套分工
 
-在写任何样式之前，先读 `styles/global.css`。脚手架可能已有 CSS 变量定义。**有则扩展，无则新建。** 不要覆盖已有变量，只追加业务需要的。
+`<FE>/src/styles/` 下固定三个文件，四个前端一致：
 
-### 7.2 全局样式（styles/global.css）
+| 文件 | 作用域 | 引入位置 |
+|---|---|---|
+| `global.css` | CSS 变量（`:root`）+ 重置 + 登录/注册/404 等公开页 | `main.jsx` / `main.js` |
+| `admin.css` | 管理端布局与组件皮肤 | `layouts/AdminLayout.*` |
+| `user.css` | 用户端布局与组件皮肤 | `layouts/UserLayout.*` |
 
-```css
-:root {
-  --primary: #1890ff;
-  --primary-hover: #40a9ff;
-  --bg: #f5f5f5;
-  --bg-white: #ffffff;
-  --text: #333333;
-  --text-secondary: #666666;
-  --border: #e8e8e8;
-  --danger: #ff4d4f;
-  --success: #52c41a;
-}
+**新增样式按作用域归入这三个之一，不要建第四个全局 css。** 只有 `global.css` 含 `:root` 变量定义，另两份只能读变量。
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-}
-```
+### 7.2 CSS 变量：只有 `--color-*` 这一套
 
-规则：全局样式只放 CSS 变量 + body 基础 + 滚动条。**禁止**在这里写页面特有的样式。
+变量名统一是带前缀的形式，`global.css` 的 `:root` 里共 **35 个**，分 8 组：
+
+| 组 | 前缀 | 个数 |
+|---|---|---|
+| 主色色阶 | `--color-primary` / `-hover` / `-active` / `-bg` / `-bg-deep` | 5 |
+| 文字 | `--color-text` / `-sub` / `-mute` / `-disable` | 4 |
+| 背景与边框 | `--color-bg-page` / `-bg-card` / `-bg-hover` / `--color-border` / `-deep` | 5 |
+| 状态色 | `--color-success` / `-warning` / `-danger` | 3 |
+| 阴影 | `--shadow-sm` / `-md` / `-lg` | 3 |
+| 布局尺寸 | `--h-header` / `--h-footer` / `--w-sider` / `--w-sider-mini` / `--w-container` | 5 |
+| 圆角 | `--radius-sm` / `-md` / `-lg` | 3 |
+| 字体 | `--font-sans` + `--font-size-xs…xxl`（6 档）| 7 |
+
+**不存在 `--primary`、`--bg`、`--text`、`--text-secondary`、`--cta` 这些简写。** 写了不生效。改色方法见 `style-integration.md §3`。
+
+`global.css` 里除了变量，只放 body 基础、滚动条、公开页样式。**页面特有样式不写在这**。
 
 ### 7.3 页面样式
 
-- React：使用 CSS Module（`xxx.module.css`）或内联 style
-- Vue：使用 `<style scoped>`
-- 禁止内联 style 写复杂样式（超过 3 个属性就抽成 class）
+- **Vue**：`<style scoped>`
+- **React**：写进 `styles/admin.css` 或 `styles/user.css`。**脚手架里没有任何 `.module.css`**，不要新引入 CSS Module
+- 内联 style 超过 3 个属性就抽成 class。单属性的语义状态色（`color: '#52c41a'` 成功绿）内联是脚手架现状，可以照做
 
-### 7.4 脚手架约定 class 名称
+### 7.4 已有的约定 class
 
-以下 class 在所有脚手架页面中统一使用，**新增页面必须沿用**：
+以下 class 在 `global.css` 里已定义，**新增页面直接用，不要另起名字**：
 
-| class | 用途 | 示例 |
-|-------|------|------|
-| `.toolbar` | 表格上方的筛选工具栏 | `display:flex; gap:8px; margin-bottom:16px` |
-| `.table-actions` | 表格操作列的按钮容器 | `display:flex; gap:8px` |
-| `.card-header` | Card 头部的 flex 布局 | `display:flex; align-items:center; justify-content:space-between` |
-| `.btn-edit` | 编辑按钮样式 | 可选，统一视觉 |
-| `.btn-delete` | 删除按钮样式 | 可选，统一视觉 |
-| `.pagination-wrap` | 分页容器（ElementPlus 用） | `margin-top:16px; display:flex; justify-content:flex-end` |
+| class | 用途 |
+|---|---|
+| `.page` / `.page-title` | 页面容器 / 页面大标题 |
+| `.card` / `.section` | 卡片 / 分区间距 |
+| `.toolbar` / `.toolbar-right` | 表格上方筛选栏 / 栏内右对齐组 |
+| `.table-actions` | 表格操作列按钮容器 |
+| `.btn-edit` / `.btn-delete` | 编辑/删除按钮的描边配色 |
+| `.pagination-wrap` | 分页容器（右对齐） |
+| `.banner` | 用户端 Hero 区（渐变底白字） |
+| `.auth-screen` / `.auth-card` | 登录注册页外层 |
+| `.avatar-box` / `.avatar-box-tip` | 头像上传区 |
+| `.rich-editor-wrap` / `.rich-content` | 富文本编辑器 / 富文本正文展示 |
+| `.text-sub` / `.text-mute` | 次要文字 / 更淡的说明文字 |
+| `.text-ellipsis-2` | 两行截断 |
+| `.stack-16` / `.stack-24` / `.mb-8` / `.mb-16` / `.mb-24` | 间距工具类 |
 
-### 7.5 配色落地（来自风格选型）
+`admin.css` 里另有 `.a-` 前缀的一套布局 class（`.a-layout` `.a-sider` `.a-header` `.a-content` `.a-stat-grid` `.a-chart-grid` 等），`user.css` 里同样有 `.u-` 前缀的一套（`.u-layout` `.u-header` `.u-nav` `.u-content` 等）。**这两套是 Layout 专用的，业务页面不要引用。**
 
-阶段 1.5 风格选型完成后，将配色写入 CSS 变量。见 `style-integration.md §3`。
+`user.css` 里面向业务页面的是详情页与文字那几个（`.detail-page` `.detail-title` `.detail-subtitle` `.detail-section` `.section-title` `.text-primary` `.text-muted`），写用户端页面时直接用。react 版另有 `.home-hero` `.home-intro` 等首页专用 class，Vue 三版没有（首页样式写在 `<style scoped>` 里）。
+
+### 7.5 配色落地
+
+阶段 1.5 风格选型完成后改 `:root` 里主色那 5 个色阶，另有 ECharts 等 4 处硬编码要同步。完整步骤见 `style-integration.md §3`。
 
 ---
 
 ## 8. 注释规范（红线）
 
-### 8.1 禁止的注释
+### 8.1 禁止三类
 
-```js
-// ❌ JSDoc 块注释
-/**
- * 用户登录
- * @param {string} username - 用户名
- * @param {string} password - 密码
- */
-export const login = (username, password) => { ... }
+1. **带标签的完整 JSDoc** —— 有 `@param` / `@returns` / `@description` 的就是违规。函数签名已经说明了参数，标签是纯噪音
+2. **步骤编号注释** —— `// 1. 获取表单数据` `// 2. 校验表单` 这种把代码翻译一遍的清单
+3. **废话注释** —— `const token = localStorage.getItem('token') // 获取 token`
 
-// ❌ 步骤编号注释
-const handleLogin = async () => {
-  // 1. 获取表单数据
-  // 2. 校验表单
-  // 3. 调用登录接口
-  // 4. 保存 token
-  // 5. 跳转首页
-}
+**允许的是**：`api/*.js` 里每个函数上面一行块注释标用途（`/** 用户注册 */`），这是脚手架风格。区别在于**没有标签、只有一句人话**。
 
-// ❌ 废话注释
-const token = localStorage.getItem('token')  // 获取 token
-```
+### 8.2 什么值得注释
 
-### 8.2 允许的注释
+只注释"为什么"，不注释"是什么"。脚手架里的合格例子：
 
-```js
-// ✅ 非显而易见的逻辑才注释
-// 登录/注册时从 body 读用户名（此时还没有 token）
-const username = req.body.username
+- `// 走 store 的 logout 而不是直接摸 localStorage，避免 store 与本地存储不一致` —— 解释了为什么不用更直觉的写法
+- `// redirecting 防重入，避免多个并发请求同时 401 时弹出多个提示` —— 解释了一个看不出用途的变量
+- `// 前端只做菜单级屏蔽，真正的权限校验在后端` —— 交代了设计边界
+- `// 因为 Naive UI 的 useMessage 必须在 setup 内调用, 这里用 window 级提示` —— 解释了绕路的原因
 
-// ✅ 临时解决方案
-// FIXME: 当前用明文比对，后续替换为 BCrypt
-if (password !== user.password) { ... }
-```
+临时方案用 `FIXME:` 标明并写清原因（比如密码明文存储那处，脚手架目前没标，你可以自己补上）。**不要留 `TODO`**，要么做完要么删掉。脚手架全库目前 `TODO` / `FIXME` 数量都是 0，交付时也应该保持这个状态。
 
 ### 8.3 量化标准
 
 - 注释行数 ÷ 总行数 ≤ 3%
-- 一个文件超过 5 条注释 → 重写
+- 一个文件超过 5 条注释就该重新审视
 - API 文件可以 0 注释
 
 ---
@@ -1411,440 +586,77 @@ if (password !== user.password) { ... }
 
 | 类型 | 规范 | 示例 |
 |------|------|------|
-| 函数名 | 动词开头，camelCase | `fetchUserList`, `handleDelete`, `onSearch` |
-| 变量名 | 名词，camelCase | `userList`, `loading`, `selectedRowKeys` |
-| 常量 | UPPER_SNAKE_CASE | `PAGE_SIZE`, `MAX_FILE_SIZE` |
-| 组件名 | PascalCase | `UserManage`, `UserEditModal` |
-| 页面/组件文件名 | PascalCase，与组件同名 | `UserManage.vue`, `UserEditModal.jsx` |
-| 非组件文件名 | camelCase | `request.js`, `userStore.js`, `formatDate.js` |
+| 函数名 | 动词开头，camelCase | `fetchList`, `handleDelete`, `handleSubmit` |
+| 变量名 | 名词，camelCase | `list`, `loading`, `selectedIds` |
+| 常量 | UPPER_SNAKE_CASE | `PAGE_SIZE`, `GENDER_OPTIONS` |
+| 组件名 | PascalCase | `UserManage`, `AvatarUpload` |
+| 页面/组件文件名 | PascalCase，与组件同名 | `UserManage.vue`, `AvatarUpload.jsx` |
+| 非组件文件名 | camelCase | `request.js`, `userStore.js` |
 | 目录名 | 全小写单词 | `views/`, `admin/`, `components/` |
 | API 函数 | 动作+模块 | `pageQueryUser`, `deleteUserBatch` |
 
-**禁止**：
-- 拼音变量名（`yonghu` / `shuju`）
-- 单字母变量（`d` / `r` / `e`，forEach 的 `item` 除外）
-- 无意义缩写（`usrLst` / `btnClk`）
+脚手架的高频命名，新页面跟着用：`loading` `list` `total` `pageNum` `pageSize` `selectedIds` `modalVisible` `editing` `fetchList` `handleAdd` `handleEdit` `handleDelete` `handleSubmit`。
+
+**禁止**：拼音变量名（`yonghu`）、单字母变量（`d` `r`，`map`/`forEach` 的 `item` `i` 除外）、无意义缩写（`usrLst` `btnClk`）。
+
+**后端出口已统一转驼峰**，前端一律读 `createTime` / `updateTime` / `createBy`，不要写 `create_time`。
 
 ---
 
-## 10. Element Plus 特殊模式
+## 10. 四个 UI 库的 API 差异对照
 
-Element Plus 与 Ant Design Vue 的关键差异：
+写代码前先确认当前项目用哪个库（看 `package.json`），然后照这张表用对应写法。**混用会直接报错或样式错乱。**
 
-### 10.1 组件前缀和引入
+### 10.1 基础差异
 
-```vue
-<script setup>
-// 组件使用 el- 前缀（模板中：<el-card> <el-table> <el-button>）
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
-</script>
-```
+| | React + antd | Vue + antd | Vue + ElementPlus | Vue + NaiveUI |
+|---|---|---|---|---|
+| 组件前缀 | `<Card>` `<Table>` | `<a-card>` `<a-table>` | `<el-card>` `<el-table>` | `<n-card>` `<n-data-table>` |
+| 注册方式 | 直接 import | `app.use(Antd)` 全局 | `app.use(ElementPlus)` 全局 | **按需 import，无全局注册** |
+| 图标库 | `@ant-design/icons` | `@ant-design/icons-vue` | `@element-plus/icons-vue` | `@vicons/ionicons5` |
+| 图标用法 | `icon={<PlusOutlined />}` | `<template #icon>` | `<el-icon><Plus /></el-icon>` | `<n-icon><Add /></n-icon>` |
 
-### 10.2 消息提示
+### 10.2 消息提示与确认框
 
-```js
-// ✅ Element Plus 正确用法（不是 message.success）
-import { ElMessage, ElMessageBox } from 'element-plus'
-
-ElMessage.success('删除成功')
-ElMessage.warning('请先选择')
-ElMessage.error('操作失败')
-
-// ✅ 确认弹窗（不是 Modal.confirm）
-ElMessageBox.confirm('确定要删除吗？', '确认删除', {
-  type: 'warning',
-  confirmButtonText: '删除',
-  confirmButtonClass: 'el-button--danger'
-}).then(async () => {
-  await deleteUser(id)
-  ElMessage.success('删除成功')
-  fetchList()
-}).catch(() => {})   // 取消操作必须 catch
-```
+| | 成功提示 | 确认框 | 注意 |
+|---|---|---|---|
+| React + antd | `message.success('删除成功')` | `Modal.confirm({ ... onOk })` | 从 `antd` import |
+| Vue + antd | `message.success('删除成功')` | `Modal.confirm({ ... onOk })` | 从 `ant-design-vue` import |
+| Vue + ElementPlus | `ElMessage.success('删除成功')` | `ElMessageBox.confirm(内容, 标题, opts).then().catch()` | **取消操作必须 `.catch(() => {})`**，否则控制台报未捕获异常 |
+| Vue + NaiveUI | `message.success('删除成功')`，`message` 来自 `useMessage()` | `dialog.warning({ ... onPositiveClick })` | **`useMessage()` / `useDialog()` 必须在 setup 内调用** |
 
 ### 10.3 表格分页
 
-```vue
-<!-- Element Plus 分页是独立组件，放在表格下方 -->
-<el-pagination
-  v-model:current-page="pageNum"
-  :page-size="pageSize"
-  :total="total"
-  layout="total, prev, pager, next"
-  background
-  @current-change="fetchList"
-/>
+| | 写法 |
+|---|---|
+| antd 系（React/Vue） | Table 的 `pagination` prop 传对象：`{ current, pageSize, total, onChange }` |
+| ElementPlus | **独立组件** `<el-pagination>` 放表格下方，套在 `.pagination-wrap` 里，`@current-change` 触发重查 |
+| NaiveUI | `<n-data-table>` 的 `pagination` prop（computed 对象）+ **必须加 `remote`**，表示后端分页而非前端切片 |
 
-<!-- 包裹在 .pagination-wrap 容器中 -->
-<div class="pagination-wrap">
-  <el-pagination ... />
-</div>
-```
+### 10.4 表格列定义
 
-### 10.4 表单校验
+antd 系和 ElementPlus 用模板/JSX 写自定义列内容。**NaiveUI 的 columns 是纯 JS 数组，自定义内容要用 `render` + `h()` 函数**：
 
-```js
-// Element Plus 的 rules 是 computed（响应式）
-const rules = computed(() => ({
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: editing.value ? [] : [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  phone: [{ pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' }],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
-}))
-```
+- 选择列写 `{ type: 'selection' }`
+- 序号列用 `render: (_r, i) => (pageNum.value - 1) * pageSize + i + 1`
+- Tag 列用 `render: (row) => h(NTag, { type: ... }, () => 文本)`
+- 操作列用 `render: (row) => h('div', { class: 'table-actions' }, [h(NButton, {...}, () => '编辑'), ...])`，并加 `fixed: 'right'`
 
-### 10.5 图标使用
+用到的组件（`NTag` `NButton`）要在 `<script setup>` 里 import 进来，`h()` 也要从 `vue` import。
 
-```vue
-<!-- Element Plus 图标是组件，不是 template #icon -->
-<el-button type="primary" @click="handleAdd">
-  <el-icon><Plus /></el-icon> 添加
-</el-button>
+### 10.5 表单校验
 
-<!-- 引入 -->
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
-```
+| | rules 定义 | 触发校验 |
+|---|---|---|
+| React + antd | 写在 `<Form.Item rules={[...]}>` 上 | `form.validateFields()`，返回 Promise |
+| Vue + antd | 对象或 `ref`，绑 `<a-form :rules>` | `formRef.value.validate()`，返回 Promise |
+| Vue + ElementPlus | **`computed(() => ({...}))`**，因为规则可能随 `editing` 变 | `formRef.value.validate()`，返回 Promise |
+| Vue + NaiveUI | 对象，绑 `<n-form :rules>` | **`formRef.value.validate((errors) => {...})`，回调式不返回 Promise** |
 
----
+ElementPlus 用 computed 是为了让密码字段在编辑态变成非必填（`editing.value ? [] : [{ required: true }]`）。
 
-## 11. Naive UI 特殊模式
+### 10.6 Naive UI 的 window 全局实例
 
-Naive UI 与 Ant Design Vue / Element Plus 的核心差异：
+`useMessage()` 在 `api/request.js` 里调不了（非 setup 上下文）。脚手架的解法是一个隐藏组件 `components/GlobalApi.vue`：它挂在 `App.vue` 的 provider 树里，在自己的 setup 里调 `useMessage()` / `useDialog()` / `useNotification()` / `useLoadingBar()`，然后挂到 `window.$message` 等四个全局变量上。
 
-### 11.1 组件引入方式
-
-```vue
-<script setup>
-import { h } from 'vue'
-import {
-  NCard, NButton, NSpace, NInput, NSelect, NModal, NForm, NFormItem,
-  NInputNumber, NDataTable, NTag, NGrid, NGi, useMessage, useDialog
-} from 'naive-ui'
-</script>
-```
-
-**Naive UI 特征**：
-- 组件以 `N` 开头（`n-card`、`n-button`、`n-data-table`）
-- **按需引入**，不使用全局注册
-- 无独立图标库，图标内建在组件中或使用内联 SVG
-
-### 11.2 消息提示（useMessage / useDialog）
-
-```js
-// ⚠️ Naive UI 的 useMessage 和 useDialog 必须在 setup 内调用
-const message = useMessage()
-const dialog = useDialog()
-
-// 使用方式
-message.success('删除成功')
-message.warning('请先选择')
-message.error('操作失败')
-
-// 确认弹窗
-dialog.warning({
-  title: '确认删除',
-  content: '确定要删除吗？',
-  positiveText: '删除',
-  negativeText: '取消',
-  onPositiveClick: async () => {
-    await deleteUser(id)
-    message.success('删除成功')
-    fetchList()
-  }
-})
-```
-
-### 11.3 表格（NDataTable）
-
-Naive UI 的表格列定义使用 `render` 函数 + `h()`：
-
-```js
-const columns = [
-  { type: 'selection' },
-  {
-    title: '序号', key: 'idx', width: 70,
-    render: (_r, i) => (pageNum.value - 1) * pageSize + i + 1
-  },
-  {
-    title: '角色', key: 'role', width: 110,
-    render: (row) => h(NTag, { type: row.role === 'admin' ? 'error' : 'success' },
-      () => row.role === 'admin' ? '管理员' : '普通用户'
-    )
-  },
-  {
-    title: '操作', key: 'op', width: 180, fixed: 'right',
-    render: (row) => h('div', { class: 'table-actions' }, [
-      h(NButton, { size: 'small', type: 'primary', secondary: true, onClick: () => handleEdit(row) }, () => '编辑'),
-      h(NButton, { size: 'small', type: 'error', secondary: true, onClick: () => handleDelete(row.id) }, () => '删除')
-    ])
-  }
-]
-```
-
-### 11.4 表格分页
-
-```js
-// Naive UI 分页是表格的 prop（不是独立组件）
-const pagination = computed(() => ({
-  page: pageNum.value,
-  pageSize,
-  itemCount: total.value,
-  showSizePicker: false,
-  prefix: ({ itemCount }) => `共 ${itemCount} 条`,
-  onChange: (p) => { pageNum.value = p; fetchList() }
-}))
-
-// 在模板中
-<n-data-table :pagination="pagination" remote />
-```
-
-**注意**：`remote` 属性表示分页由后端控制（不是前端分页）。
-
-### 11.5 表单校验
-
-```js
-// Naive UI 的 form validate 是回调式（不是 async/await）
-const handleSubmit = () => {
-  formRef.value.validate((errors) => {
-    if (errors) return
-    // 校验通过...
-  })
-}
-```
-
-### 11.6 request.js 中的 window 全局
-
-Naive UI 的 `useMessage` 不能在 request.js（非 setup 上下文）中调用，脚手架使用 `window.$message` 全局实例：
-
-```js
-// api/request.js 中
-const notifyError = (msg) => {
-  if (window.$message) window.$message.error(msg)
-  else console.error(msg)
-}
-```
-
-这需要在 `main.js` 中挂载全局实例，脚手架已处理好，**不要改动**。
-
----
-
-## 12. uni-app 特殊模式（H5 + 小程序跨端）
-
-uni-app 使用 Vue 语法但有自己的组件库和 API。
-
-### 12.1 目录结构
-
-```
-src/
-├── api/           ← 同 Vue 前端，使用 @/ 别名
-├── pages/         ← 页面（按功能分目录，每个目录一个 .vue）
-├── components/    ← 公共组件
-├── store/         ← Pinia Store（同 Vue 用法）
-├── config/        ← API 地址等配置
-├── static/        ← 静态资源
-├── pages.json     ← 路由配置（替代 router/index.js）
-└── manifest.json  ← 应用配置
-```
-
-### 12.2 关键差异
-
-| 差异点 | 说明 |
-|--------|------|
-| 路由 | 不用 Vue Router，在 `pages.json` 中配置 `pages` 数组，tabBar 在 `tabBar` 节点配置 |
-| 组件 | 使用 uni-app 内置组件：`<view>` / `<text>` / `<image>` / `<navigator>`，不能用 `<div>` / `<span>` / `<a>` |
-| CSS 单位 | 用 `rpx`（750rpx = 屏幕宽度），不用 `px` |
-| API 调用 | 小程序环境不支持 `axios`，用 uni-app 内置的 `uni.request()` |
-| Store | Pinia 用法与 Vue 完全相同（`@/stores/user`），注册在 `main.js` |
-| 条件编译 | `#ifdef H5` / `#ifdef MP-WEIXIN` / `#endif` 区分平台 |
-
-### 12.3 request.js 模板
-
-```js
-// api/request.js
-const BASE_URL = 'http://localhost:8080/api';
-
-const request = (url, method = 'GET', data = null) => {
-  const token = uni.getStorageSync('token');
-  const header = {};
-  if (token) header['Authorization'] = `Bearer ${token}`;
-
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: BASE_URL + url,
-      method,
-      header,
-      data,
-      timeout: 10000,
-      success(res) {
-        if (res.data.code === 200) {
-          resolve(res.data);
-        } else if (res.data.code === 401) {
-          uni.removeStorageSync('token');
-          uni.removeStorageSync('userInfo');
-          uni.reLaunch({ url: '/pages/login/index' });
-          reject(new Error(res.data.message));
-        } else {
-          uni.showToast({ title: res.data.message || '请求失败', icon: 'none' });
-          reject(new Error(res.data.message));
-        }
-      },
-      fail(err) {
-        uni.showToast({ title: '网络连接失败', icon: 'none' });
-        reject(err);
-      }
-    });
-  });
-};
-
-export default {
-  get: (url, data) => request(url, 'GET', data),
-  post: (url, data) => request(url, 'POST', data),
-  put: (url, data) => request(url, 'PUT', data),
-  delete: (url, data) => request(url, 'DELETE', data)
-};
-```
-
-### 12.4 页面模板
-
-```vue
-<!-- pages/notice/detail.vue -->
-<template>
-  <view class="detail-page">
-    <view class="detail-title">{{ detail.title }}</view>
-    <view class="detail-time">发布于 {{ detail.createTime }}</view>
-    <rich-text :nodes="detail.content"></rich-text>
-  </view>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
-import { getById } from '@/api/notice';
-
-const detail = ref(null);
-onLoad((options) => {
-  getById(options.id).then(res => { detail.value = res.data; });
-});
-</script>
-```
-
-### 12.5 uni-app 规则
-
-- 页面必须是 `<view>` / `<text>` / `<image>` 系列，不能用 HTML 标签
-- 单位用 `rpx`，1rpx = 屏幕宽度/750
-- 小程序环境不支持 `document` / `window` 等 Web API
-- 页面生命周期：`onLoad` / `onShow` / `onReady`（替代 mounted）
-- 图片用 `<image mode="aspectFill">`，不能直接设宽高不设 mode
-
----
-
-## 13. wxapp 原生小程序特殊模式
-
-### 13.1 目录结构
-
-```
-├── app.js          ← 全局入口，初始化 token
-├── app.json        ← 页面注册 + 窗口配置
-├── app.wxss        ← 全局样式（rpx 单位）
-├── config/         ← index.js（API 地址 + 上传文件地址）
-├── api/            ← 封装 wx.request（引用 config）
-├── utils/          ← store.js（wx.getStorageSync 管理 token）
-├── static/         ← 静态资源（默认头像等）
-└── pages/          ← 每个页面一个目录（.wxml + .js + .json + .wxss）
-```
-
-### 13.1.1 配置文件
-
-```js
-// config/index.js — 切换后端只需改端口
-const BASE_URL = 'http://localhost:8084/api'
-const UPLOAD_BASE = 'http://localhost:8084/uploads'
-
-module.exports = { BASE_URL, UPLOAD_BASE }
-```
-
-### 13.1.2 图片 URL 处理
-
-小程序不能用相对路径访问后端上传的文件，需要拼接完整 URL：
-
-```js
-const { UPLOAD_BASE } = require('../../config/index');
-// 后端返回 /uploads/2024-01-01/xxx.jpg
-// 小程序需要 http://localhost:8084/uploads/2024-01-01/xxx.jpg
-const fullUrl = UPLOAD_BASE + '/' + record.avatar.replace('/uploads/', '');
-```
-
-### 13.2 request.js 模板
-
-```js
-const BASE_URL = 'http://localhost:8080/api';
-
-const request = (url, method = 'GET', data = null) => {
-  const token = wx.getStorageSync('token');
-  const header = { 'Content-Type': 'application/json' };
-  if (token) header['Authorization'] = `Bearer ${token}`;
-
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: BASE_URL + url, method, header, data, timeout: 10000,
-      success(res) {
-        if (res.data.code === 200) {
-          resolve(res.data);
-        } else if (res.data.code === 401) {
-          wx.removeStorageSync('token');
-          wx.removeStorageSync('userInfo');
-          wx.reLaunch({ url: '/pages/login/login' });
-          reject(new Error(res.data.message));
-        } else {
-          wx.showToast({ title: res.data.message || '请求失败', icon: 'none' });
-          reject(new Error(res.data.message));
-        }
-      },
-      fail(err) {
-        wx.showToast({ title: '网络连接失败', icon: 'none' });
-        reject(err);
-      }
-    });
-  });
-};
-
-module.exports = { get, post, put, delete };
-```
-
-### 13.3 页面模板
-
-```xml
-<!-- pages/notice/notice.wxml -->
-<view class="container">
-  <view wx:if="{{detail}}" class="card">
-    <view class="detail-title">{{detail.title}}</view>
-    <view class="detail-time">发布于 {{detail.createTime}}</view>
-    <rich-text nodes="{{detail.content}}"></rich-text>
-  </view>
-</view>
-```
-
-```js
-// pages/notice/notice.js
-const api = require('../../api/notice');
-
-Page({
-  data: { detail: null },
-  onLoad(options) {
-    api.getById(options.id).then(res => {
-      this.setData({ detail: res.data });
-    });
-  }
-});
-```
-
-### 13.4 wxapp 规则
-
-- 页面是 `.wxml` + `.js` + `.json` + `.wxss` 四件套，**缺一不可**
-- 样式单位用 `rpx`（750rpx = 屏幕宽度）
-- 状态管理用 `wx.getStorageSync` / `wx.setStorageSync`，**没有 Pinia/Zustand**
-- 跳转用 `wx.navigateTo`（保留栈）或 `wx.reLaunch`（清空栈）
-- 页面间传参通过 URL query：`/pages/notice/notice?id=1`
-- `module.exports` 导出（不用 ES module）
-- 不能用 `axios`、`localStorage`、`document`
+`request.js` 里通过 `window.$message` 和 `window.$loadingBar?.` 使用。**这套机制已配好，不要改动，也不要以为它挂在 `main.js` 里。**

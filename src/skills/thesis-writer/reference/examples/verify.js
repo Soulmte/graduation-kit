@@ -338,7 +338,7 @@ checkFontScaling()
 // --- 额外校验：offset / 各种 side 组合下端点仍然贴边 ---
 checkOffsetAdhesion()
 
-// --- 额外校验：连线标签的白底遮罩是否瞎掉了节点轮廓 ---
+// --- 额外校验：连线标签的白底遮罩是否盖掉了节点轮廓 ---
 checkLabelOverlap()
 
 if (warns.length) {
@@ -508,7 +508,7 @@ function checkOffsetAdhesion() {
   }
 }
 /**
- * 连线标签带白底遮罩（防止压线），但遮罩落到节点上时会瞎掉一段轮廓。
+ * 连线标签带白底遮罩（防止压线），但遮罩落到节点上时会盖掉一段轮廓。
  * 按真实形状判定（椭圆/菱形不能用包围盒，否则大量误报）。
  */
 function checkLabelOverlap() {
@@ -549,7 +549,7 @@ function checkLabelOverlap() {
         }
         const inside = probes.filter(p => gapTo(p, box, shape) < -1.5)
         if (inside.length) {
-          bad.push(`${l.id} 的标签遮罩瞎掉 ${n.id} 的轮廓`)
+          bad.push(`${l.id} 的标签遮罩盖掉 ${n.id} 的轮廓`)
           break
         }
       }

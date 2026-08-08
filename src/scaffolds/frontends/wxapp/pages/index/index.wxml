@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="card" wx:if="{{userInfo}}">
+    <view style="display:flex;align-items:center">
+      <image src="{{avatarUrl}}" style="width:80rpx;height:80rpx;border-radius:50%;margin-right:20rpx" mode="aspectFill" />
+      <view>
+        <view style="font-size:32rpx;font-weight:600">{{userInfo.nickname || userInfo.username}}</view>
+        <view style="font-size:24rpx;color:#999">{{userInfo.role === 'admin' ? '管理员' : '普通用户'}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{!userInfo}}">
+    <view style="text-align:center;padding:40rpx 0">
+      <view style="font-size:32rpx;color:#999;margin-bottom:16rpx">未登录</view>
+      <navigator url="/pages/login/login" style="color:#1890ff">点击登录</navigator>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-title">公告列表</view>
+    <block wx:if="{{list.length > 0}}">
+      <view class="notice-item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="notice-title">{{item.title}}</view>
+        <view class="notice-desc">{{item.content}}</view>
+        <view class="notice-time">{{item.createTime}}</view>
+      </view>
+    </block>
+    <view wx:else style="text-align:center;padding:60rpx 0;color:#ccc">暂无公告</view>
+  </view>
+
+  <view style="display:flex;gap:24rpx;margin-top:24rpx" wx:if="{{userInfo}}">
+    <navigator url="/pages/profile/profile" class="card" style="flex:1;text-align:center;padding:24rpx">
+      <view style="font-size:26rpx;color:#666">个人信息</view>
+    </navigator>
+    <view class="card" style="flex:1;text-align:center;padding:24rpx" bindtap="handleLogout">
+      <view style="font-size:26rpx;color:#ff4d4f">退出登录</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="card">
+    <view class="avatar-wrap">
+      <image class="avatar" src="{{avatarUrl}}" mode="aspectFill" />
+    </view>
+
+    <view class="section-title">基本信息</view>
+    <view class="input-group">
+      <label>用户名</label>
+      <input value="{{userInfo.username}}" disabled />
+    </view>
+    <view class="input-group">
+      <label>昵称</label>
+      <input placeholder="请输入昵称" bindinput="onInput" data-field="nickname" value="{{nickname}}" />
+    </view>
+    <view class="input-group">
+      <label>手机号</label>
+      <input placeholder="请输入手机号" bindinput="onInput" data-field="phone" value="{{phone}}" />
+    </view>
+    <view class="input-group">
+      <label>邮箱</label>
+      <input placeholder="请输入邮箱" bindinput="onInput" data-field="email" value="{{email}}" />
+    </view>
+
+    <button class="btn-primary" loading="{{loading}}" bindtap="handleSave">保存修改</button>
+
+    <view class="section-title">安全设置</view>
+    <button class="btn-plain" bindtap="openPwd">修改密码</button>
+  </view>
+
+  <view wx:if="{{pwdVisible}}" class="mask" bindtap="closePwd">
+    <view class="dialog" catchtap="noop">
+      <view class="dialog-title">修改密码</view>
+      <input class="dialog-input" placeholder="原密码" password bindinput="onPwdInput" data-field="oldPassword" value="{{oldPassword}}" />
+      <input class="dialog-input" placeholder="新密码（6-20 位）" password bindinput="onPwdInput" data-field="newPassword" value="{{newPassword}}" />
+      <input class="dialog-input" placeholder="确认新密码" password bindinput="onPwdInput" data-field="confirmPassword" value="{{confirmPassword}}" />
+      <view class="dialog-actions">
+        <button class="btn-plain" bindtap="closePwd">取消</button>
+        <button class="btn-primary" loading="{{pwdLoading}}" bindtap="handleUpdatePassword">确定</button>
+      </view>
+    </view>
+  </view>
+</view>

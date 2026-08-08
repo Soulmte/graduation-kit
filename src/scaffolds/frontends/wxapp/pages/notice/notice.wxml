@@ -1,0 +1,10 @@
+<view class="container">
+  <view wx:if="{{detail}}" class="card">
+    <view class="detail-title">{{detail.title}}</view>
+    <view class="detail-time">发布于 {{detail.createTime}}</view>
+    <rich-text nodes="{{detail.content}}"></rich-text>
+  </view>
+  <view wx:else style="text-align:center;padding:100rpx 0;color:#ccc">
+    {{loading ? '加载中...' : '公告不存在'}}
+  </view>
+</view>

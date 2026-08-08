@@ -1,0 +1,394 @@
+/* ============================================================
+ * 全局设计令牌 + 公共样式类
+ * 与 React/Vue-Antd 两端保持 1:1 视觉一致
+ * 主题: 蓝白配色, 简洁大气
+ * ============================================================ */
+
+:root {
+  /* 品牌色 */
+  --color-primary: #1890ff;
+  --color-primary-hover: #40a9ff;
+  --color-primary-active: #096dd9;
+  --color-primary-bg: #e6f4ff;
+  --color-primary-bg-deep: #bae0ff;
+
+  /* 文字 */
+  --color-text: #262626;
+  --color-text-sub: #595959;
+  --color-text-mute: #8c8c8c;
+  --color-text-disable: #bfbfbf;
+
+  /* 背景/边框 */
+  --color-bg-page: #f5f7fa;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f5f7fa;
+  --color-border: #f0f0f0;
+  --color-border-deep: #d9d9d9;
+
+  /* 状态色 */
+  --color-success: #52c41a;
+  --color-warning: #faad14;
+  --color-danger: #ff4d4f;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 21, 41, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 21, 41, 0.08);
+  --shadow-lg: 0 6px 16px rgba(0, 21, 41, 0.12);
+
+  /* 布局 */
+  --h-header: 64px;
+  --h-footer: 56px;
+  --w-sider: 220px;
+  --w-sider-mini: 64px;
+  --w-container: 1280px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* 字体 */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 28px;
+
+  /* 覆盖 Element Plus 主色变量 */
+  --el-color-primary: #1890ff;
+  --el-color-primary-light-3: #40a9ff;
+  --el-color-primary-light-5: #69c0ff;
+  --el-color-primary-light-7: #91d5ff;
+  --el-color-primary-light-9: #e6f4ff;
+  --el-color-primary-dark-2: #096dd9;
+}
+
+/* ---------- 基础重置 ---------- */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
+  background: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+ * 公共工具类
+ * ============================================================ */
+
+.page-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.toolbar-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.pagination-wrap {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.stack-16 > * + * {
+  margin-top: 16px;
+}
+.stack-24 > * + * {
+  margin-top: 24px;
+}
+
+/* 欢迎横幅(蓝色渐变) */
+.banner {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  box-shadow: var(--shadow-md);
+}
+.banner h1 {
+  margin: 0 0 12px;
+  font-size: var(--font-size-xxl);
+  font-weight: 700;
+}
+.banner p {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  opacity: 0.92;
+}
+
+/* 登录注册 */
+.auth-screen {
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(24, 144, 255, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(24, 144, 255, 0.08), transparent 40%),
+    var(--color-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.auth-card {
+  width: 400px;
+  max-width: 100%;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 32px;
+}
+.auth-brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.auth-brand-mark {
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+  margin: 0 auto 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+.auth-brand-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.auth-footer {
+  text-align: center;
+  color: var(--color-text-sub);
+  font-size: var(--font-size-md);
+}
+
+/* 头像展示区 */
+.avatar-box {
+  text-align: center;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 24px;
+}
+.avatar-box-tip {
+  margin-top: 12px;
+  color: var(--color-text-mute);
+  font-size: var(--font-size-sm);
+}
+
+/* 文本工具 */
+.text-ellipsis-2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.text-mute {
+  color: var(--color-text-mute);
+}
+.text-sub {
+  color: var(--color-text-sub);
+}
+
+/* ============================================================
+ * 表格操作列按钮 (Element Plus 版)
+ * ============================================================ */
+.table-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.btn-edit.el-button {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: #fff;
+}
+.btn-edit.el-button:hover,
+.btn-edit.el-button:focus {
+  color: #fff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.btn-delete.el-button {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: #fff;
+}
+.btn-delete.el-button:hover,
+.btn-delete.el-button:focus {
+  color: #fff;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* ============================================================
+ * 富文本编辑器容器
+ * ============================================================ */
+.rich-editor-wrap {
+  border: 1px solid var(--color-border-deep);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.rich-editor-toolbar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+/* ============================================================
+ * 富文本展示(公告详情)
+ * ============================================================ */
+.rich-content {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  line-height: 1.8;
+  word-break: break-word;
+}
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4,
+.rich-content h5 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.rich-content h1 {
+  font-size: 24px;
+}
+.rich-content h2 {
+  font-size: 20px;
+}
+.rich-content h3 {
+  font-size: 18px;
+}
+.rich-content h4 {
+  font-size: 16px;
+}
+.rich-content p {
+  margin: 0 0 12px;
+}
+.rich-content ul,
+.rich-content ol {
+  padding-left: 24px;
+  margin: 0 0 12px;
+}
+.rich-content li {
+  margin-bottom: 4px;
+}
+.rich-content a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.rich-content a:hover {
+  text-decoration: underline;
+}
+.rich-content blockquote {
+  margin: 12px 0;
+  padding: 8px 16px;
+  border-left: 4px solid var(--color-primary);
+  background: var(--color-primary-bg);
+  color: var(--color-text-sub);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.rich-content code {
+  padding: 2px 6px;
+  background: #f5f5f5;
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+}
+.rich-content pre {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+.rich-content pre code {
+  padding: 0;
+  background: transparent;
+}
+.rich-content img {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  margin: 8px 0;
+}
+.rich-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+.rich-content table th,
+.rich-content table td {
+  border: 1px solid var(--color-border-deep);
+  padding: 8px 12px;
+}
+.rich-content table th {
+  background: var(--color-primary-bg);
+  font-weight: 600;
+}
+
+/* ============================================================
+ * NProgress 进度条样式覆盖
+ * ============================================================ */
+#nprogress .bar {
+  background: var(--color-primary) !important;
+  height: 3px !important;
+}
+#nprogress .peg {
+  box-shadow:
+    0 0 10px var(--color-primary),
+    0 0 5px var(--color-primary) !important;
+}

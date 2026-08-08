@@ -1,0 +1,52 @@
+# 服务器配置
+server:
+  port: 8080
+
+# 数据源配置
+spring:
+  application:
+    name: springboot-scaffold
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/scaffold_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: __DB_PASSWORD__
+  # Jackson时间格式化
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+  # 文件上传
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
+# MyBatis-Plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# JWT配置
+jwt:
+  secret: your-secret-key-at-least-256-bits-long-for-hs256-algorithm
+  expiration: 86400000
+
+# 文件上传路径
+file:
+  upload:
+    path: ../../uploads
+    url-prefix: /uploads
+    max-size: 10485760
+
+# 日志配置
+logging:
+  level:
+    com.example: info

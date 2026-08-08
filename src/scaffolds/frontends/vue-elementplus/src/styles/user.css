@@ -1,0 +1,156 @@
+/* ============================================================
+ * 用户端布局专用样式 (Element Plus)
+ * 只包含 Layout 级别的复用 (顶栏/菜单/容器/页脚占位)
+ * 各业务页面的私有样式放到对应 .vue 文件的 <style scoped>
+ * ============================================================ */
+
+.u-layout {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.u-header.el-header {
+  background: var(--color-bg-card);
+  padding: 0;
+  height: var(--h-header);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.u-header-inner {
+  max-width: var(--w-container);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 40px;
+}
+
+.u-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.u-logo-mark {
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.u-logo-text {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.u-nav.el-menu--horizontal {
+  flex: 1;
+  background: transparent;
+  border-bottom: 0 !important;
+  min-width: 0;
+}
+.u-nav.el-menu--horizontal > .el-menu-item {
+  color: var(--color-text-sub);
+  padding: 4px 10px;
+  margin: 0 4px;
+  height: auto;
+  line-height: 1.5;
+  border-radius: var(--radius-sm);
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.u-nav.el-menu--horizontal > .el-menu-item.is-active {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  font-weight: 500;
+  border-bottom-color: transparent !important;
+}
+.u-nav.el-menu--horizontal > .el-menu-item:hover {
+  color: var(--color-primary);
+  background: var(--color-bg-hover);
+  border-bottom-color: transparent !important;
+}
+
+.u-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.u-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.u-user:hover {
+  background: var(--color-bg-hover);
+}
+.u-user-name {
+  color: var(--color-text);
+}
+
+.u-content.el-main {
+  padding: 24px;
+  min-height: calc(100vh - var(--h-header) - var(--h-footer));
+  background: var(--color-bg-page);
+}
+.u-content-inner {
+  max-width: var(--w-container);
+  margin: 0 auto;
+}
+
+.u-footer-slot.el-footer {
+  padding: 0;
+  height: auto;
+  background: transparent;
+}
+
+.detail-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.detail-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  margin: 0 0 4px;
+}
+.detail-subtitle {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin: 0 0 24px;
+}
+.detail-section {
+  margin-bottom: 16px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--el-border-color);
+}
+.text-primary {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.text-muted {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}

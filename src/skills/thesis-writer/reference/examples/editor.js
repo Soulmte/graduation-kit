@@ -1011,8 +1011,8 @@ function snapToGrid() {
   say(`已对齐到 ${GRID}px 网格`)
 }
 
-// ===== 撑销 / 重做 =====
-/** 整体快照：节点与连线全量克隆，使增/删也可撑销 */
+// ===== 撤销 / 重做 =====
+/** 整体快照：节点与连线全量克隆，使增/删也可撤销 */
 function captureState() {
   return {
     nodes: (spec.nodes || []).map(n => Object.assign({}, n)),
@@ -1323,7 +1323,7 @@ function linkSelection() {
   say(`已新建 ${made.length} 条连线`)
 }
 
-/** 面板控件绑定；连续输入合并为一次撑销步 */
+/** 面板控件绑定；连续输入合并为一次撤销步 */
 /** 多选时会批量应用的字段（坐标类不批量，否则元素会重叠） */
 const BULK_KEYS = ['fontSize', 'lineWidth', 'w', 'h', 'bold', 'underline']
 
