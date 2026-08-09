@@ -32,6 +32,9 @@
     "NOTICE.md"
   ],
   "scripts": {
-    "test": "node bin/cli.js doctor"
+    "test": "node bin/cli.js doctor && node scripts/smoke.js",
+    "doctor": "node bin/cli.js doctor",
+    "smoke": "node scripts/smoke.js",
+    "scaffolds": "node bin/cli.js create --list"
   }
 }

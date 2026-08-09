@@ -11,8 +11,8 @@ export const BACKENDS = [
   { id: 'express', label: 'Express 4', port: 8081, lang: 'Node.js + mysql2', ready: true },
   { id: 'flask', label: 'Flask 3', port: 8082, lang: 'Python + PyMySQL', ready: true },
   { id: 'fastapi', label: 'FastAPI', port: 8083, lang: 'Python 异步', ready: false },
-  { id: 'go', label: 'Gin', port: 8084, lang: 'Go', ready: false },
-  { id: 'dotnet', label: 'ASP.NET Core', port: 8085, lang: 'C#', ready: false },
+  { id: 'go', label: 'Gin', port: 8084, lang: 'Go 1.21 + database/sql', ready: true },
+  { id: 'dotnet', label: 'ASP.NET Core', port: 8085, lang: 'C# / .NET 10 + MySql.Data', ready: true },
 ];
 
 /** 可用前端。kind 决定端口改写方式 */
@@ -72,6 +72,8 @@ export function patchBackend(dir, backend, db) {
     'src/config/upload.js': [["'../../uploads'", "'../uploads'"]],
     'src/app.js': [["'../../../uploads'", "'../../uploads'"]],
     'src/services/fileService.js': [["'../../../../uploads'", "'../../../uploads'"]],
+    'config/upload.go': [['"../../uploads"', '"../uploads"']],
+    'Config/UploadConfig.cs': [['"../../uploads"', '"../uploads"']],
   })) {
     if (replaceInFile(join(dir, ...rel.split('/')), edits)) changed.push(rel);
   }

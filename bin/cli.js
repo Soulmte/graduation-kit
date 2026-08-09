@@ -275,15 +275,18 @@ install 专属：
   -o, --only <a,b>      只处理指定 skill（跳过上游询问）
 
 create 专属（全部给出则跳过向导，适合脚本）：
+  -l, --list            只列出可选脚手架与端口，不创建
       --be <id>         后端，只能一个：springboot | express | flask
+                                      | go | dotnet
       --fe <a,b>        前端，可多个：react | vue-elementplus | vue-antd
                                     | vue-naive | uniapp | wxapp
-      --db <name>       数据库名（默认 scaffold_db）
-      --db-pass <pwd>   MySQL root 密码
+      --db <name>       数据库名（默认 scaffold_db，生成的 SQL 同名）
+      --db-pass <pwd>   MySQL root 密码，会写进后端配置
       --no-skills       不安装 skills，只要脚手架
 
 例：
   npx github:Soulmte/graduation-kit create
+  npx github:Soulmte/graduation-kit create --list
   npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
   npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
   npx github:Soulmte/graduation-kit install -g

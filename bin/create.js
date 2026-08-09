@@ -62,6 +62,9 @@ const RUN_HINT = {
   springboot: 'mvn spring-boot:run',
   express: 'npm install && npm run dev',
   flask: 'pip install -r requirements.txt && python app.py',
+  fastapi: 'pip install -r requirements.txt && python app.py',
+  go: 'go mod tidy && go run .',
+  dotnet: 'dotnet restore && dotnet run',
 };
 const FE_HINT = {
   vite: 'npm install && npm run dev',
