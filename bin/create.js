@@ -17,6 +17,9 @@ const line = (s = '') => console.log(s);
 const ok = (s) => line(`${paint('green', '✓')} ${s}`);
 const warn = (s) => line(`${paint('yellow', '!')} ${s}`);
 
+/** 脚手架条目转 select/multiselect 选项：原字段照留，附加右侧灰色注解 */
+const toItem = (s, note) => ({ ...s, note });
+
 const RUN_HINT = {
   springboot: 'mvn spring-boot:run',
   express: 'npm install && npm run dev',
