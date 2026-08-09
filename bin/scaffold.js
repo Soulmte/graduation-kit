@@ -99,13 +99,17 @@ export function patchFrontend(dir, frontend, port) {
   return changed;
 }
 
+/** SQL 文件名跟随库名，一个项目一眼能看出建的是哪个库 */
+export function sqlFileName(dbName) {
+  return `${dbName}.sql`;
+}
+
 /** SQL 里的库名跟随用户选择。反引号标识符与注释里的名字一起换 */
 export function patchSql(file, dbName) {
-  if (dbName === 'scaffold_db') return false;
   return replaceInFile(file, [
     ['`scaffold_db`', `\`${dbName}\``],
     ['数据库：scaffold_db', `数据库：${dbName}`],
-    ['< scaffold_db.sql', '< docs/scaffold_db.sql'],
+    ['< scaffold_db.sql', `< docs/${sqlFileName(dbName)}`],
   ]);
 }
 

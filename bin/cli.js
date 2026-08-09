@@ -258,11 +258,11 @@ const HELP = `
 graduation-kit — 毕业设计一件套 agent skills
 
 用法：
-  npx graduation-kit create [名称]      分步向导：脚手架 + SQL + skills
-  npx graduation-kit install [选项]     只安装 skills 到 .agents/skills/
-  npx graduation-kit list               列出包内 skill
-  npx graduation-kit uninstall [选项]   移除已安装的 skill
-  npx graduation-kit doctor             校验 frontmatter 规范
+  npx github:Soulmte/graduation-kit create [名称]      分步向导：脚手架 + SQL + skills
+  npx github:Soulmte/graduation-kit install [选项]     只安装 skills 到 .agents/skills/
+  npx github:Soulmte/graduation-kit list               列出包内 skill
+  npx github:Soulmte/graduation-kit uninstall [选项]   移除已安装的 skill
+  npx github:Soulmte/graduation-kit doctor             校验 frontmatter 规范
 
 通用选项：
   -d, --dir <path>      指定工作目录（默认当前目录）
@@ -283,11 +283,11 @@ create 专属（全部给出则跳过向导，适合脚本）：
       --no-skills       不安装 skills，只要脚手架
 
 例：
-  npx graduation-kit create
-  npx graduation-kit create smart-library --be springboot --fe react
-  npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
-  npx graduation-kit install -g
-  npx graduation-kit install --only thesis-writer
+  npx github:Soulmte/graduation-kit create
+  npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
+  npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+  npx github:Soulmte/graduation-kit install -g
+  npx github:Soulmte/graduation-kit install --only thesis-writer
 `;
 
 function parse(argv) {

@@ -11,7 +11,7 @@
 在你打算放项目的父目录下：
 
 ```bash
-npx graduation-kit create
+npx github:Soulmte/graduation-kit create
 ```
 
 分步向导会依次问你项目名、后端、前端、数据库名和 MySQL 密码，跑完得到一个可直接开发的项目：
@@ -21,20 +21,34 @@ my-graduation-project/
 ├── .agents/skills/     六个毕设 skill
 ├── backend/            你选的后端
 ├── frontend/           你选的前端
-├── docs/scaffold_db.sql
-└── uploads/
+├── docs/库名.sql       建表脚本，文件名跟随你填的库名
+├── uploads/            用户上传的图片
+├── .gitignore          已挡住依赖与构建产物
+└── README.md           端口、库名、启动命令存档
 ```
 
 参数给全就跳过提问，适合写进脚本：
 
 ```bash
-npx graduation-kit create my-app --be springboot --fe react
-npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
+npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
 ```
 
-生成后先导入 `docs/scaffold_db.sql` 建库，再按终端给出的启动提示分别跑后端和前端。内置账号 `admin / 123456`（管理员）和 `test / 123456`（普通用户）。
+生成后先导入 `docs/` 下的 SQL 建库，再按终端给出的启动提示分别跑后端和前端。内置账号 `admin / 123456`（管理员）和 `test / 123456`（普通用户）。这些信息同时写进了项目根的 `README.md`，终端滚走也能查到。
 
 最后**新开一个 agent 会话**，skill 才会被加载。不需要重启编辑器。
+
+### 从 Gitee 用
+
+`npx` 只认 `github:` / `gitlab:` / `bitbucket:` 三个简写，Gitee 拉不了。从 Gitee 过来先 clone：
+
+```bash
+git clone https://gitee.com/rain-drops/graduation-kit.git
+cd graduation-kit
+npm link
+```
+
+之后 `graduation-kit create` 就能在任何目录直接用，不必写 `npx`。后续更新只需在这个目录 `git pull`，不用重新 link。
 
 ## 只装 skill
 
@@ -42,13 +56,13 @@ npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
 
 ```bash
 # 装到当前项目
-npx graduation-kit install
+npx github:Soulmte/graduation-kit install
 
 # 装到全局，所有项目可用
-npx graduation-kit install -g
+npx github:Soulmte/graduation-kit install -g
 
 # 只要论文那一个
-npx graduation-kit install --only thesis-writer
+npx github:Soulmte/graduation-kit install --only thesis-writer
 ```
 
 安装时会询问是否一并装上三个上游增强包。它们已随包内置，无需联网。
@@ -58,11 +72,11 @@ npx graduation-kit install --only thesis-writer
 ## 命令
 
 ```bash
-npx graduation-kit create [名称]     向导：脚手架 + SQL + skills
-npx graduation-kit install [选项]   只安装 skills
-npx graduation-kit list             列出包内 skill
-npx graduation-kit uninstall        移除已安装的 skill
-npx graduation-kit doctor           校验 frontmatter 规范
+npx github:Soulmte/graduation-kit create [名称]     向导：脚手架 + SQL + skills
+npx github:Soulmte/graduation-kit install [选项]   只安装 skills
+npx github:Soulmte/graduation-kit list             列出包内 skill
+npx github:Soulmte/graduation-kit uninstall        移除已安装的 skill
+npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 ```
 
 通用选项
@@ -208,9 +222,15 @@ node verify.js && node verify-editor.js && node audit.js
 
 **`--only` 为什么没装上游** —— 这是有意的：指定了 `--only` 就只装你点名的，不会再问上游。想要 `impeccable` 就把它一并写进 `--only`。
 
-**数据库连不上** —— `create` 时密码留空的话需要自己到 `backend` 配置里补。另外记得先导入 `docs/scaffold_db.sql`。
+**数据库连不上** —— `create` 时密码留空的话需要自己到 `backend` 配置里补。另外记得先导入 `docs/` 下的 SQL。
+
+**SQL 文件叫什么名** —— 跟随 `--db`，例如 `--db library_db` 得到 `docs/library_db.sql`，文件内的建库语句也一并改好。不传 `--db` 就是默认的 `scaffold_db.sql`。
+
+**导入 SQL 中文变乱码** —— 命令要带 `--default-character-set=utf8mb4`，项目 README 里给的那条已经带了。
 
 **前端头像图片 404** —— 头像路径用 `/uploads/xxx.jpg` 靠 vite 代理转到后端，这是既定设计。确保后端已启动，不要自己拼绝对地址。
+
+**小程序真机调试请求失败** —— 手机访问不了电脑的 `localhost`。把 `config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP，并在微信开发者工具里勾上不校验域名。
 
 **论文转 Word 后章节串位** —— 转换脚本按单独一行的 `---` 分割章节，所以正文里不能出现分割线。图片需要自己手动插，脚本不管图。
 

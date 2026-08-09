@@ -7,8 +7,8 @@
 这个 skill 是 `graduation-kit` 的一部分，在毕设项目根目录跑：
 
 ```bash
-npx graduation-kit install                      # 整套装，会问装不装三个上游增强
-npx graduation-kit install --only thesis-writer  # 只装写论文这一个
+npx github:Soulmte/graduation-kit install                      # 整套装，会问装不装三个上游增强
+npx github:Soulmte/graduation-kit install --only thesis-writer  # 只装写论文这一个
 ```
 
 常用选项：

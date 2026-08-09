@@ -54,7 +54,7 @@ description: 毕业设计全流程开发编排 skill。用户说做毕设、开�
 
 ```
 <毕设项目>/
-├── .agents/skills/        本套 skill（npx graduation-kit install 装入）
+├── .agents/skills/        本套 skill（npx github:Soulmte/graduation-kit install 装入）
 ├── backend/               抽出的后端（内部结构看 §7.1）
 ├── frontend/              抽出的前端（内部结构看 §7.2）
 ├── docs/
