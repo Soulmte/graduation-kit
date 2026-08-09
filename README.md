@@ -4,7 +4,17 @@
 
 支持任何读取 `.agents/skills/` 的 agent（Zed、Claude Code 等）。
 
-需要 Node.js 18+；跑起脚手架还需要 MySQL 8，以及对应后端的运行时（JDK 17 / Node.js / Python 3.10+）。
+需要 Node.js 18+；跑起脚手架还需要 MySQL 8，以及你选的那个后端的运行时：
+
+| 后端 | 运行时 |
+|---|---|
+| `springboot` | JDK 17 + Maven |
+| `express` | Node.js 18+ |
+| `flask` | Python 3.10+ |
+| `go` | Go 1.21+ |
+| `dotnet` | .NET 10 SDK |
+
+只装 skill 的话只需要 Node.js，其余一概不需要。
 
 ## 快速开始
 
@@ -32,11 +42,46 @@ my-graduation-project/
 ```bash
 npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
 npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+npx github:Soulmte/graduation-kit create --list      # 先看看有哪些脚手架可选
 ```
 
-生成后先导入 `docs/` 下的 SQL 建库，再按终端给出的启动提示分别跑后端和前端。内置账号 `admin / 123456`（管理员）和 `test / 123456`（普通用户）。这些信息同时写进了项目根的 `README.md`，终端滚走也能查到。
+### 生成之后的五步
 
-最后**新开一个 agent 会话**，skill 才会被加载。不需要重启编辑器。
+1. **建库**。进项目目录，把 `docs/` 下那个 SQL 导进 MySQL：
+
+   ```bash
+   mysql -uroot -p --default-character-set=utf8mb4 < docs/你的库名.sql
+   ```
+
+   脚本自带 `CREATE DATABASE`，不用先手动建库。
+
+2. **起后端**。`cd backend`，按终端提示的那条命令跑。各后端的命令：
+
+   | 后端 | 首次启动 |
+   |---|---|
+   | `springboot` | `mvn spring-boot:run` |
+   | `express` | `npm install && npm run dev` |
+   | `flask` | `pip install -r requirements.txt && python app.py` |
+   | `go` | `go mod tidy && go run .` |
+   | `dotnet` | `dotnet restore && dotnet run` |
+
+3. **起前端**。另开一个终端，`cd frontend`（多前端时是 `frontend-<名>/`），`npm install && npm run dev`。小程序那两个不用 dev，直接用微信开发者工具 / HBuilderX 打开目录。
+
+4. **登录验证**。浏览器开前端给出的地址，用 `admin / 123456`（管理员）或 `test / 123456`（普通用户）登录。能进仪表盘说明前后端和数据库都通了。
+
+5. **开工**。新开一个 agent 会话，skill 才会被加载（不需要重启编辑器），然后跟 agent 说你的毕设题目。
+
+端口、库名、启动命令这些也都写进了项目根的 `README.md`，终端滚走了能回去查。
+
+### 先确认它是通的，再动手改
+
+后端起来后可以直接探活，不用等前端：
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+端口换成你选的那个后端的端口（见下面的表）。返回 `{"code":200,...}` 就说明服务和数据库都正常。这一步能把「代码问题」和「环境问题」分开，省掉大量瞎猜。
 
 ### 从 Gitee 用
 
@@ -108,26 +153,84 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 
 ## 可选脚手架
 
-后端选一个，三者接口完全一致（同一套 27 条接口、同一套错误码），前端可以无感对接任意一个：
+后端选一个，五家的接口完全一致（同一套 24 条业务接口、同一套错误码、同一套字段名），前端无感对接任意一个：
 
 | `--be` | 技术栈 | 端口 |
 |---|---|---|
 | `springboot` | Java 17 + MyBatis-Plus | 8080 |
 | `express` | Node.js + mysql2 | 8081 |
 | `flask` | Python + PyMySQL | 8082 |
+| `go` | Go 1.21 + database/sql | 8084 |
+| `dotnet` | C# / .NET 10 + MySql.Data | 8085 |
+
+还有一个 `fastapi`（8083）尚未完成对齐，暂时没放进可选列表。
+
+**换后端不用改前端**。前端只认 `/api` 前缀和统一响应格式，换一家后端重新 `create` 一次就行，页面代码一行不用动。想对比几种技术栈再定选题方向的话，这个特性很省事。
 
 前端可多选，多选时落成 `frontend-<名>/`：
 
-| `--fe` | 技术栈 |
-|---|---|
-| `react` | React 18 + 自研组件 |
-| `vue-elementplus` | Vue 3 + Element Plus |
-| `vue-antd` | Vue 3 + Ant Design Vue |
-| `vue-naive` | Vue 3 + Naive UI（含暗色模式） |
-| `uniapp` | uni-app 跨端（H5 / 小程序 / App） |
-| `wxapp` | 微信小程序原生 |
+| `--fe` | 技术栈 | 开发端口 |
+|---|---|---|
+| `react` | React 18 + 自研组件 | 5176 |
+| `vue-elementplus` | Vue 3 + Element Plus | 5175 |
+| `vue-antd` | Vue 3 + Ant Design Vue | 5174 |
+| `vue-naive` | Vue 3 + Naive UI（含暗色模式） | 5177 |
+| `uniapp` | uni-app 跨端（H5 / 小程序 / App） | HBuilderX |
+| `wxapp` | 微信小程序原生 | 开发者工具 |
+
+端口错开是有意的：多选几个前端时可以同时跑，不会抢端口。
 
 每个脚手架都带 13 个成品页面（登录注册、用户管理、公告管理、日志管理、仪表盘、个人中心等），可直接当作你业务模块的模仿对象。
+
+## 内置接口
+
+五家后端共同的 24 条业务接口，加上一条探活。路径前缀统一 `/api/<模块>`，标 admin 的只有管理员能调：
+
+| 模块 | 接口 | admin |
+|---|---|---|
+| user | `POST /api/user/register` | |
+| user | `POST /api/user/login` | |
+| user | `POST /api/user/pageQuery` | ✓ |
+| user | `GET /api/user/listAll` | ✓ |
+| user | `GET /api/user/getById/{id}` | |
+| user | `PUT /api/user/update` | |
+| user | `PUT /api/user/updatePassword` | |
+| user | `DELETE /api/user/deleteById/{id}` | ✓ |
+| user | `DELETE /api/user/deleteBatch` | ✓ |
+| notice | `POST /api/notice/add` | ✓ |
+| notice | `POST /api/notice/pageQuery` | |
+| notice | `GET /api/notice/listAll` | |
+| notice | `GET /api/notice/getById/{id}` | |
+| notice | `PUT /api/notice/update` | ✓ |
+| notice | `DELETE /api/notice/deleteById/{id}` | ✓ |
+| notice | `DELETE /api/notice/deleteBatch` | ✓ |
+| log | `POST /api/log/pageQuery` | ✓ |
+| log | `GET /api/log/listAll` | ✓ |
+| log | `GET /api/log/getById/{id}` | ✓ |
+| log | `DELETE /api/log/deleteById/{id}` | ✓ |
+| log | `DELETE /api/log/deleteBatch` | ✓ |
+| file | `POST /api/file/upload` | |
+| file | `POST /api/file/uploadBatch` | |
+| file | `DELETE /api/file/delete` | |
+| — | `GET /api/health` | |
+
+响应一律是 `{code, message, data}`，HTTP 状态码固定 200（只有 token 无效或过期才返 HTTP 401）。业务码共 11 个：
+
+| code | 含义 |
+|---|---|
+| 200 | 成功 |
+| 400 | 参数错误 |
+| 401 | 未登录 |
+| 403 | 无权限 |
+| 404 | 资源不存在 |
+| 500 | 服务器异常 |
+| 1001 | 用户名或密码错误 |
+| 1002 | 用户名已存在 |
+| 1004 | 原密码错误 |
+| 2001 | 数据已存在 |
+| 2002 | 数据不存在 |
+
+自己新增错误码从 1005 开始排（1003 是空号）。改密码走单独的 `updatePassword`，`update` 不接受 `password` 和 `role` 字段——这是有意防的提权口子，你自己加新接口时可以照这个思路写。
 
 ## 仓库结构
 
@@ -148,12 +251,14 @@ graduation-kit/
 │   │   ├── code-reviewer/
 │   │   └── impeccable/
 │   ├── scaffolds/          脚手架源码
-│   │   ├── backends/       springboot / express / flask
+│   │   ├── backends/       springboot / express / flask / fastapi / go / dotnet
 │   │   ├── frontends/      react / vue-×3 / uniapp / wxapp
 │   │   ├── clients/        pyqt / react-native
 │   │   ├── docs/           scaffold_db.sql
 │   │   └── uploads/        预置头像等静态文件
 │   └── vendor/             上游组件（随包内置，无需联网）
+├── scripts/
+│   └── smoke.js            逐个后端生成到临时目录验证改写结果
 ├── NOTICE.md               第三方许可
 └── LICENSE
 ```
@@ -202,9 +307,22 @@ skill 不靠命令调用，直接跟 agent 说你要干什么就行，它会自�
 
 ## 开发
 
+改完 `bin/` 或脚手架后跑一轮：
+
 ```bash
-npm test                              # 校验所有 skill 的 frontmatter
-node bin/cli.js install --dir /tmp/x  # 装到临时目录试跑
+npm test          # doctor + smoke，提交前跑这一条就够
+npm run doctor    # 只校验所有 skill 的 frontmatter
+npm run smoke     # 只跑脚手架生成验证
+npm run scaffolds # 列出当前可选脚手架与端口
+```
+
+`npm run smoke` 会把每个可用后端各生成一次到系统临时目录，逐项校对目录结构、SQL 文件名与内容、uploads 相对路径、前端端口、以及配置里的库名密码有没有改到位，跑完自动清掉。新增后端或改 `patchBackend()` 的改写表时它能第一时间发现遗漏。
+
+想实际看一眼生成结果：
+
+```bash
+node bin/cli.js create demo --be go --fe vue-naive --db lib_db --dir /tmp/x
+node bin/cli.js install --dir /tmp/x   # 只装 skill 到临时目录
 ```
 
 绘图引擎的回归测试：
@@ -213,6 +331,8 @@ node bin/cli.js install --dir /tmp/x  # 装到临时目录试跑
 cd src/skills/thesis-writer/reference/examples
 node verify.js && node verify-editor.js && node audit.js
 ```
+
+注意 `scripts/` 不在 `package.json` 的 `files` 里，不随 npm 包发布，只在 clone 下来的仓库里能跑。
 
 ## 常见问题
 
@@ -231,6 +351,18 @@ node verify.js && node verify-editor.js && node audit.js
 **前端头像图片 404** —— 头像路径用 `/uploads/xxx.jpg` 靠 vite 代理转到后端，这是既定设计。确保后端已启动，不要自己拼绝对地址。
 
 **小程序真机调试请求失败** —— 手机访问不了电脑的 `localhost`。把 `config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP，并在微信开发者工具里勾上不校验域名。
+
+**请求报 401 但刚刚还能用** —— token 过期。只有 token 无效或过期会返 HTTP 401，其余情况一律 HTTP 200 + 业务码，重新登录即可。前端已经帮你拦了这个状态，自己写请求时别绕过拦截器。
+
+**Go 后端跑不起来，报 missing go.sum entry** —— 首次要先 `go mod tidy` 拉依赖，再 `go run .`。仓库里没预置 `go.sum`。
+
+**dotnet 后端报框架版本不匹配** —— 项目目标 net10.0，需要 .NET 10 SDK。`dotnet --list-sdks` 确认一下，低版本 SDK 编不过。
+
+**端口被占** —— 后端端口写在 `backend/.env`（springboot 在 `application.yml`），前端在 `.env.development`。两边都改，前端的代理目标也要跟着改。
+
+**报 `toItem is not defined`** —— 这是旧版的 bug，已修。`npx` 会缓存旧代码，跑 `npx --ignore-existing github:Soulmte/graduation-kit create` 重拉；link 过来的在 clone 目录 `git pull` 即可。
+
+**改了仓库代码，`graduation-kit` 命令跑的还是旧的** —— `npm link` 是符号链接，不存在缓存；如果真跑的旧代码，说明当前用的是 `npx` 拉下的副本，不是 link 那份。`which graduation-kit` 确认一下。
 
 **论文转 Word 后章节串位** —— 转换脚本按单独一行的 `---` 分割章节，所以正文里不能出现分割线。图片需要自己手动插，脚本不管图。
 
