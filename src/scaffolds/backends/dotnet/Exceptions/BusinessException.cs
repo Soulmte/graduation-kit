@@ -15,6 +15,12 @@ namespace DotnetMysqlBackend.Exceptions
             Code = (int)resultCode;
         }
 
+        public BusinessException(ResultCode resultCode, string message)
+            : base(message)
+        {
+            Code = (int)resultCode;
+        }
+
         public BusinessException(string message)
             : base(message)
         {

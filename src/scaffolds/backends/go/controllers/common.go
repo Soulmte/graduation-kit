@@ -26,3 +26,12 @@ func parseIds(c *gin.Context) []interface{} {
 	}
 	return ids
 }
+
+// currentUser 从登录态取当前用户ID与角色, 由AuthMiddleware写入
+func currentUser(c *gin.Context) (int, string) {
+	id, _ := c.Get("userId")
+	role, _ := c.Get("role")
+	userId, _ := id.(int)
+	userRole, _ := role.(string)
+	return userId, userRole
+}

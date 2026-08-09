@@ -15,6 +15,14 @@ namespace DotnetMysqlBackend.Controllers
     public class UserController(UserService userService) : ControllerBase
     {
         /// <summary>
+        /// 从登录态取当前用户ID与角色
+        /// </summary>
+        private (long UserId, string Role) CurrentUser()
+        {
+            _ = long.TryParse(HttpContext.Items["userId"]?.ToString(), out var userId);
+            return (userId, HttpContext.Items["role"]?.ToString() ?? "user");
+        }
+        /// <summary>
         /// 用户注册
         /// </summary>
         [HttpPost("register")]
@@ -41,6 +49,7 @@ namespace DotnetMysqlBackend.Controllers
         /// </summary>
         [HttpPost("pageQuery")]
         [Auth]
+        [Admin]
         [Log("分页查询用户")]
         public async Task<IActionResult> PageQuery([FromBody] PageQuery query)
         {
@@ -52,6 +61,7 @@ namespace DotnetMysqlBackend.Controllers
         /// </summary>
         [HttpGet("listAll")]
         [Auth]
+        [Admin]
         [Log("查询用户列表")]
         public async Task<IActionResult> ListAll()
         {
@@ -77,8 +87,22 @@ namespace DotnetMysqlBackend.Controllers
         [Log("更新用户信息")]
         public async Task<IActionResult> Update([FromBody] User user)
         {
-            await userService.Update(user);
+            var (userId, role) = CurrentUser();
+            await userService.Update(user, userId, role);
             return Ok(Result.Success("更新成功"));
+        }
+
+        /// <summary>
+        /// 修改密码
+        /// </summary>
+        [HttpPut("updatePassword")]
+        [Auth]
+        [Log("修改密码", SaveParams = false)]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordRequest request)
+        {
+            var (userId, _) = CurrentUser();
+            await userService.UpdatePassword(userId, request.OldPassword, request.NewPassword);
+            return Ok(Result.Success("密码修改成功"));
         }
 
         /// <summary>
@@ -86,6 +110,7 @@ namespace DotnetMysqlBackend.Controllers
         /// </summary>
         [HttpDelete("deleteById/{id}")]
         [Auth]
+        [Admin]
         [Log("删除用户")]
         public async Task<IActionResult> DeleteById(long id)
         {
@@ -98,6 +123,7 @@ namespace DotnetMysqlBackend.Controllers
         /// </summary>
         [HttpDelete("deleteBatch")]
         [Auth]
+        [Admin]
         [Log("批量删除用户")]
         public async Task<IActionResult> DeleteBatch([FromBody] List<long> ids)
         {

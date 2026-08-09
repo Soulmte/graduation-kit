@@ -168,10 +168,22 @@ func UserGetById(id string) (*models.User, error) {
 }
 
 // UserUpdate 更新用户信息
-func UserUpdate(data map[string]interface{}) error {
+// 只接受可修改字段, role与password不可通过本接口修改
+// currentUserId/currentRole 由控制层从登录态传入, 普通用户只能改自己
+func UserUpdate(data map[string]interface{}, currentUserId int, currentRole string) error {
 	id := data["id"]
 	if id == nil {
 		return &BizError{Code: utils.CodeBadRequest, Message: "用户ID不能为空"}
+	}
+
+	if currentRole != "admin" && fmt.Sprint(id) != fmt.Sprint(currentUserId) {
+		return &BizError{Code: utils.CodeForbidden, Message: "权限不足，只能修改自己的信息"}
+	}
+
+	var exist int
+	if err := config.DB.QueryRow(
+		"SELECT id FROM user WHERE id = ? AND deleted = 0", id).Scan(&exist); err != nil {
+		return &BizError{Code: utils.CodeNotFound, Message: "用户不存在"}
 	}
 
 	nickname, _ := data["nickname"].(string)
@@ -179,24 +191,39 @@ func UserUpdate(data map[string]interface{}) error {
 	phone, _ := data["phone"].(string)
 	email, _ := data["email"].(string)
 	avatar, _ := data["avatar"].(string)
-	role, _ := data["role"].(string)
-	if role == "" {
-		role = "user"
-	}
 	age := toInt(data["age"])
 
-	sql := `UPDATE user SET nickname = ?, age = ?, gender = ?, phone = ?,
-	        email = ?, avatar = ?, role = ?, update_time = NOW()`
-	args := []interface{}{nickname, age, gender, phone, email, avatar, role}
+	_, err := config.DB.Exec(
+		`UPDATE user SET nickname = ?, age = ?, gender = ?, phone = ?,
+		 email = ?, avatar = ?, update_time = NOW() WHERE id = ? AND deleted = 0`,
+		nickname, age, gender, phone, email, avatar, id)
+	return err
+}
 
-	if pw, ok := data["password"].(string); ok && pw != "" {
-		sql += ", password = ?"
-		args = append(args, pw)
+// UserUpdatePassword 修改当前登录用户的密码
+// 用户ID从登录态取, 不接受前端传入
+func UserUpdatePassword(data map[string]interface{}, currentUserId int) error {
+	oldPassword, _ := data["oldPassword"].(string)
+	newPassword, _ := data["newPassword"].(string)
+	if oldPassword == "" || newPassword == "" {
+		return &BizError{Code: utils.CodeBadRequest, Message: "原密码和新密码不能为空"}
+	}
+	if len(newPassword) < 6 || len(newPassword) > 20 {
+		return &BizError{Code: utils.CodeBadRequest, Message: "新密码长度必须在6-20位之间"}
 	}
 
-	sql += " WHERE id = ? AND deleted = 0"
-	args = append(args, id)
-	_, err := config.DB.Exec(sql, args...)
+	var current string
+	if err := config.DB.QueryRow(
+		"SELECT password FROM user WHERE id = ? AND deleted = 0", currentUserId).Scan(&current); err != nil {
+		return &BizError{Code: utils.CodeNotFound, Message: "用户不存在"}
+	}
+	if current != oldPassword {
+		return &BizError{Code: utils.CodePasswordError, Message: "原密码错误"}
+	}
+
+	_, err := config.DB.Exec(
+		"UPDATE user SET password = ?, update_time = NOW() WHERE id = ? AND deleted = 0",
+		newPassword, currentUserId)
 	return err
 }
 

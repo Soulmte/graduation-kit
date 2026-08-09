@@ -19,6 +19,9 @@ const (
 	CodeError         = 500
 	CodeLoginError    = 1001
 	CodeUsernameExist = 1002
+	CodePasswordError = 1004
+	CodeDataExist     = 2001
+	CodeDataNotExist  = 2002
 )
 
 // Success 成功响应

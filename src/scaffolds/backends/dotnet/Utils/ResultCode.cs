@@ -13,6 +13,9 @@ namespace DotnetMysqlBackend.Utils
         NotFound = 404,
         LoginError = 1001,
         UsernameExist = 1002,
+        OldPasswordError = 1004,
+        DataExist = 2001,
+        DataNotExist = 2002,
     }
 
     public static class ResultCodeExtensions
@@ -27,6 +30,9 @@ namespace DotnetMysqlBackend.Utils
             ResultCode.NotFound => "资源不存在",
             ResultCode.LoginError => "用户名或密码错误",
             ResultCode.UsernameExist => "用户名已存在",
+            ResultCode.OldPasswordError => "原密码错误",
+            ResultCode.DataExist => "数据已存在",
+            ResultCode.DataNotExist => "数据不存在",
             _ => "未知错误"
         };
     }

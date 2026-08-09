@@ -13,6 +13,7 @@ namespace DotnetMysqlBackend.Controllers
     [ApiController]
     [Route("api/log")]
     [Auth]
+    [Admin]
     public class OperationLogController(OperationLogService logService) : ControllerBase
     {
         /// <summary>

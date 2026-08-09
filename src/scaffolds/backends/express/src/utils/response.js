@@ -32,6 +32,8 @@ export const ResultCode = {
   LOGIN_ERROR: 1001,
   USERNAME_EXIST: 1002,
   PASSWORD_ERROR: 1004,
+  DATA_EXIST: 2001,
+  DATA_NOT_EXIST: 2002,
 };
 
 // 分页参数归一：页码最小1，每页数量限制在1-500

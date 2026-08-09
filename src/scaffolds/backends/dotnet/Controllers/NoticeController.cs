@@ -19,6 +19,7 @@ namespace DotnetMysqlBackend.Controllers
         /// 创建公告
         /// </summary>
         [HttpPost("add")]
+        [Admin]
         [Log("创建公告")]
         public async Task<IActionResult> Add([FromBody] Notice notice)
         {
@@ -60,6 +61,7 @@ namespace DotnetMysqlBackend.Controllers
         /// 更新公告
         /// </summary>
         [HttpPut("update")]
+        [Admin]
         [Log("更新公告")]
         public async Task<IActionResult> Update([FromBody] Notice notice)
         {
@@ -71,6 +73,7 @@ namespace DotnetMysqlBackend.Controllers
         /// 删除公告
         /// </summary>
         [HttpDelete("deleteById/{id}")]
+        [Admin]
         [Log("删除公告")]
         public async Task<IActionResult> DeleteById(long id)
         {
@@ -82,6 +85,7 @@ namespace DotnetMysqlBackend.Controllers
         /// 批量删除公告
         /// </summary>
         [HttpDelete("deleteBatch")]
+        [Admin]
         [Log("批量删除公告")]
         public async Task<IActionResult> DeleteBatch([FromBody] List<long> ids)
         {

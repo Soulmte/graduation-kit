@@ -35,6 +35,8 @@ class ResultCode:
     LOGIN_ERROR = 1001
     USERNAME_EXIST = 1002
     PASSWORD_ERROR = 1004
+    DATA_EXIST = 2001
+    DATA_NOT_EXIST = 2002
 
 
 class Result:

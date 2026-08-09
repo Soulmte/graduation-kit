@@ -40,40 +40,42 @@ func main() {
 	api := r.Group("/api")
 	{
 		auth := middleware.AuthMiddleware()
+		admin := middleware.AdminMiddleware()
 
 		// 用户路由
 		user := api.Group("/user")
 		{
 			user.POST("/register", middleware.LogOperation("用户注册"), controllers.Register)
 			user.POST("/login", middleware.LogOperation("用户登录"), controllers.Login)
-			user.POST("/pageQuery", auth, middleware.LogOperation("分页查询用户"), controllers.UserPageQuery)
-			user.GET("/listAll", auth, middleware.LogOperation("查询用户列表"), controllers.UserListAll)
+			user.POST("/pageQuery", auth, admin, middleware.LogOperation("分页查询用户"), controllers.UserPageQuery)
+			user.GET("/listAll", auth, admin, middleware.LogOperation("查询用户列表"), controllers.UserListAll)
 			user.GET("/getById/:id", auth, middleware.LogOperation("查询用户详情"), controllers.UserGetById)
 			user.PUT("/update", auth, middleware.LogOperation("更新用户信息"), controllers.UserUpdate)
-			user.DELETE("/deleteById/:id", auth, middleware.LogOperation("删除用户"), controllers.UserDeleteById)
-			user.DELETE("/deleteBatch", auth, middleware.LogOperation("批量删除用户"), controllers.UserDeleteBatch)
+			user.PUT("/updatePassword", auth, middleware.LogOperation("修改密码"), controllers.UserUpdatePassword)
+			user.DELETE("/deleteById/:id", auth, admin, middleware.LogOperation("删除用户"), controllers.UserDeleteById)
+			user.DELETE("/deleteBatch", auth, admin, middleware.LogOperation("批量删除用户"), controllers.UserDeleteBatch)
 		}
 
 		// 公告路由
 		notice := api.Group("/notice")
 		{
-			notice.POST("/add", auth, middleware.LogOperation("创建公告"), controllers.NoticeAdd)
+			notice.POST("/add", auth, admin, middleware.LogOperation("创建公告"), controllers.NoticeAdd)
 			notice.POST("/pageQuery", auth, middleware.LogOperation("分页查询公告"), controllers.NoticePageQuery)
 			notice.GET("/listAll", auth, middleware.LogOperation("查询公告列表"), controllers.NoticeListAll)
 			notice.GET("/getById/:id", auth, middleware.LogOperation("查询公告详情"), controllers.NoticeGetById)
-			notice.PUT("/update", auth, middleware.LogOperation("更新公告"), controllers.NoticeUpdate)
-			notice.DELETE("/deleteById/:id", auth, middleware.LogOperation("删除公告"), controllers.NoticeDeleteById)
-			notice.DELETE("/deleteBatch", auth, middleware.LogOperation("批量删除公告"), controllers.NoticeDeleteBatch)
+			notice.PUT("/update", auth, admin, middleware.LogOperation("更新公告"), controllers.NoticeUpdate)
+			notice.DELETE("/deleteById/:id", auth, admin, middleware.LogOperation("删除公告"), controllers.NoticeDeleteById)
+			notice.DELETE("/deleteBatch", auth, admin, middleware.LogOperation("批量删除公告"), controllers.NoticeDeleteBatch)
 		}
 
 		// 日志路由
 		logGroup := api.Group("/log")
 		{
-			logGroup.POST("/pageQuery", auth, middleware.LogOperation("分页查询操作日志"), controllers.LogPageQuery)
-			logGroup.GET("/listAll", auth, controllers.LogListAll)
-			logGroup.GET("/getById/:id", auth, controllers.LogGetById)
-			logGroup.DELETE("/deleteById/:id", auth, middleware.LogOperation("删除操作日志"), controllers.LogDeleteById)
-			logGroup.DELETE("/deleteBatch", auth, middleware.LogOperation("批量删除操作日志"), controllers.LogDeleteBatch)
+			logGroup.POST("/pageQuery", auth, admin, middleware.LogOperation("分页查询操作日志"), controllers.LogPageQuery)
+			logGroup.GET("/listAll", auth, admin, controllers.LogListAll)
+			logGroup.GET("/getById/:id", auth, admin, controllers.LogGetById)
+			logGroup.DELETE("/deleteById/:id", auth, admin, middleware.LogOperation("删除操作日志"), controllers.LogDeleteById)
+			logGroup.DELETE("/deleteBatch", auth, admin, middleware.LogOperation("批量删除操作日志"), controllers.LogDeleteBatch)
 		}
 
 		// 文件路由

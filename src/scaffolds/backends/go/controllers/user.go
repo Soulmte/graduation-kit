@@ -82,11 +82,27 @@ func UserUpdate(c *gin.Context) {
 		utils.Error(c, utils.CodeBadRequest, "参数错误")
 		return
 	}
-	if err := services.UserUpdate(data); err != nil {
+	userId, role := currentUser(c)
+	if err := services.UserUpdate(data, userId, role); err != nil {
 		handleError(c, err)
 		return
 	}
 	utils.SuccessMsg(c, "更新成功", nil)
+}
+
+// UserUpdatePassword 修改密码
+func UserUpdatePassword(c *gin.Context) {
+	var data map[string]interface{}
+	if err := c.ShouldBindJSON(&data); err != nil {
+		utils.Error(c, utils.CodeBadRequest, "参数错误")
+		return
+	}
+	userId, _ := currentUser(c)
+	if err := services.UserUpdatePassword(data, userId); err != nil {
+		handleError(c, err)
+		return
+	}
+	utils.SuccessMsg(c, "密码修改成功", nil)
 }
 
 // UserDeleteById 删除用户

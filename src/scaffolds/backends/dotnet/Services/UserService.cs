@@ -130,34 +130,52 @@ namespace DotnetMysqlBackend.Services
         }
 
         /// <summary>
-        /// 更新用户信息
+        /// 更新用户信息（不含密码与角色，越权由登录态校验）
         /// </summary>
-        public async Task Update(User user)
+        public async Task Update(User user, long currentUserId, string currentRole)
         {
+            if (currentRole != "admin" && user.Id != currentUserId)
+                throw new BusinessException(ResultCode.Forbidden);
+
             await using var conn = _db.GetConnection();
             await conn.OpenAsync();
 
-            var sql = "UPDATE user SET nickname = @nickname, age = @age, gender = @gender, phone = @phone, email = @email, avatar = @avatar, role = @role, update_time = NOW()";
-            var ps = new List<MySqlParameter>
-            {
-                new("@nickname", user.Nickname ?? ""),
-                new("@age", (object?)user.Age ?? DBNull.Value),
-                new("@gender", user.Gender ?? ""),
-                new("@phone", user.Phone ?? ""),
-                new("@email", user.Email ?? ""),
-                new("@avatar", user.Avatar ?? ""),
-                new("@role", user.Role ?? "user")
-            };
+            var sql = "UPDATE user SET nickname = @nickname, age = @age, gender = @gender, phone = @phone, email = @email, avatar = @avatar, update_time = NOW() WHERE id = @id AND deleted = 0";
+            await ExecuteAsync(conn, sql,
+                new MySqlParameter("@nickname", user.Nickname ?? ""),
+                new MySqlParameter("@age", (object?)user.Age ?? DBNull.Value),
+                new MySqlParameter("@gender", user.Gender ?? ""),
+                new MySqlParameter("@phone", user.Phone ?? ""),
+                new MySqlParameter("@email", user.Email ?? ""),
+                new MySqlParameter("@avatar", user.Avatar ?? ""),
+                new MySqlParameter("@id", user.Id));
+        }
 
-            if (!string.IsNullOrWhiteSpace(user.Password))
-            {
-                sql += ", password = @password";
-                ps.Add(new MySqlParameter("@password", user.Password));
-            }
+        /// <summary>
+        /// 修改密码（用户ID取自登录态）
+        /// </summary>
+        public async Task UpdatePassword(long userId, string oldPassword, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(oldPassword) || string.IsNullOrWhiteSpace(newPassword))
+                throw new BusinessException(ResultCode.ParamError);
+            if (newPassword.Length < 6 || newPassword.Length > 20)
+                throw new BusinessException(ResultCode.ParamError, "新密码长度需为6-20位");
 
-            sql += " WHERE id = @id AND deleted = 0";
-            ps.Add(new MySqlParameter("@id", user.Id));
-            await ExecuteAsync(conn, sql, ps.ToArray());
+            await using var conn = _db.GetConnection();
+            await conn.OpenAsync();
+
+            var current = await ScalarAsync(conn,
+                "SELECT password FROM user WHERE id = @id AND deleted = 0",
+                new MySqlParameter("@id", userId));
+
+            if (current == null) throw new BusinessException(ResultCode.NotFound);
+            if (Convert.ToString(current) != oldPassword)
+                throw new BusinessException(ResultCode.OldPasswordError);
+
+            await ExecuteAsync(conn,
+                "UPDATE user SET password = @password, update_time = NOW() WHERE id = @id AND deleted = 0",
+                new MySqlParameter("@password", newPassword),
+                new MySqlParameter("@id", userId));
         }
 
         /// <summary>
