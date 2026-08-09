@@ -24,7 +24,7 @@
 npx github:Soulmte/graduation-kit create
 ```
 
-分步向导会依次问你项目名、后端、前端、数据库名和 MySQL 密码，跑完得到一个可直接开发的项目：
+分步向导会依次问你项目名、模板、后端、前端、数据库名和 MySQL 密码，跑完得到一个可直接开发的项目：
 
 ```
 my-graduation-project/
@@ -37,12 +37,15 @@ my-graduation-project/
 └── README.md           端口、库名、启动命令存档
 ```
 
+模板选 `clean` 就是干净脚手架，选 `trade` 就多一整套交易业务（详见下面的[可选模板](#可选模板)）。
+
 参数给全就跳过提问，适合写进脚本：
 
 ```bash
 npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
+npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
 npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
-npx github:Soulmte/graduation-kit create --list      # 先看看有哪些脚手架可选
+npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板与脚手架可选
 ```
 
 ### 生成之后的五步
@@ -144,12 +147,62 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 
 | 选项 | 说明 |
 |---|---|
-| `--be <id>` | 后端，只能一个 |
-| `--fe <a,b>` | 前端，可多个逗号分隔 |
+| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo |
+| `--be <id>` | 后端，只能一个（demo 模板会忽略） |
+| `--fe <a,b>` | 前端，可多个逗号分隔（demo 模板会忽略） |
 | `--db <name>` | 数据库名（默认 `scaffold_db`） |
 | `--db-pass <pwd>` | MySQL root 密码 |
 | `--no-skills` | 不装 skills，只要脚手架 |
-| `--list` | 列出可选脚手架 |
+| `--list` | 列出可选模板与脚手架 |
+
+## 可选模板
+
+向导第二步会问你要哪种模板。区别只有一个：**干净脚手架给的是底子，demo 给的是已经写好的业务**。
+
+| `--template` | 内容 | 技术栈 |
+|---|---|---|
+| `clean`（默认） | 登录注册、用户、公告、日志、仪表盘这些底子 | 后端前端自由组合 |
+| `trade` | 在上面那些之外，多了商家、商品、购物车、订单、支付、退款一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
+
+### 交易 demo
+
+毕设选题里买卖类占很大一块（商城、点餐、票务、二手交易、农产品直销……），这些题目的骨架其实是同一套：商家管商品，买家下单付款，卖家发货，中间可能退款。这个 demo 把这套流程完整写了一遍，改个名词就能套到自己的题目上。
+
+```bash
+npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
+```
+
+三个角色各有入口：
+
+| 角色 | 入口 | 能做什么 |
+|---|---|---|
+| 买家 | `/user/mall` | 逛商品、加购物车、下单、支付、确认收货、申请退款 |
+| 商家 | `/merchant/shop` | 维护店铺、管商品（含上下架）、发货、审退款 |
+| 管理员 | `/admin/merchant` | 审店铺、管分类，另有全量订单与退款视图 |
+
+买家在右上角下拉点「申请开店」提交资料，管理员审核通过后账号自动变成商家。种子数据已经把这条路铺好了：`shop1` 的店过审能直接用，`shop2` 的店待审核，用 `admin` 走一遍审核就能看到角色变化。
+
+订单状态机（也写在生成出来的 SQL 注释和 `Orders.java` 里）：
+
+```
+0 待支付 --支付--> 1 待发货 --发货--> 2 待收货 --确认收货--> 3 已完成
+0 待支付 --取消--> 4 已取消
+1 / 2 --申请退款--> 5 退款中 --同意--> 6 已退款
+                            \--拒绝--> 回到原来的状态
+```
+
+数据库比干净版多 8 张表：`merchant` `category` `product` `cart_item` `orders` `order_item` `payment` `refund`（订单表叫 `orders`，因为 `order` 是 MySQL 保留字）。后端多 34 条接口，前端多 11 个页面。
+
+几个刻意的设计，答辩容易被问到，代码注释里都写了理由：
+
+- **一单只属一个商家**。购物车跨店结算后端直接拒绝，让退款和发货的责任方唯一。
+- **扣库存用带条件的 UPDATE**（`stock = stock - n WHERE stock >= n`），靠数据库行锁挡并发超卖，看受影响行数判断成败，而不是先查再改。
+- **金额一律后端算**，前端传的价格不采纳。
+- **订单明细存商品快照**（名称、封面、单价）。商家后来改名改价，旧订单显示的还是成交时的信息。
+- **购物车不存价格**，每次展示实时读商品表，所以调价后购物车立刻跟着变。
+- **买家端 / 商家端 / 管理端走不同路径**（`/mine/*` `/merchant/*` `/admin/*`），不靠参数区分权限。
+
+默认账号：`admin` 管理员，`shop1` `shop2` 商家，`test` `zhangsan` 买家，密码都是 `123456`。`test` 的购物车里预放了 2 件商品，订单列表里 5 笔单覆盖了待支付、待发货、待收货、已完成、退款中五种状态，进去就能看到东西，不用自己造数据。
 
 ## 可选脚手架
 
@@ -254,11 +307,13 @@ graduation-kit/
 │   │   ├── backends/       springboot / express / flask / fastapi / go / dotnet
 │   │   ├── frontends/      react / vue-×3 / uniapp / wxapp
 │   │   ├── clients/        pyqt / react-native
+│   │   ├── demos/          带业务的完整模板
+│   │   │   └── trade/      交易 demo：springboot + vue-antd + 8 张交易表
 │   │   ├── docs/           scaffold_db.sql
 │   │   └── uploads/        预置头像等静态文件
 │   └── vendor/             上游组件（随包内置，无需联网）
 ├── scripts/
-│   └── smoke.js            逐个后端生成到临时目录验证改写结果
+│   └── smoke.js            逐个后端与模板生成到临时目录验证改写结果
 ├── NOTICE.md               第三方许可
 └── LICENSE
 ```

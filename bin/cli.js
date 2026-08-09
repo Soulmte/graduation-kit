@@ -275,7 +275,9 @@ install 专属：
   -o, --only <a,b>      只处理指定 skill（跳过上游询问）
 
 create 专属（全部给出则跳过向导，适合脚本）：
-  -l, --list            只列出可选脚手架与端口，不创建
+  -l, --list            只列出可选模板、脚手架与端口，不创建
+  -t, --template <id>   模板：clean（干净脚手架）| trade（交易 demo）
+                        选 demo 时技术栈已固定，--be / --fe 会被忽略
       --be <id>         后端，只能一个：springboot | express | flask
                                       | go | dotnet
       --fe <a,b>        前端，可多个：react | vue-elementplus | vue-antd
@@ -287,6 +289,7 @@ create 专属（全部给出则跳过向导，适合脚本）：
 例：
   npx github:Soulmte/graduation-kit create
   npx github:Soulmte/graduation-kit create --list
+  npx github:Soulmte/graduation-kit create my-shop --template trade
   npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
   npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
   npx github:Soulmte/graduation-kit install -g
@@ -305,6 +308,7 @@ function parse(argv) {
     else if (a === '-y' || a === '--with-upstream') opts.withUpstream = true;
     else if (a === '--no-upstream') opts.noUpstream = true;
     else if (a === '-h' || a === '--help') opts.help = true;
+    else if (a === '-t' || a === '--template') opts.template = argv[++i];
     else if (a === '--be') opts.be = argv[++i];
     else if (a === '--fe') opts.fe = argv[++i];
     else if (a === '--db') opts.db = argv[++i];

@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, readdirSync } from 'node
 import { join, resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { readyBackends, readyFrontends, sqlFileName } from '../bin/scaffold.js';
+import { readyBackends, readyFrontends, readyTemplates, sqlFileName } from '../bin/scaffold.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = join(ROOT, 'bin', 'cli.js');
@@ -86,6 +86,59 @@ try {
       check('application.yml 已填库名与密码', t.includes(`/${DB}?`) && t.includes(PASS));
       check('application.yml 无遗留占位符', !t.includes('__DB_PASSWORD__'));
     }
+  }
+
+  // demo 模板：技术栈固定，落盘后应当带上交易表与交易页面
+  for (const tpl of readyTemplates().filter((t) => t.dir)) {
+    console.log(`\n模板 ${tpl.id}`);
+    const name = `smoke-tpl-${tpl.id}`;
+    execFileSync(process.execPath, [
+      CLI, 'create', name, '--template', tpl.id,
+      '--db', DB, '--db-pass', PASS, '--no-skills', '-d', work,
+    ], { stdio: 'pipe' });
+
+    const root = join(work, name);
+    const sql = join(root, 'docs', sqlFileName(DB));
+    check('生成 backend/ frontend/ docs/ uploads/', ['backend', 'frontend', 'docs', 'uploads']
+      .every((d) => existsSync(join(root, d))));
+    check(`SQL 文件名跟随库名（${sqlFileName(DB)}）`, existsSync(sql));
+
+    const sqlText = existsSync(sql) ? readFileSync(sql, 'utf8') : '';
+    check('SQL 内的库名已改写', sqlText.includes(`\`${DB}\``));
+    check('SQL 无遗留 scaffold_db', !sqlText.includes('scaffold_db'));
+
+    const TRADE_TABLES = ['merchant', 'category', 'product', 'cart_item',
+      'orders', 'order_item', 'payment', 'refund'];
+    const missing = TRADE_TABLES.filter((t) => !sqlText.includes(`CREATE TABLE \`${t}\``));
+    check(`8 张交易表齐全`, missing.length === 0, missing.join('、'));
+
+    const be = readyBackends().find((b) => b.id === tpl.be);
+    const stale = staleUploadRefs(join(root, 'backend'), join(root, 'uploads'));
+    check('后端 uploads 相对路径都指向项目根', stale.length === 0, stale.join('、'));
+
+    const feEnv = join(root, 'frontend', '.env.development');
+    check(`前端指向 :${be.port}`, existsSync(feEnv)
+      && readFileSync(feEnv, 'utf8').includes(`:${be.port}`));
+
+    const yml = join(root, 'backend', 'src', 'main', 'resources', 'application.yml');
+    if (existsSync(yml)) {
+      const t = readFileSync(yml, 'utf8');
+      check('application.yml 已填库名与密码', t.includes(`/${DB}?`) && t.includes(PASS));
+      check('application.yml 无遗留占位符', !t.includes('__DB_PASSWORD__'));
+    }
+
+    // 交易页面与商家布局都得跟着过来，否则路由会指向不存在的组件
+    const views = join(root, 'frontend', 'src', 'views');
+    check('商家端 4 个页面都在', ['Shop.vue', 'ProductManage.vue', 'OrderManage.vue', 'RefundAudit.vue']
+      .every((f) => existsSync(join(views, 'merchant', f))));
+    check('买家端交易页面都在', ['Mall.vue', 'ProductDetail.vue', 'Cart.vue', 'Checkout.vue', 'MyOrder.vue']
+      .every((f) => existsSync(join(views, 'user', f))));
+    check('管理端 2 个页面都在', ['MerchantManage.vue', 'CategoryManage.vue']
+      .every((f) => existsSync(join(views, 'admin', f))));
+    check('MerchantLayout 已带上', existsSync(join(root, 'frontend', 'src', 'layouts', 'MerchantLayout.vue')));
+
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    check('README 含交易 demo 说明', readme.includes('交易 demo 说明') && readme.includes('订单状态机'));
   }
 } finally {
   rmSync(work, { recursive: true, force: true });

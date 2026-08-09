@@ -28,6 +28,46 @@ export const FRONTENDS = [
 export const readyBackends = () => BACKENDS.filter((b) => b.ready);
 export const readyFrontends = () => FRONTENDS.filter((f) => f.ready);
 
+/**
+ * 可选模板。
+ * clean 是空脚手架，后端前端自由组合；
+ * demo 类模板是已经写好业务的完整项目，技术栈固定，用 be / fe 锁死。
+ */
+export const TEMPLATES = [
+  {
+    id: 'clean',
+    label: '干净脚手架',
+    note: '只有登录注册、用户、公告、日志这些底子，业务自己写',
+    ready: true,
+  },
+  {
+    id: 'trade',
+    label: '交易 demo',
+    note: '在脚手架之上多了商家、商品、购物车、订单、支付、退款一整套',
+    dir: 'trade',
+    be: 'springboot',
+    fe: ['vue-antd'],
+    ready: true,
+  },
+];
+
+export const readyTemplates = () => TEMPLATES.filter((t) => t.ready);
+
+/** 找模板，找不到返回 undefined 交由调用方报错 */
+export function findTemplate(id) {
+  return TEMPLATES.find((t) => t.id === id);
+}
+
+/** demo 模板的三个来源目录。clean 模板不走这里 */
+export function demoPaths(srcScaffolds, template) {
+  const base = join(srcScaffolds, 'demos', template.dir);
+  return {
+    backend: join(base, 'backend'),
+    frontend: join(base, 'frontend'),
+    docs: join(base, 'docs'),
+  };
+}
+
 /** 多前端时的目录名：单个用 frontend/，多个用 frontend-<id>/ */
 export function frontendDirName(id, total) {
   return total === 1 ? 'frontend' : `frontend-${id}`;

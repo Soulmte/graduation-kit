@@ -6,7 +6,8 @@ import { existsSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { text, confirm, select, multiselect, closePrompt } from './prompt.js';
 import {
-  BACKENDS, FRONTENDS, readyBackends, readyFrontends, frontendDirName,
+  BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
+  findTemplate, demoPaths, frontendDirName,
   patchBackend, patchFrontend, patchSql, sqlFileName, assertEmptyTarget, copyTree,
   validName, validDbName,
 } from './scaffold.js';
@@ -72,12 +73,66 @@ const FE_HINT = {
   wxapp: '微信开发者工具直接导入此目录',
 };
 
+/** 交易 demo 独有的说明，附在 README 里，答辩前能直接对着看 */
+const TRADE_README = `
+## 交易 demo 说明
+
+这套项目在干净脚手架之上加了一条完整的交易链路，可以直接当毕设的业务底子改。
+
+### 三个角色的入口
+
+| 角色 | 入口 | 能做什么 |
+| --- | --- | --- |
+| 普通用户 | \`/user/mall\` | 逛商品、加购物车、下单、支付、确认收货、申请退款 |
+| 商家 | \`/merchant/shop\` | 维护店铺、管商品、发货、审退款 |
+| 管理员 | \`/admin/merchant\` | 审店铺、管分类，另有全量订单与退款视图 |
+
+普通用户在右上角下拉里点「申请开店」提交资料，管理员审核通过后账号自动变成商家。
+
+### 订单状态机
+
+\`\`\`
+0 待支付 --支付--> 1 待发货 --发货--> 2 待收货 --确认收货--> 3 已完成
+0 待支付 --取消--> 4 已取消
+1 / 2 --申请退款--> 5 退款中 --同意--> 6 已退款
+                            \\--拒绝--> 回到原来的状态
+\`\`\`
+
+### 几个刻意的设计（答辩常问）
+
+- **一单只属一个商家**。购物车跨店结算时后端直接拒绝，让退款和发货的责任方唯一。
+- **扣库存用带条件的 UPDATE**（\`stock = stock - n WHERE stock >= n\`），靠数据库行锁挡并发超卖，看受影响行数判断成功与否。
+- **金额一律后端算**。前端传的价格不采纳，避免改包改价。
+- **订单明细存商品快照**（名称、封面、单价）。商家后来改名改价，旧订单显示的仍是成交时的信息。
+- **购物车不存价格**，每次展示实时读商品表，所以调价后购物车立刻跟着变。
+- **买家端 / 商家端 / 管理端走不同路径**（\`/mine/*\` \`/merchant/*\` \`/admin/*\`），不靠参数区分权限。
+
+### 表
+
+除脚手架自带的 user / notice / operation_log 之外，新增 8 张：
+merchant、category、product、cart_item、orders、order_item、payment、refund。
+
+> 订单表叫 \`orders\`，因为 \`order\` 是 MySQL 保留字。
+`;
+
 /** 项目根 README：终端提示会滚走，端口与库名这类东西得落在文件里 */
-function projectReadme({ name, be, fes, db, sqlFile }) {
+function projectReadme({ name, be, fes, db, sqlFile, template }) {
   const feRows = fes.map((f) => {
     const dir = frontendDirName(f.id, fes.length);
     return `| \`${dir}/\` | ${f.label} | ${FE_HINT[f.kind]} |`;
   }).join('\n');
+
+  const isTrade = template?.id === 'trade';
+
+  // demo 的种子数据里多了商家与买家账号，一并写进 README 省得去翻 SQL
+  const accountRows = isTrade
+    ? `| admin | 123456 | 管理员 |
+| test | 123456 | 普通用户（购物车里预放了 2 件商品） |
+| zhangsan | 123456 | 普通用户 |
+| shop1 | 123456 | 商家（店铺已过审，挂着 6 个商品） |
+| shop2 | 123456 | 商家（店铺待审核，可用 admin 走一遍审核流程） |`
+    : `| admin | 123456 | 管理员 |
+| test | 123456 | 普通用户 |`;
 
   return `# ${name}
 
@@ -106,9 +161,8 @@ mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}
 
 | 账号 | 密码 | 角色 |
 | --- | --- | --- |
-| admin | 123456 | 管理员 |
-| test | 123456 | 普通用户 |
-
+${accountRows}
+${isTrade ? TRADE_README : ''}
 ## 目录说明
 
 - \`docs/${sqlFile}\` 建表脚本，含初始数据
@@ -123,9 +177,18 @@ mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}
 `;
 }
 
-/** create --list：列出可选脚手架，未完善的标注出来 */
+/** create --list：列出可选模板与脚手架，未完善的标注出来 */
 function listScaffolds() {
-  line('\n可选后端（一个）');
+  line('\n可选模板（一个）');
+  for (const t of TEMPLATES) {
+    const tag = t.ready ? '' : paint('dim', '未完善');
+    line(`  ${t.id.padEnd(16)} ${t.label.padEnd(22)} ${tag}`);
+    line(`  ${''.padEnd(16)} ${paint('dim', t.note)}`);
+    if (t.be) {
+      line(`  ${''.padEnd(16)} ${paint('dim', `技术栈固定：${t.be} + ${t.fe.join('、')}`)}`);
+    }
+  }
+  line('\n可选后端（一个，仅 clean 模板需要选）');
   for (const b of BACKENDS) {
     const tag = b.ready ? paint('green', ':' + b.port) : paint('dim', '未完善');
     line(`  ${b.id.padEnd(16)} ${b.label.padEnd(22)} ${tag}`);
@@ -138,8 +201,29 @@ function listScaffolds() {
   line(`\n${paint('dim', '示例：npx github:Soulmte/graduation-kit create my-app --be springboot --fe react,vue-antd')}\n`);
 }
 
-/** 非交互模式：把 --be / --fe 解析成 item，非法值直接报错退出 */
-function resolveFlags(opts) {
+/** 把 --template 解析成模板对象，缺省按 clean */
+function resolveTemplate(id) {
+  if (!id) return findTemplate('clean');
+  const t = findTemplate(id);
+  if (!t) {
+    throw new Error(`未知模板 --template ${id}，可选：${readyTemplates().map((x) => x.id).join(' / ')}`);
+  }
+  if (!t.ready) throw new Error(`${t.id} 模板尚未完善，暂不可选`);
+  return t;
+}
+
+/**
+ * 非交互模式：把 --be / --fe 解析成 item，非法值直接报错退出。
+ * demo 模板的技术栈已固定，直接按模板声明取，不看 --be / --fe。
+ */
+function resolveFlags(opts, template) {
+  if (template.be) {
+    return {
+      be: BACKENDS.find((b) => b.id === template.be),
+      fes: template.fe.map((id) => FRONTENDS.find((f) => f.id === id)),
+    };
+  }
+
   const be = BACKENDS.find((b) => b.id === opts.be);
   if (!be) throw new Error(`未知后端 --be ${opts.be}，可选：${readyBackends().map((b) => b.id).join(' / ')}`);
   if (!be.ready) throw new Error(`${be.id} 脚手架尚未完善，暂不可选`);
@@ -165,11 +249,13 @@ export async function create(opts, ctx) {
     return;
   }
 
-  const interactive = process.stdin.isTTY && !opts.be;
-  let name, be, fes, db, withSkills;
+  // --be 或 --template 任一给出都走非交互，方便脚本一行创建
+  const interactive = process.stdin.isTTY && !opts.be && !opts.template;
+  let name, template, be, fes, db, withSkills;
 
   if (!interactive) {
-    ({ be, fes } = resolveFlags(opts));
+    template = resolveTemplate(opts.template);
+    ({ be, fes } = resolveFlags(opts, template));
     name = opts.name || 'my-graduation-project';
     db = { name: opts.db || 'scaffold_db', password: opts.dbPass || '' };
     withSkills = !opts.noSkills;
@@ -183,11 +269,22 @@ export async function create(opts, ctx) {
       validate: validName,
     });
 
-    const beItems = readyBackends().map((b) => toItem(b, `${b.lang}，端口 ${b.port}`));
-    be = await select('选择后端（只能一个）', beItems, 1);
+    const tplItems = readyTemplates().map((t) => toItem(t, t.note));
+    template = await select('选择模板', tplItems, 1);
 
-    const feItems = readyFrontends().map((f) => toItem(f));
-    fes = await multiselect('选择前端（可多个）', feItems, [1]);
+    if (template.be) {
+      // demo 模板技术栈已固定，不再问后端前端
+      be = BACKENDS.find((b) => b.id === template.be);
+      fes = template.fe.map((id) => FRONTENDS.find((f) => f.id === id));
+      line('');
+      line(paint('dim', `  ${template.label} 已固定用 ${be.label} + ${fes.map((f) => f.label).join('、')}`));
+    } else {
+      const beItems = readyBackends().map((b) => toItem(b, `${b.lang}，端口 ${b.port}`));
+      be = await select('选择后端（只能一个）', beItems, 1);
+
+      const feItems = readyFrontends().map((f) => toItem(f));
+      fes = await multiselect('选择前端（可多个）', feItems, [1]);
+    }
 
     line('');
     const dbName = await text('数据库名', { def: 'scaffold_db', validate: validDbName });
@@ -201,10 +298,17 @@ export async function create(opts, ctx) {
   const sqlFile = sqlFileName(db.name);
   assertEmptyTarget(root);
 
+  // demo 模板从 demos/<dir>/ 取源，clean 模板走 backends/ frontends/ docs/
+  const demo = template.dir ? demoPaths(SRC_SCAFFOLDS, template) : null;
+  if (demo && !existsSync(demo.backend)) {
+    throw new Error(`包内缺少 ${template.id} 模板资源：${demo.backend}`);
+  }
+
   // 预览，确认后才写盘
   line('');
   line('即将创建：');
   line(`  ${paint('cyan', root)}`);
+  line(`    ${paint('dim', `模板 ${template.label}`)}`);
   line(`    backend/${''.padEnd(Math.max(1, 22 - 8))}${be.id}${paint('dim', `  :${be.port}`)}`);
   for (const f of fes) {
     line(`    ${frontendDirName(f.id, fes.length)}/`.padEnd(26) + f.id);
@@ -225,21 +329,21 @@ export async function create(opts, ctx) {
   line('');
   mkdirSync(root, { recursive: true });
 
-  copyTree(join(SRC_SCAFFOLDS, 'backends', be.id), join(root, 'backend'));
+  copyTree(demo ? demo.backend : join(SRC_SCAFFOLDS, 'backends', be.id), join(root, 'backend'));
   const bePatched = patchBackend(join(root, 'backend'), be, db);
-  ok(`backend/ ${paint('dim', `← ${be.id}`)}`);
+  ok(`backend/ ${paint('dim', `← ${demo ? `${template.id} demo` : be.id}`)}`);
   if (bePatched.length) line(`  ${paint('dim', `已改写 ${bePatched.join('、')}`)}`);
 
   for (const f of fes) {
     const dirName = frontendDirName(f.id, fes.length);
-    copyTree(join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
+    copyTree(demo ? demo.frontend : join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
     const changed = patchFrontend(join(root, dirName), f, be.port);
-    ok(`${dirName}/ ${paint('dim', `← ${f.id}`)}`);
+    ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
     if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
   }
 
   mkdirSync(join(root, 'docs'), { recursive: true });
-  copyTree(join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
+  copyTree(demo ? demo.docs : join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
   const sqlTo = join(root, 'docs', sqlFile);
   if (sqlFile !== 'scaffold_db.sql') {
     renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
@@ -254,7 +358,7 @@ export async function create(opts, ctx) {
   writeFileSync(join(root, '.gitignore'), GITIGNORE);
   ok(`.gitignore ${paint('dim', '已挡住依赖与构建产物')}`);
 
-  writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile }));
+  writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template }));
   ok(`README.md ${paint('dim', '端口、库名、启动命令存档')}`);
 
   if (withSkills) {
@@ -284,5 +388,10 @@ export async function create(opts, ctx) {
     warn('小程序真机调试连不上 localhost，需把 config/index.js 的 LAN_HOST 改成电脑局域网 IP。');
   }
   line('');
-  line(paint('dim', '默认账号：admin / 123456（管理员），test / 123456（普通用户）'));
+  if (template.dir === 'trade') {
+    line(paint('dim', '默认账号：admin（管理员）、shop1 / shop2（商家）、test / zhangsan（买家），密码都是 123456'));
+    line(paint('dim', '逛商城 /user/mall，商家中心 /merchant/shop，店铺审核 /admin/merchant'));
+  } else {
+    line(paint('dim', '默认账号：admin / 123456（管理员），test / 123456（普通用户）'));
+  }
 }
