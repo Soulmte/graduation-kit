@@ -49,6 +49,15 @@ export const TEMPLATES = [
     fe: ['vue-antd'],
     ready: true,
   },
+  {
+    id: 'booking',
+    label: '预约 demo',
+    note: '服务机构、服务项、排班时段、预约单、到店核销、评价一整套',
+    dir: 'booking',
+    be: 'springboot',
+    fe: ['vue-antd'],
+    ready: true,
+  },
 ];
 
 export const readyTemplates = () => TEMPLATES.filter((t) => t.ready);

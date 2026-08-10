@@ -24,6 +24,36 @@ const check = (label, cond, detail) => {
 };
 
 /**
+ * 各 demo 模板的预期产物。新增模板必须往这里补一项，
+ * 否则 smoke 会直接报未登记，避免新模板惄惄地没人校验。
+ */
+const DEMO_EXPECT = {
+  trade: {
+    tables: ['merchant', 'category', 'product', 'cart_item',
+      'orders', 'order_item', 'payment', 'refund'],
+    views: {
+      merchant: ['Shop.vue', 'ProductManage.vue', 'OrderManage.vue', 'RefundAudit.vue'],
+      user: ['Mall.vue', 'ProductDetail.vue', 'Cart.vue', 'Checkout.vue', 'MyOrder.vue'],
+      admin: ['MerchantManage.vue', 'CategoryManage.vue'],
+    },
+    layout: 'MerchantLayout.vue',
+    readme: ['交易 demo 说明', '订单状态机'],
+  },
+  booking: {
+    tables: ['provider', 'service_category', 'service_item',
+      'time_slot', 'appointment', 'review'],
+    views: {
+      provider: ['Shop.vue', 'ServiceManage.vue', 'ScheduleManage.vue',
+        'AppointmentManage.vue', 'ReviewManage.vue'],
+      user: ['ServiceList.vue', 'ServiceDetail.vue', 'MyAppointment.vue'],
+      admin: ['ProviderManage.vue', 'ServiceCategoryManage.vue', 'AppointmentManage.vue'],
+    },
+    layout: 'ProviderLayout.vue',
+    readme: ['预约 demo 说明', '预约状态机'],
+  },
+};
+
+/**
  * 找出解析后没落在项目根 uploads/ 的相对路径引用。
  * 两种写法基准不同：拼在 __dirname / __file__ 上的以文件所在目录为基准，
  * 其余是配置默认值，运行时以后端目录（进程工作目录）为基准。
@@ -88,9 +118,14 @@ try {
     }
   }
 
-  // demo 模板：技术栈固定，落盘后应当带上交易表与交易页面
+  // demo 模板：技术栈固定，落盘后应当带上业务表与业务页面
   for (const tpl of readyTemplates().filter((t) => t.dir)) {
     console.log(`\n模板 ${tpl.id}`);
+    const want = DEMO_EXPECT[tpl.id];
+    if (!want) {
+      check(`${tpl.id} 模板已在 smoke 里登记预期值`, false, '请往 DEMO_EXPECT 补一项');
+      continue;
+    }
     const name = `smoke-tpl-${tpl.id}`;
     execFileSync(process.execPath, [
       CLI, 'create', name, '--template', tpl.id,
@@ -107,10 +142,8 @@ try {
     check('SQL 内的库名已改写', sqlText.includes(`\`${DB}\``));
     check('SQL 无遗留 scaffold_db', !sqlText.includes('scaffold_db'));
 
-    const TRADE_TABLES = ['merchant', 'category', 'product', 'cart_item',
-      'orders', 'order_item', 'payment', 'refund'];
-    const missing = TRADE_TABLES.filter((t) => !sqlText.includes(`CREATE TABLE \`${t}\``));
-    check(`8 张交易表齐全`, missing.length === 0, missing.join('、'));
+    const missing = want.tables.filter((t) => !sqlText.includes(`CREATE TABLE \`${t}\``));
+    check(`${want.tables.length} 张业务表齐全`, missing.length === 0, missing.join('、'));
 
     const be = readyBackends().find((b) => b.id === tpl.be);
     const stale = staleUploadRefs(join(root, 'backend'), join(root, 'uploads'));
@@ -127,18 +160,17 @@ try {
       check('application.yml 无遗留占位符', !t.includes('__DB_PASSWORD__'));
     }
 
-    // 交易页面与商家布局都得跟着过来，否则路由会指向不存在的组件
+    // 业务页面与第三方布局都得跟着过来，否则路由会指向不存在的组件
     const views = join(root, 'frontend', 'src', 'views');
-    check('商家端 4 个页面都在', ['Shop.vue', 'ProductManage.vue', 'OrderManage.vue', 'RefundAudit.vue']
-      .every((f) => existsSync(join(views, 'merchant', f))));
-    check('买家端交易页面都在', ['Mall.vue', 'ProductDetail.vue', 'Cart.vue', 'Checkout.vue', 'MyOrder.vue']
-      .every((f) => existsSync(join(views, 'user', f))));
-    check('管理端 2 个页面都在', ['MerchantManage.vue', 'CategoryManage.vue']
-      .every((f) => existsSync(join(views, 'admin', f))));
-    check('MerchantLayout 已带上', existsSync(join(root, 'frontend', 'src', 'layouts', 'MerchantLayout.vue')));
+    for (const [sub, files] of Object.entries(want.views)) {
+      const lack = files.filter((f) => !existsSync(join(views, sub, f)));
+      check(`${sub} 端 ${files.length} 个页面都在`, lack.length === 0, lack.join('、'));
+    }
+    check(`${want.layout} 已带上`,
+      existsSync(join(root, 'frontend', 'src', 'layouts', want.layout)));
 
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
-    check('README 含交易 demo 说明', readme.includes('交易 demo 说明') && readme.includes('订单状态机'));
+    check('README 含 demo 说明', want.readme.every((k) => readme.includes(k)));
   }
 } finally {
   rmSync(work, { recursive: true, force: true });

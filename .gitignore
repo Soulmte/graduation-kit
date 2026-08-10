@@ -2,5 +2,8 @@ node_modules/
 .agents/
 *.tgz
 
+# 本地编译验证脚手架时产生的产物
+target/
+
 # 开发用原始脚手架。发布副本在 src/scaffolds/（密码已换占位符）
 脚手架/

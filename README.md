@@ -37,13 +37,14 @@ my-graduation-project/
 └── README.md           端口、库名、启动命令存档
 ```
 
-模板选 `clean` 就是干净脚手架，选 `trade` 就多一整套交易业务（详见下面的[可选模板](#可选模板)）。
+模板选 `clean` 就是干净脚手架，选 `trade` 或 `booking` 就多一整套已写好的业务（详见下面的[可选模板](#可选模板)）。
 
 参数给全就跳过提问，适合写进脚本：
 
 ```bash
 npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
 npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
+npx github:Soulmte/graduation-kit create my-booking --template booking --db booking_db
 npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
 npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板与脚手架可选
 ```
@@ -147,7 +148,7 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 
 | 选项 | 说明 |
 |---|---|
-| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo |
+| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo / `booking` 预约 demo |
 | `--be <id>` | 后端，只能一个（demo 模板会忽略） |
 | `--fe <a,b>` | 前端，可多个逗号分隔（demo 模板会忽略） |
 | `--db <name>` | 数据库名（默认 `scaffold_db`） |
@@ -163,6 +164,7 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 |---|---|---|
 | `clean`（默认） | 登录注册、用户、公告、日志、仪表盘这些底子 | 后端前端自由组合 |
 | `trade` | 在上面那些之外，多了商家、商品、购物车、订单、支付、退款一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
+| `booking` | 多了服务机构、服务项、排班时段、预约单、到店核销、评价一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
 
 ### 交易 demo
 
@@ -203,6 +205,46 @@ npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
 - **买家端 / 商家端 / 管理端走不同路径**（`/mine/*` `/merchant/*` `/admin/*`），不靠参数区分权限。
 
 默认账号：`admin` 管理员，`shop1` `shop2` 商家，`test` `zhangsan` 买家，密码都是 `123456`。`test` 的购物车里预放了 2 件商品，订单列表里 5 笔单覆盖了待支付、待发货、待收货、已完成、退款中五种状态，进去就能看到东西，不用自己造数据。
+
+### 预约 demo
+
+另一大类选题卖的不是货，而是“某个时间段的服务能力”（体检预约、场馆预定、理发到店、自习室选座、课程约课……）。这类题目的难点不在付款，而在时段名额的并发与状态流转。
+
+```bash
+npx github:Soulmte/graduation-kit create my-booking --template booking --db booking_db
+```
+
+三个角色各有入口：
+
+| 角色 | 入口 | 能做什么 |
+|---|---|---|
+| 用户 | `/user/service` | 找服务、按日期选时段下单、取消、催单、评价 |
+| 服务机构 | `/provider/shop` | 维护机构、管服务项（含上下线）、批量排班、接单拒单核销、回复评价 |
+| 管理员 | `/admin/provider` | 审机构、管分类，另有全量预约视图 |
+
+用户在右上角下拉点「申请入驻」提交资料，管理员审核通过后账号自动变成机构。种子数据里 `shop1` 已过审可直接用，`shop2` 待审核，用 `admin` 走一遍就能看到角色变化。
+
+预约状态机（也写在生成出来的 SQL 注释和 `Appointment.java` 里）：
+
+```
+0 待确认 --机构接单--> 1 已确认 --到店核销--> 2 已完成（可评价）
+0 待确认 --机构拒单--> 4 已拒绝（释放名额）
+0 / 1 --用户取消--> 3 已取消（释放名额）
+1 已确认 --机构标记--> 5 已失约（时间已过，不释放名额）
+```
+
+数据库比干净版多 6 张表：`provider` `service_category` `service_item` `time_slot` `appointment` `review`。后端多 37 条接口，前端多 11 个页面。
+
+几个刻意的设计：
+
+- **库存换成了时段容量**。占名额用 `booked_count = booked_count + 1 WHERE booked_count < capacity AND status = 1`，看受影响行数判断是否抢到，而不是先查再改。
+- **取消与拒单退名额，失约不退**。人没来就是已经消耗了机构的档期。
+- **服务已开始不允许自助取消**，否则机构既抽不出人手又白丢名额。
+- **预约单存快照**（服务名、价格、日期时间），机构后来改名改价或删时段都不影响旧单。
+- **批量排班按服务时长切片**，一次最多 30 天，已存在的时段自动跳过，可以反复点来补新日子。
+- **评价绑定预约单且唯一**（`uk_appointment`），只有已完成的单能评，一单只能评一次。
+
+默认账号：`admin` 管理员，`shop1` `shop2` 机构，`test` `zhang` 用户，密码都是 `123456`。9 笔预约单把六种状态全覆盖了，服务项里也故意留了一个已下线的和一个没排班的，用来验证校验分支。时段日期用 `CURDATE()` 算相对天数，过几天再看仍然有可约时段。
 
 ## 可选脚手架
 
@@ -308,7 +350,8 @@ graduation-kit/
 │   │   ├── frontends/      react / vue-×3 / uniapp / wxapp
 │   │   ├── clients/        pyqt / react-native
 │   │   ├── demos/          带业务的完整模板
-│   │   │   └── trade/      交易 demo：springboot + vue-antd + 8 张交易表
+│   │   │   ├── trade/      交易 demo：springboot + vue-antd + 8 张交易表
+│   │   │   └── booking/    预约 demo：springboot + vue-antd + 6 张预约表
 │   │   ├── docs/           scaffold_db.sql
 │   │   └── uploads/        预置头像等静态文件
 │   └── vendor/             上游组件（随包内置，无需联网）

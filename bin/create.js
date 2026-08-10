@@ -115,6 +115,77 @@ merchant、category、product、cart_item、orders、order_item、payment、refu
 > 订单表叫 \`orders\`，因为 \`order\` 是 MySQL 保留字。
 `;
 
+/** 预约 demo 独有的说明 */
+const BOOKING_README = `
+## 预约 demo 说明
+
+这套项目把“抢一个时间段”这件事写完了，体检、场馆、理发、自习室这类题目换个词就能用。
+
+### 三个角色的入口
+
+| 角色 | 入口 | 能做什么 |
+| --- | --- | --- |
+| 普通用户 | \`/user/service\` | 找服务、选时段下单、取消、催单、评价 |
+| 服务机构 | \`/provider/shop\` | 维护机构、管服务项、批量排班、接单核销、回复评价 |
+| 管理员 | \`/admin/provider\` | 审机构、管分类、看全量预约 |
+
+普通用户在右上角下拉里点「申请入驻」提交资料，管理员审核通过后账号自动变成机构。
+
+### 预约状态机
+
+\`\`\`
+0 待确认 --机构接单--> 1 已确认 --到店核销--> 2 已完成（可评价）
+0 待确认 --机构拒单--> 4 已拒绝（释放名额）
+0 / 1 --用户取消--> 3 已取消（释放名额）
+1 已确认 --机构标记--> 5 已失约（时间已过，不释放名额）
+\`\`\`
+
+### 几个刻意的设计（答辩常问）
+
+- **库存换成了时段容量**。占名额用带条件的 UPDATE（\`booked_count = booked_count + 1 WHERE booked_count < capacity AND status = 1\`），看受影响行数判断是否抢到，靠行锁挡并发超预约。
+- **取消与拒单会把名额退回去，失约不退**。人没来就是消耗了机构的档期。
+- **服务已开始就不让用户自助取消**，否则机构既抽不出人手又白丢名额。
+- **预约单存快照**（服务名、价格、日期时间）。机构后来改名改价或删掉时段，旧单显示的仍是预约时的信息。
+- **批量排班按服务时长切片**，最多一次排 30 天，已存在的时段自动跳过，可以反复点来补齐新日子。
+- **评价绑定预约单且唯一**（\`uk_appointment\`），只有已完成的单能评，一单只能评一次。
+- **三端走不同路径**（\`/mine/*\` \`/provider/*\` \`/admin/*\`），不靠参数区分权限。
+
+### 表
+
+除脚手架自带的 user / notice / operation_log 之外，新增 6 张：
+provider、service_category、service_item、time_slot、appointment、review。
+
+> 种子数据的时段用 \`CURDATE()\` 算相对日期，不写死具体天，过几天再看仍然有可约的时段。
+`;
+
+/** 各 demo 的 README 附录与账号说明，新增模板只需往这里添一项 */
+const DEMO_INFO = {
+  trade: {
+    readme: TRADE_README,
+    accounts: `| admin | 123456 | 管理员 |
+| test | 123456 | 普通用户（购物车里预放了 2 件商品） |
+| zhangsan | 123456 | 普通用户 |
+| shop1 | 123456 | 商家（店钺已过审，挂着 6 个商品） |
+| shop2 | 123456 | 商家（店钺待审核，可用 admin 走一遍审核流程） |`,
+    hints: [
+      '默认账号：admin（管理员）、shop1 / shop2（商家）、test / zhangsan（买家），密码都是 123456',
+      '逛商城 /user/mall，商家中心 /merchant/shop，店钺审核 /admin/merchant',
+    ],
+  },
+  booking: {
+    readme: BOOKING_README,
+    accounts: `| admin | 123456 | 管理员 |
+| test | 123456 | 普通用户（名下有待确认、已确认、已完成三种预约） |
+| zhang | 123456 | 普通用户（名下有被拒与失约的单） |
+| shop1 | 123456 | 机构（已过审，6 个服务项与 10 个时段） |
+| shop2 | 123456 | 机构（待审核，可用 admin 走一遍审核流程） |`,
+    hints: [
+      '默认账号：admin（管理员）、shop1 / shop2（机构）、test / zhang（用户），密码都是 123456',
+      '找服务 /user/service，机构中心 /provider/shop，机构审核 /admin/provider',
+    ],
+  },
+};
+
 /** 项目根 README：终端提示会滚走，端口与库名这类东西得落在文件里 */
 function projectReadme({ name, be, fes, db, sqlFile, template }) {
   const feRows = fes.map((f) => {
@@ -122,16 +193,11 @@ function projectReadme({ name, be, fes, db, sqlFile, template }) {
     return `| \`${dir}/\` | ${f.label} | ${FE_HINT[f.kind]} |`;
   }).join('\n');
 
-  const isTrade = template?.id === 'trade';
+  const info = DEMO_INFO[template?.id];
 
-  // demo 的种子数据里多了商家与买家账号，一并写进 README 省得去翻 SQL
-  const accountRows = isTrade
-    ? `| admin | 123456 | 管理员 |
-| test | 123456 | 普通用户（购物车里预放了 2 件商品） |
-| zhangsan | 123456 | 普通用户 |
-| shop1 | 123456 | 商家（店铺已过审，挂着 6 个商品） |
-| shop2 | 123456 | 商家（店铺待审核，可用 admin 走一遍审核流程） |`
-    : `| admin | 123456 | 管理员 |
+  // demo 的种子数据里多了业务角色账号，一并写进 README 省得去翻 SQL
+  const accountRows = info?.accounts
+    || `| admin | 123456 | 管理员 |
 | test | 123456 | 普通用户 |`;
 
   return `# ${name}
@@ -162,7 +228,7 @@ mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}
 | 账号 | 密码 | 角色 |
 | --- | --- | --- |
 ${accountRows}
-${isTrade ? TRADE_README : ''}
+${info?.readme || ''}
 ## 目录说明
 
 - \`docs/${sqlFile}\` 建表脚本，含初始数据
@@ -179,7 +245,7 @@ ${isTrade ? TRADE_README : ''}
 
 /** create --list：列出可选模板与脚手架，未完善的标注出来 */
 function listScaffolds() {
-  line('\n可选模板（一个）');
+  line('\n可选模板（选一个）');
   for (const t of TEMPLATES) {
     const tag = t.ready ? '' : paint('dim', '未完善');
     line(`  ${t.id.padEnd(16)} ${t.label.padEnd(22)} ${tag}`);
@@ -388,9 +454,9 @@ export async function create(opts, ctx) {
     warn('小程序真机调试连不上 localhost，需把 config/index.js 的 LAN_HOST 改成电脑局域网 IP。');
   }
   line('');
-  if (template.dir === 'trade') {
-    line(paint('dim', '默认账号：admin（管理员）、shop1 / shop2（商家）、test / zhangsan（买家），密码都是 123456'));
-    line(paint('dim', '逛商城 /user/mall，商家中心 /merchant/shop，店铺审核 /admin/merchant'));
+  const demoInfo = DEMO_INFO[template.id];
+  if (demoInfo) {
+    demoInfo.hints.forEach((h) => line(paint('dim', h)));
   } else {
     line(paint('dim', '默认账号：admin / 123456（管理员），test / 123456（普通用户）'));
   }
