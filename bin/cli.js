@@ -277,6 +277,7 @@ install 专属：
 create 专属（全部给出则跳过向导，适合脚本）：
   -l, --list            只列出可选模板、脚手架与端口，不创建
   -t, --template <id>   模板：clean（干净脚手架）| trade（交易 demo）| booking（预约 demo）
+                        | agent（AI Agent demo，需自备大模型 API Key）
                         选 demo 时技术栈已固定，--be / --fe 会被忽略
       --be <id>         后端，只能一个：springboot | express | flask
                                       | go | dotnet
@@ -290,6 +291,7 @@ create 专属（全部给出则跳过向导，适合脚本）：
   npx github:Soulmte/graduation-kit create
   npx github:Soulmte/graduation-kit create --list
   npx github:Soulmte/graduation-kit create my-shop --template trade
+  npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
   npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
   npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
   npx github:Soulmte/graduation-kit install -g

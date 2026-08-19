@@ -25,7 +25,7 @@ const check = (label, cond, detail) => {
 
 /**
  * 各 demo 模板的预期产物。新增模板必须往这里补一项，
- * 否则 smoke 会直接报未登记，避免新模板惄惄地没人校验。
+ * 否则 smoke 会直接报未登记，避免新模板悄悄地没人校验。
  */
 const DEMO_EXPECT = {
   trade: {
@@ -50,6 +50,16 @@ const DEMO_EXPECT = {
     },
     layout: 'ProviderLayout.vue',
     readme: ['预约 demo 说明', '预约状态机'],
+  },
+  agent: {
+    tables: ['model_config', 'agent', 'knowledge', 'conversation', 'message'],
+    views: {
+      admin: ['ModelConfigManage.vue', 'AgentManage.vue', 'AgentFlow.vue',
+        'KnowledgeManage.vue', 'ConversationManage.vue'],
+      user: ['AgentList.vue', 'Chat.vue'],
+    },
+    components: ['FlowNode.vue'],
+    readme: ['AI Agent demo 说明', '先把 API Key 填上'],
   },
 };
 
@@ -166,8 +176,19 @@ try {
       const lack = files.filter((f) => !existsSync(join(views, sub, f)));
       check(`${sub} 端 ${files.length} 个页面都在`, lack.length === 0, lack.join('、'));
     }
-    check(`${want.layout} 已带上`,
-      existsSync(join(root, 'frontend', 'src', 'layouts', want.layout)));
+
+    // layout 只有引入第三种角色的 demo 才有（商家 / 机构），
+    // agent 这类只有 admin + user 的模板不填这一项
+    if (want.layout) {
+      check(`${want.layout} 已带上`,
+        existsSync(join(root, 'frontend', 'src', 'layouts', want.layout)));
+    }
+
+    // demo 自带的业务组件（如画布节点）也得在，否则页面 import 会空
+    for (const comp of want.components || []) {
+      check(`components/${comp} 已带上`,
+        existsSync(join(root, 'frontend', 'src', 'components', comp)));
+    }
 
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     check('README 含 demo 说明', want.readme.every((k) => readme.includes(k)));

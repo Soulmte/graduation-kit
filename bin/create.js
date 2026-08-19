@@ -158,6 +158,69 @@ provider、service_category、service_item、time_slot、appointment、review。
 > 种子数据的时段用 \`CURDATE()\` 算相对日期，不写死具体天，过几天再看仍然有可约的时段。
 `;
 
+/** AI Agent demo 独有的说明 */
+const AGENT_README = `
+## AI Agent demo 说明
+
+这套项目把“管理员拖拽配一个智能体，用户直接用”写完了，
+智能咨询、智能客服、智能助手这类题目换个领域词就能用。
+
+### 先把 API Key 填上（重要）
+
+种子数据里的 \`model_config.api_key\` 是 **空的**（不能把密钥写进仓库），
+不填就无法对话。启动后用 admin 登录，进【模型配置】点编辑把自己的 Key 填进去。
+
+- DeepSeek：https://platform.deepseek.com 申请，价格便宜，推荐
+- 不想花钱：本地装 [Ollama](https://ollama.com)，拉个 \`qwen2.5:7b\`，
+  模型配置里厂商选“本地 Ollama”，Key 留空即可
+
+### 两个角色的入口
+
+| 角色 | 入口 | 能做什么 |
+| --- | --- | --- |
+| 管理员 | \`/admin/agent\` | 新建智能体、拖拽编排、维护知识库、看会话记录 |
+| 普通用户 | \`/user/agent\` | 选助手、流式提问、翻推理过程、管自己的会话 |
+
+### 编排是怎么回事
+
+画布只有四种节点，连成一条链：
+
+\`\`\`
+开始 → 知识检索（可选）→ 大模型 → 结束
+\`\`\`
+
+- **开始**：接用户提问
+- **知识检索**：按关键词召回知识条目，拼进提示词。可调召回条数
+- **大模型**：选模型、写系统提示词、调温度、定带多少条历史
+- **结束**：输出收尾
+
+改完点【保存编排】，再回列表点【发布】，前台才看得到。
+
+### 几个刻意的设计（答辩常问）
+
+- **整张画布存一个 JSON 字段**（\`agent.graph_json\`），没拆成节点表与边表。
+  编排改动频繁，整体覆盖比增量同步好写也好排错。
+- **发布前会校一遍图**：必须有唯一开始节点、能走到结束、不成环、
+  至少一个大模型节点、引用的模型没被停用。早前存的图也会重校。
+- **流式用 SSE**（\`SseEmitter\` + JDK \`HttpClient\`），前端用 \`fetch\` + \`ReadableStream\` 接。
+  没用原生 \`EventSource\`：它带不了 \`Authorization\` 头，会被登录拦截器直接拦下。
+- **检索没用向量库**，而是二元滑窗切词 + 加权打分（关键词 5 分、标题 3 分、正文 1 分）。
+  毕设的知识量就几十到几百条，关键词召回够用，也不用额外部署 embedding 服务。
+- **API Key 出口掉掩码**（\`sk-***abc\`），接口拿不到原文；更新时留空表示不改。
+- **每条回答存执行轨迹**（\`message.node_trace\`），记每步耗时与产出。
+  答得不对时能分清是检索没召回到资料，还是召回了但模型没用好。
+- **新对话不提前建会话**，发第一句时后端才建并通过 \`meta\` 事件回传 ID，
+  用户点进来看一眼就走，库里不会攒空会话。
+
+### 表
+
+除脚手架自带的 user / notice / operation_log 之外，新增 5 张：
+model_config、agent、knowledge、conversation、message。
+
+> \`message\` 没有 \`update_time\` 与逆辑删除列：消息只追写不修改，
+> 删会话时按 \`conversation_id\` 物理删除。
+`;
+
 /** 各 demo 的 README 附录与账号说明，新增模板只需往这里添一项 */
 const DEMO_INFO = {
   trade: {
@@ -165,11 +228,11 @@ const DEMO_INFO = {
     accounts: `| admin | 123456 | 管理员 |
 | test | 123456 | 普通用户（购物车里预放了 2 件商品） |
 | zhangsan | 123456 | 普通用户 |
-| shop1 | 123456 | 商家（店钺已过审，挂着 6 个商品） |
-| shop2 | 123456 | 商家（店钺待审核，可用 admin 走一遍审核流程） |`,
+| shop1 | 123456 | 商家（店铺已过审，挂着 6 个商品） |
+| shop2 | 123456 | 商家（店铺待审核，可用 admin 走一遍审核流程） |`,
     hints: [
       '默认账号：admin（管理员）、shop1 / shop2（商家）、test / zhangsan（买家），密码都是 123456',
-      '逛商城 /user/mall，商家中心 /merchant/shop，店钺审核 /admin/merchant',
+      '逛商城 /user/mall，商家中心 /merchant/shop，店铺审核 /admin/merchant',
     ],
   },
   booking: {
@@ -182,6 +245,17 @@ const DEMO_INFO = {
     hints: [
       '默认账号：admin（管理员）、shop1 / shop2（机构）、test / zhang（用户），密码都是 123456',
       '找服务 /user/service，机构中心 /provider/shop，机构审核 /admin/provider',
+    ],
+  },
+  agent: {
+    readme: AGENT_README,
+    accounts: `| admin | 123456 | 管理员 |
+| test | 123456 | 普通用户（名下有 2 段历史对话） |
+| zhang | 123456 | 普通用户 |`,
+    hints: [
+      '先填 API Key！种子数据里 model_config.api_key 是空的，admin 登录后进 /admin/modelConfig 填上',
+      '管理端编排 /admin/agent（点「编排」进画布），前台对话 /user/agent',
+      '不想花钱就本地装 Ollama，模型配置里厂商选“本地 Ollama”，Key 可留空',
     ],
   },
 };

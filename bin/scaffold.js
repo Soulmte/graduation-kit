@@ -58,6 +58,15 @@ export const TEMPLATES = [
     fe: ['vue-antd'],
     ready: true,
   },
+  {
+    id: 'agent',
+    label: 'AI Agent demo',
+    note: '拖拽编排智能体、知识库检索、流式对话，需自备大模型 API Key',
+    dir: 'agent',
+    be: 'springboot',
+    fe: ['vue-antd'],
+    ready: true,
+  },
 ];
 
 export const readyTemplates = () => TEMPLATES.filter((t) => t.ready);

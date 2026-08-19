@@ -37,7 +37,7 @@ my-graduation-project/
 └── README.md           端口、库名、启动命令存档
 ```
 
-模板选 `clean` 就是干净脚手架，选 `trade` 或 `booking` 就多一整套已写好的业务（详见下面的[可选模板](#可选模板)）。
+模板选 `clean` 就是干净脚手架，选 `trade`、`booking` 或 `agent` 就多一整套已写好的业务（详见下面的[可选模板](#可选模板)）。
 
 参数给全就跳过提问，适合写进脚本：
 
@@ -45,6 +45,7 @@ my-graduation-project/
 npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
 npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
 npx github:Soulmte/graduation-kit create my-booking --template booking --db booking_db
+npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
 npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
 npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板与脚手架可选
 ```
@@ -148,7 +149,7 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 
 | 选项 | 说明 |
 |---|---|
-| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo / `booking` 预约 demo |
+| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo / `booking` 预约 demo / `agent` AI Agent demo |
 | `--be <id>` | 后端，只能一个（demo 模板会忽略） |
 | `--fe <a,b>` | 前端，可多个逗号分隔（demo 模板会忽略） |
 | `--db <name>` | 数据库名（默认 `scaffold_db`） |
@@ -165,6 +166,7 @@ npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
 | `clean`（默认） | 登录注册、用户、公告、日志、仪表盘这些底子 | 后端前端自由组合 |
 | `trade` | 在上面那些之外，多了商家、商品、购物车、订单、支付、退款一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
 | `booking` | 多了服务机构、服务项、排班时段、预约单、到店核销、评价一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
+| `agent` | 多了模型配置、拖拽编排智能体、知识库检索、流式对话一整套（需自备大模型 API Key） | 固定 Spring Boot + Vue 3 & Ant Design Vue |
 
 ### 交易 demo
 
@@ -245,6 +247,45 @@ npx github:Soulmte/graduation-kit create my-booking --template booking --db book
 - **评价绑定预约单且唯一**（`uk_appointment`），只有已完成的单能评，一单只能评一次。
 
 默认账号：`admin` 管理员，`shop1` `shop2` 机构，`test` `zhang` 用户，密码都是 `123456`。9 笔预约单把六种状态全覆盖了，服务项里也故意留了一个已下线的和一个没排班的，用来验证校验分支。时段日期用 `CURDATE()` 算相对天数，过几天再看仍然有可约时段。
+
+### AI Agent demo
+
+带 AI 的题目现在很多（智能租房咨询、智能客服、智能就业指导、智能健康助手……）。这类题目如果只是把问题直接转发给大模型，工作量和技术含量都不够看。这个 demo 把“管理员在后台拖拽配出一个智能体，用户在前台直接用”这条链路写完了。
+
+```bash
+npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
+```
+
+> 跑前先填 API Key。种子数据里 `model_config.api_key` 是**空的**（不能把密钥写进仓库），不填无法对话。启动后用 `admin` 登录，进【模型配置】点编辑填上即可。DeepSeek 的 Key 在 [platform.deepseek.com](https://platform.deepseek.com) 申请，价格便宜；不想花钱就本地装 [Ollama](https://ollama.com) 拉个 `qwen2.5:7b`，厂商选“本地 Ollama”、Key 留空。
+
+两个角色各有入口：
+
+| 角色 | 入口 | 能做什么 |
+|---|---|---|
+| 管理员 | `/admin/agent` | 新建智能体、拖拽编排、发布与撕回、维护知识库、看全量会话与执行轨迹 |
+| 普通用户 | `/user/agent` | 选助手、流式提问、翻推理过程、管自己的历史会话 |
+
+画布只有四种节点，连成一条链：
+
+```
+开始 → 知识检索（可选）→ 大模型 → 结束
+```
+
+检索节点能调召回条数，大模型节点能选模型、写系统提示词、调温度、定带多少条历史。改完点【保存编排】，再回列表点【发布】，前台才看得到。编排页还带了个【试检索】，输个问题直接看会召回哪几条资料。
+
+数据库比干净版多 5 张表：`model_config` `agent` `knowledge` `conversation` `message`。后端多 31 条接口，前端多 7 个页面。
+
+几个刻意的设计：
+
+- **整张画布存一个 JSON 字段**（`agent.graph_json`），没拆成节点表与边表。编排改动频繁，整体覆盖比增量同步好写也好排错。
+- **发布前会校一遍图**：必须有唯一开始节点、能走到结束、不成环、至少一个大模型节点、引用的模型没被停用。早前存的图重新发布时也会重校。
+- **流式用 SSE**（`SseEmitter` + JDK `HttpClient`），前端用 `fetch` + `ReadableStream` 接。没用原生 `EventSource`：它带不了 `Authorization` 头，会被登录拦截器直接拦下。
+- **检索没用向量库**，而是二元滑窗切词 + 加权打分（关键词 5 分、标题 3 分、正文 1 分）。毕设的知识量就几十到几百条，关键词召回够用，不用额外部署 embedding 服务与向量数据库，答辩时也更容易讲清原理。
+- **API Key 出口打掩码**（`sk-***abc`），接口拿不到原文；更新时留空表示不改。
+- **每条回答存执行轨迹**（`message.node_trace`），记每步耗时与产出。答得不对时能分清是检索没召回到资料，还是召回了但模型没用好。
+- **新对话不提前建会话**，发第一句时后端才建并通过 `meta` 事件回传 ID。用户点进来看一眼就走，库里不会攒空会话。
+
+默认账号：`admin` 管理员，`test` `zhang` 普通用户，密码都是 `123456`。种子数据里 3 个智能体故意不一样：一个带检索节点、一个不带（对比用）、一个是草稿（验证前台看不见）；7 条知识里有 1 条全局共享、1 条已停用。
 
 ## 可选脚手架
 
@@ -351,7 +392,8 @@ graduation-kit/
 │   │   ├── clients/        pyqt / react-native
 │   │   ├── demos/          带业务的完整模板
 │   │   │   ├── trade/      交易 demo：springboot + vue-antd + 8 张交易表
-│   │   │   └── booking/    预约 demo：springboot + vue-antd + 6 张预约表
+│   │   │   ├── booking/    预约 demo：springboot + vue-antd + 6 张预约表
+│   │   │   └── agent/      AI Agent demo：springboot + vue-antd + 5 张智能体表
 │   │   ├── docs/           scaffold_db.sql
 │   │   └── uploads/        预置头像等静态文件
 │   └── vendor/             上游组件（随包内置，无需联网）
