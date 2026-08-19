@@ -102,7 +102,8 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
         conversationService.touch(conversationId);
 
         final Long convId = conversationId;
-        executor.execute(() -> run(emitter, agent, graph, convId, dto.getQuestion()));
+        final Long questionId = question.getId();
+        executor.execute(() -> run(emitter, agent, graph, convId, dto.getQuestion(), questionId));
         return emitter;
     }
 
@@ -114,7 +115,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
      * 这样刷新页面能看到当时发生了什么，不会只剩一个孤零零的提问。
      */
     private void run(SseEmitter emitter, Agent agent, GraphDTO graph,
-                     Long conversationId, String question) {
+                     Long conversationId, String question, Long questionId) {
         long startAt = System.currentTimeMillis();
         List<Map<String, Object>> traces = new ArrayList<>();
 
@@ -163,7 +164,8 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
                     case GraphDTO.TYPE_START -> "收到提问：" + brief(question, 40);
                     case GraphDTO.TYPE_KNOWLEDGE -> runKnowledge(node, agent, question, context);
                     case GraphDTO.TYPE_LLM -> {
-                        LlmClient.LlmResult result = runLlm(emitter, node, agent, conversationId, context);
+                        LlmClient.LlmResult result = runLlm(emitter, node, agent, conversationId,
+                                questionId, context);
                         reply.append(result.getContent());
                         yield "已生成 " + result.getContent().length() + " 字";
                     }
@@ -269,7 +271,8 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
      * 资料是“本次相关”的，放 system 会让模型误以为它对整个对话都成立。
      */
     private LlmClient.LlmResult runLlm(SseEmitter emitter, GraphDTO.Node node, Agent agent,
-                                       Long conversationId, Map<String, Object> context) {
+                                       Long conversationId, Long questionId,
+                                       Map<String, Object> context) {
         Map<String, Object> data = node.getData();
 
         // 节点没指定模型就用智能体的默认模型
@@ -301,7 +304,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
         // 带上历史，模型才能听懂“那第二种呢”这种跟问
         if (boolOf(data.get("useHistory"), true)) {
             int limit = intOf(data.get("historyLimit"), DEFAULT_HISTORY_LIMIT);
-            for (Message history : messageService.listRecentHistory(conversationId, limit)) {
+            for (Message history : messageService.listRecentHistory(conversationId, limit, questionId)) {
                 messages.add(Map.of("role", history.getRole(), "content", history.getContent()));
             }
         }

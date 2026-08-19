@@ -24,7 +24,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     @Override
-    public List<Message> listRecentHistory(Long conversationId, int limit) {
+    public List<Message> listRecentHistory(Long conversationId, int limit, Long excludeId) {
         if (limit <= 0) {
             return new ArrayList<>();
         }
@@ -38,6 +38,10 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
                 .ne(Message::getContent, "")
                 // 生成失败的消息不进上下文，否则模型会跟着学错
                 .isNull(Message::getErrorMsg)
+                // 本次提问已经先存进库了，得把它排掉：
+                // 否则它会先作为历史出现一次，末尾拼参考资料时又出现一次，
+                // 模型看到同一个问题问了两遍，容易回“如前所述”这类废话。
+                .ne(excludeId != null, Message::getId, excludeId)
                 .orderByDesc(Message::getId)
                 .last("LIMIT " + limit);
 
