@@ -14,6 +14,7 @@ import { useUserStore } from "@/stores/user";
  * @param {Object} payload            { agentId, conversationId, question }
  * @param {Object} handlers           事件回调
  * @param {Function} handlers.onMeta  拿到会话ID时触发
+ * @param {Function} handlers.onStep  某个节点开始执行时触发
  * @param {Function} handlers.onTrace 某个节点执行完时触发
  * @param {Function} handlers.onDelta 模型吐出增量文本时触发（会调很多次）
  * @param {Function} handlers.onDone  全部完成时触发
@@ -21,7 +22,7 @@ import { useUserStore } from "@/stores/user";
  * @returns {Function} 调用它可以中断这次对话
  */
 export const streamChat = (payload, handlers = {}) => {
-    const { onMeta, onTrace, onDelta, onDone, onError } = handlers;
+    const { onMeta, onStep, onTrace, onDelta, onDone, onError } = handlers;
     const controller = new AbortController();
     const userStore = useUserStore();
 
@@ -36,6 +37,9 @@ export const streamChat = (payload, handlers = {}) => {
         switch (event) {
             case "meta":
                 onMeta?.(data);
+                break;
+            case "step":
+                onStep?.(data);
                 break;
             case "trace":
                 onTrace?.(data);

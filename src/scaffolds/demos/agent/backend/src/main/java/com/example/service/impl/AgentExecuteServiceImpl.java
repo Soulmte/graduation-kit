@@ -159,6 +159,14 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
                     throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(), "连线指向了不存在的节点");
                 }
 
+                // 节点一开始就推一帧，让前端能立刻显示“正在执行”。
+                // 只有 trace（执行完）的话，检索和模型排队那几秒页面是空的，
+                // 用户会以为卡住了。
+                send(emitter, "step", Map.of(
+                        "nodeKey", node.getId(),
+                        "nodeType", node.getType(),
+                        "title", titleOf(node)));
+
                 long nodeStart = System.currentTimeMillis();
                 String output = switch (node.getType()) {
                     case GraphDTO.TYPE_START -> "收到提问：" + brief(question, 40);
