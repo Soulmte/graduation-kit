@@ -120,11 +120,12 @@
             </template>
         </a-table>
 
-        <a-modal
+        <a-drawer
             v-model:open="modalVisible"
             :title="editing ? '编辑条目' : '添加条目'"
             :width="720"
-            @ok="handleSubmit"
+            placement="right"
+            destroy-on-close
         >
             <a-form
                 ref="formRef"
@@ -191,7 +192,17 @@
                     />
                 </a-form-item>
             </a-form>
-        </a-modal>
+
+            <!-- 抽屉没有内置的确定取消，得自己放到 footer 插槽里 -->
+            <template #footer>
+                <div class="drawer-footer">
+                    <a-button @click="modalVisible = false">取消</a-button>
+                    <a-button type="primary" :loading="submitting" @click="handleSubmit">
+                        {{ editing ? "保存" : "添加" }}
+                    </a-button>
+                </div>
+            </template>
+        </a-drawer>
     </a-card>
 </template>
 
@@ -240,6 +251,7 @@ const query = reactive({
 });
 
 const modalVisible = ref(false);
+const submitting = ref(false);
 const editing = ref(null);
 const formRef = ref(null);
 
@@ -350,16 +362,23 @@ const handleSubmit = async () => {
     // agentId 为 undefined 时后端当全局条目存，直接传就行，不要自己改成 0
     const payload = { ...form };
 
-    if (editing.value) {
-        payload.id = editing.value.id;
-        await updateKnowledge(payload);
-        message.success("更新成功");
-    } else {
-        await addKnowledge(payload);
-        message.success("添加成功");
+    // 抽屉不会自己关，也没内置 loading，这两件事得自己管：
+    // 正文可能已经写了好几百字，提交失败时绝不能关掉。
+    submitting.value = true;
+    try {
+        if (editing.value) {
+            payload.id = editing.value.id;
+            await updateKnowledge(payload);
+            message.success("更新成功");
+        } else {
+            await addKnowledge(payload);
+            message.success("添加成功");
+        }
+        modalVisible.value = false;
+        fetchList();
+    } finally {
+        submitting.value = false;
     }
-    modalVisible.value = false;
-    fetchList();
 };
 
 onMounted(() => {

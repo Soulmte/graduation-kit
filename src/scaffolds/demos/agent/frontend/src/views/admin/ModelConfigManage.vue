@@ -88,14 +88,12 @@
             </template>
         </a-table>
 
-        <a-modal
+        <a-drawer
             v-model:open="modalVisible"
             :title="editing ? '编辑模型配置' : '添加模型配置'"
             :width="640"
-            :ok-text="editing ? '保存' : '添加'"
-            cancel-text="取消"
+            placement="right"
             destroy-on-close
-            @ok="handleSubmit"
         >
             <a-form :model="form" layout="vertical" ref="formRef">
                 <a-form-item
@@ -212,7 +210,17 @@
                     />
                 </a-form-item>
             </a-form>
-        </a-modal>
+
+            <!-- 抽屉没有内置的确定取消，得自己放到 footer 插槽里 -->
+            <template #footer>
+                <div class="drawer-footer">
+                    <a-button @click="modalVisible = false">取消</a-button>
+                    <a-button type="primary" :loading="submitting" @click="handleSubmit">
+                        {{ editing ? "保存" : "添加" }}
+                    </a-button>
+                </div>
+            </template>
+        </a-drawer>
     </a-card>
 </template>
 
@@ -274,6 +282,7 @@ const pageSize = 10;
 const name = ref("");
 
 const modalVisible = ref(false);
+const submitting = ref(false);
 const editing = ref(null);
 const formRef = ref(null);
 
@@ -380,18 +389,25 @@ const handleSubmit = async () => {
     await formRef.value.validate();
     const payload = { ...form };
 
-    if (editing.value) {
-        payload.id = editing.value.id;
-        // 留空就不传这个字段，后端会沿用原值
-        if (!payload.apiKey) delete payload.apiKey;
-        await updateModelConfig(payload);
-        message.success("更新成功");
-    } else {
-        await addModelConfig(payload);
-        message.success("添加成功");
+    // 抽屉不会自己关，也没内置 loading，这两件事得自己管：
+    // 提交失败时保持打开，用户不用重新填一遍。
+    submitting.value = true;
+    try {
+        if (editing.value) {
+            payload.id = editing.value.id;
+            // 留空就不传这个字段，后端会沿用原值
+            if (!payload.apiKey) delete payload.apiKey;
+            await updateModelConfig(payload);
+            message.success("更新成功");
+        } else {
+            await addModelConfig(payload);
+            message.success("添加成功");
+        }
+        modalVisible.value = false;
+        fetchList();
+    } finally {
+        submitting.value = false;
     }
-    modalVisible.value = false;
-    fetchList();
 };
 
 onMounted(fetchList);

@@ -400,3 +400,13 @@ a:hover {
         0 0 10px var(--color-primary),
         0 0 5px var(--color-primary) !important;
 }
+
+/* ============================================================
+ * 抽屉底部按钮区
+ * Drawer 不像 Modal 那样自带确定取消，用 #footer 插槽时配这个类
+ * ============================================================ */
+.drawer-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
