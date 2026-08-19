@@ -5,10 +5,11 @@
             <a-button
                 type="primary"
                 block
-                :disabled="!agentOptions.length"
+                :disabled="!currentAgentId"
                 @click="startNew"
             >
-                <template #icon><plus-outlined /></template> 新对话
+                <template #icon><plus-outlined /></template>
+                新建与{{ currentAgent?.name || "助手" }}的对话
             </a-button>
 
             <a-select
@@ -16,34 +17,55 @@
                 :options="agentOptions"
                 placeholder="选择助手"
                 style="width: 100%; margin-top: 12px"
+                :disabled="sending"
+                @change="onAgentChange"
             />
+
+            <a-input
+                v-model:value="keyword"
+                allow-clear
+                placeholder="搜索对话标题"
+                style="margin-top: 8px"
+            >
+                <template #prefix><search-outlined /></template>
+            </a-input>
+
+            <a-checkbox v-model:checked="onlyCurrentAgent" class="conv__filter">
+                只看当前助手
+            </a-checkbox>
 
             <a-divider style="margin: 12px 0" />
 
-            <a-spin :spinning="listLoading">
-                <a-empty
-                    v-if="!conversations.length && !listLoading"
-                    :image="simpleEmptyImage"
-                    description="还没有对话记录"
-                />
-                <div
-                    v-for="conv in conversations"
-                    :key="conv.id"
-                    class="conv"
-                    :class="{ 'conv--active': conv.id === currentConvId }"
-                    @click="openConversation(conv)"
-                >
-                    <div class="conv__title">{{ conv.title }}</div>
-                    <div class="conv__meta">
-                        <span>{{ conv.agentName || "已删除" }}</span>
-                        <span>{{ conv.msgCount }} 条</span>
+            <div class="conv__list">
+                <a-spin :spinning="listLoading">
+                    <a-empty
+                        v-if="!filteredConversations.length && !listLoading"
+                        :image="simpleEmptyImage"
+                        :description="
+                            conversations.length
+                                ? '没有符合条件的对话'
+                                : '还没有对话记录'
+                        "
+                    />
+                    <div
+                        v-for="conv in filteredConversations"
+                        :key="conv.id"
+                        class="conv"
+                        :class="{ 'conv--active': conv.id === currentConvId }"
+                        @click="openConversation(conv)"
+                    >
+                        <div class="conv__title">{{ conv.title }}</div>
+                        <div class="conv__meta">
+                            <span>{{ conv.agentName || "已删除" }}</span>
+                            <span>{{ conv.msgCount }} 条</span>
+                        </div>
+                        <div class="conv__ops">
+                            <edit-outlined @click.stop="handleRename(conv)" />
+                            <delete-outlined @click.stop="handleDelete(conv)" />
+                        </div>
                     </div>
-                    <div class="conv__ops">
-                        <edit-outlined @click.stop="handleRename(conv)" />
-                        <delete-outlined @click.stop="handleDelete(conv)" />
-                    </div>
-                </div>
-            </a-spin>
+                </a-spin>
+            </div>
         </div>
 
         <!-- 右侧消息区 -->
@@ -83,50 +105,89 @@
                     </a-avatar>
 
                     <div class="bubble__wrap">
-                        <div class="bubble__body">
+                        <!-- 思考面板放在正文之上：生成中自动展开，让用户看到
+                             正在检索、正在想；结束后折叠成一行摘要，不占地方。 -->
+                        <div
+                            v-if="msg.role === 'assistant' && msg.trace?.length"
+                            class="think"
+                            :class="{ 'think--live': msg.thinking }"
+                        >
+                            <div class="think__head" @click="toggleTrace(msg)">
+                                <loading-outlined v-if="msg.thinking" />
+                                <bulb-outlined v-else />
+                                <span class="think__label">
+                                    {{ thinkSummary(msg) }}
+                                </span>
+                                <span class="think__toggle">
+                                    {{ isTraceOpen(msg) ? "收起" : "展开" }}
+                                    <up-outlined v-if="isTraceOpen(msg)" />
+                                    <down-outlined v-else />
+                                </span>
+                            </div>
+
+                            <div v-if="isTraceOpen(msg)" class="think__body">
+                                <div
+                                    v-for="(step, si) in msg.trace"
+                                    :key="si"
+                                    class="step"
+                                    :class="{ 'step--running': step.running }"
+                                >
+                                    <span class="step__dot" />
+                                    <div class="step__main">
+                                        <div class="step__title">
+                                            <a-tag :color="nodeTagColor(step.nodeType)">
+                                                {{ nodeTypeLabel(step.nodeType) }}
+                                            </a-tag>
+                                            <strong>
+                                                {{ step.title || step.nodeKey }}
+                                            </strong>
+                                            <span
+                                                v-if="step.running"
+                                                class="step__state"
+                                            >
+                                                执行中
+                                            </span>
+                                            <span
+                                                v-else-if="step.cost != null"
+                                                class="text-sub step__cost"
+                                            >
+                                                {{ step.cost }}ms
+                                            </span>
+                                        </div>
+                                        <div v-if="step.output" class="step__output">
+                                            {{ step.output }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="msg.content || msg.pending || !msg.errorMsg" class="bubble__body">
                             <span v-if="msg.content">{{ msg.content }}</span>
                             <!-- 首个 delta 到来前先转个圈，不然用户会以为点了没反应 -->
-                            <a-spin v-else-if="msg.pending" size="small" />
+                            <span v-else-if="msg.pending" class="typing">
+                                <a-spin size="small" />
+                                <span class="text-sub">{{ pendingHint(msg) }}</span>
+                            </span>
                             <span class="cursor" v-if="msg.streaming">▍</span>
                         </div>
 
-                        <a-alert
-                            v-if="msg.errorMsg"
-                            type="error"
-                            show-icon
-                            :message="msg.errorMsg"
-                        />
+                        <!-- 报错用一行小字，不用 a-alert 那么大一块 -->
+                        <div v-if="msg.errorMsg" class="err" :title="msg.errorMsg">
+                            <exclamation-circle-outlined />
+                            <span class="err__text">{{ msg.errorMsg }}</span>
+                        </div>
 
-                        <div v-if="msg.trace?.length" class="bubble__foot">
-                            <a class="link" @click="msg.traceOpen = !msg.traceOpen">
-                                {{ msg.traceOpen ? "收起" : "查看" }}推理过程（{{
-                                    msg.trace.length
-                                }}
-                                步）
-                            </a>
+                        <div
+                            v-if="msg.costMs || msg.tokenUsage"
+                            class="bubble__foot"
+                        >
                             <span v-if="msg.costMs" class="text-sub">
                                 耗时 {{ (msg.costMs / 1000).toFixed(1) }}s
                             </span>
                             <span v-if="msg.tokenUsage" class="text-sub">
                                 {{ msg.tokenUsage }} tokens
                             </span>
-                        </div>
-
-                        <div v-if="msg.traceOpen" class="trace">
-                            <div
-                                v-for="(step, si) in msg.trace"
-                                :key="si"
-                                class="trace__item"
-                            >
-                                <a-tag>{{ nodeTypeLabel(step.nodeType) }}</a-tag>
-                                <strong>{{ step.title || step.nodeKey }}</strong>
-                                <span v-if="step.cost" class="text-sub">
-                                    {{ step.cost }}ms
-                                </span>
-                                <div v-if="step.output" class="trace__output">
-                                    {{ step.output }}
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -189,6 +250,12 @@ import {
     DeleteOutlined,
     SendOutlined,
     StopOutlined,
+    SearchOutlined,
+    BulbOutlined,
+    LoadingOutlined,
+    UpOutlined,
+    DownOutlined,
+    ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
 import { listPublishedAgent } from "@/api/agent";
 import {
@@ -204,6 +271,22 @@ const NODE_TYPE_LABEL = {
     knowledge: "知识检索",
     llm: "大模型",
     end: "结束",
+};
+
+// 节点标签颜色，让思考面板一眼能分出哪步在做什么
+const NODE_TAG_COLOR = {
+    start: "default",
+    knowledge: "cyan",
+    llm: "blue",
+    end: "green",
+};
+
+// 正在执行某个节点时，正文区的占位提示
+const PENDING_HINT = {
+    start: "正在准备……",
+    knowledge: "正在查资料……",
+    llm: "正在思考……",
+    end: "即将完成……",
 };
 
 const route = useRoute();
@@ -224,6 +307,10 @@ const scrollRef = ref(null);
 const currentAgentId = ref(null);
 const currentConvId = ref(null);
 
+// 侧边栏筛选：标题关键词 + 是否只看当前助手
+const keyword = ref("");
+const onlyCurrentAgent = ref(false);
+
 const renameVisible = ref(false);
 const renameTitle = ref("");
 const renaming = ref(null);
@@ -232,6 +319,32 @@ const renaming = ref(null);
 let abortStream = null;
 
 const nodeTypeLabel = (type) => NODE_TYPE_LABEL[type] || type;
+const nodeTagColor = (type) => NODE_TAG_COLOR[type] || "default";
+
+// 思考中默认展开，用户手动折叠过就听用户的（traceOpen 不再是 null）
+const isTraceOpen = (msg) =>
+    msg.traceOpen === null ? !!msg.thinking : !!msg.traceOpen;
+
+const toggleTrace = (msg) => {
+    msg.traceOpen = !isTraceOpen(msg);
+};
+
+// 折叠时那一行摘要：正在跑就报当前步骤，跑完就报总步数
+const thinkSummary = (msg) => {
+    if (msg.thinking) {
+        const running = msg.trace.find((s) => s.running);
+        const last = msg.trace[msg.trace.length - 1];
+        const step = running || last;
+        return step ? `${step.title || nodeTypeLabel(step.nodeType)}……` : "正在思考……";
+    }
+    return `推理过程（${msg.trace.length} 步）`;
+};
+
+// 正文还没开始吐字时，拿当前节点类型提示一句
+const pendingHint = (msg) => {
+    const running = (msg.trace || []).find((s) => s.running);
+    return PENDING_HINT[running?.nodeType] || "正在思考……";
+};
 
 const agentOptions = computed(() =>
     agents.value.map((a) => ({ value: a.id, label: a.name })),
@@ -240,6 +353,20 @@ const agentOptions = computed(() =>
 const currentAgent = computed(() =>
     agents.value.find((a) => a.id === currentAgentId.value),
 );
+
+// 前端筛：会话列表就那么几条，没必要为了筛选多走一轮接口
+const filteredConversations = computed(() => {
+    const kw = keyword.value.trim().toLowerCase();
+    return conversations.value.filter((c) => {
+        if (onlyCurrentAgent.value && c.agentId !== currentAgentId.value) {
+            return false;
+        }
+        if (kw && !String(c.title || "").toLowerCase().includes(kw)) {
+            return false;
+        }
+        return true;
+    });
+});
 
 const scrollToBottom = () => {
     nextTick(() => {
@@ -296,7 +423,9 @@ const openConversation = async (conv) => {
     messages.value = (res.data.messages || []).map((m) => ({
         ...m,
         trace: parseTrace(m.nodeTrace),
+        // 历史消息不在思考中，默认折叠
         traceOpen: false,
+        thinking: false,
     }));
     scrollToBottom();
 };
@@ -320,8 +449,20 @@ const startNew = () => {
             content: greeting,
             trace: [],
             traceOpen: false,
+            thinking: false,
         });
     }
+};
+
+/**
+ * 切换助手。
+ *
+ * 后端要求会话与助手必须对得上（否则报“会话与智能体对不上”），
+ * 所以换了助手就不能继续往旧会话里发，直接开一段新的。
+ * 生成中下拉框是 disabled 的，这里不用再判 sending。
+ */
+const onAgentChange = () => {
+    startNew();
 };
 
 const handleRename = (conv) => {
@@ -375,6 +516,14 @@ const handleStop = () => {
     if (last && last.role === "assistant") {
         last.streaming = false;
         last.pending = false;
+        last.thinking = false;
+        // 没跑完的节点停在“执行中”不合理，标成已中断
+        last.trace?.forEach((s) => {
+            if (s.running) {
+                s.running = false;
+                s.output = s.output || "已中断";
+            }
+        });
         // 中断时后端已经存了那一瞬的部分内容，前端也照实标注一下
         if (!last.content) last.content = "（已停止生成）";
     }
@@ -393,14 +542,18 @@ const handleSend = () => {
         content: text,
         trace: [],
         traceOpen: false,
+        thinking: false,
     });
 
-    // 先插一条空的回复占位，delta 到了就往它的 content 上拼
+    // 先插一条空的回复占位，delta 到了就往它的 content 上拼。
+    // traceOpen 给 null 表示“用户还没表态”，思考中自动展开、结束后自动收起；
+    // 一旦用户手动点过就变成 true/false，之后听用户的。
     const reply = ref({
         role: "assistant",
         content: "",
         trace: [],
-        traceOpen: false,
+        traceOpen: null,
+        thinking: true,
         pending: true,
         streaming: true,
     });
@@ -422,8 +575,22 @@ const handleSend = () => {
             onMeta: (data) => {
                 currentConvId.value = data.conversationId;
             },
+            // 节点开始：先占一行“执行中”，不等它跑完
+            onStep: (step) => {
+                reply.value.trace.push({ ...step, running: true });
+                scrollToBottom();
+            },
+            // 节点跑完：把刚才那行补上耗时与输出，而不是再插一行
             onTrace: (step) => {
-                reply.value.trace.push(step);
+                const list = reply.value.trace;
+                const i = list.findIndex(
+                    (s) => s.running && s.nodeKey === step.nodeKey,
+                );
+                if (i >= 0) {
+                    list[i] = { ...step, running: false };
+                } else {
+                    list.push({ ...step, running: false });
+                }
                 scrollToBottom();
             },
             onDelta: (chunk) => {
@@ -434,6 +601,7 @@ const handleSend = () => {
             onDone: (data) => {
                 reply.value.streaming = false;
                 reply.value.pending = false;
+                reply.value.thinking = false;
                 reply.value.costMs = data.costMs;
                 reply.value.tokenUsage = data.tokenUsage;
                 sending.value = false;
@@ -445,7 +613,15 @@ const handleSend = () => {
             onError: (msg) => {
                 reply.value.streaming = false;
                 reply.value.pending = false;
+                reply.value.thinking = false;
                 reply.value.errorMsg = msg;
+                // 停在哪一步出错的，把那步标成失败，方便定位
+                reply.value.trace.forEach((s) => {
+                    if (s.running) {
+                        s.running = false;
+                        s.output = s.output || "执行失败";
+                    }
+                });
                 sending.value = false;
                 abortStream = null;
                 scrollToBottom();
@@ -479,10 +655,26 @@ onBeforeUnmount(() => {
 .chat__side {
     width: 260px;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
     padding: 16px;
     border-radius: var(--radius-lg);
     background: var(--color-bg-card);
     box-shadow: var(--shadow-sm);
+    /* 新建与筛选固定在上方，只让会话列表滚，
+       否则会话一多搜索框就被顶出可视区了。 */
+    overflow: hidden;
+}
+
+.conv__filter {
+    margin-top: 10px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-sub);
+}
+
+.conv__list {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -631,25 +823,104 @@ onBeforeUnmount(() => {
     cursor: pointer;
 }
 
-.trace {
-    margin-top: 8px;
-    padding: 10px 12px;
+/* 思考面板：模仿“思考过程”那种淡底卡片，视觉上比正文退后一级 */
+.think {
+    margin-bottom: 8px;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-bg-page);
+    overflow: hidden;
 }
 
-.trace__item {
+.think--live {
+    border-color: var(--color-primary-bg-deep);
+    background: var(--color-primary-bg);
+}
+
+.think__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-sub);
+    cursor: pointer;
+    user-select: none;
+}
+
+.think__label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.think--live .think__label {
+    color: var(--color-primary-active);
+}
+
+.think__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--color-text-mute);
+}
+
+.think__body {
+    padding: 2px 10px 8px;
+    border-top: 1px dashed var(--color-border-deep);
+}
+
+/* 每一步左侧一个小圆点，连成一条时间线 */
+.step {
+    display: flex;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: var(--font-size-xs);
+}
+
+.step__dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    margin-top: 7px;
+    border-radius: 50%;
+    background: var(--color-border-deep);
+}
+
+.step--running .step__dot {
+    background: var(--color-primary);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    50% {
+        opacity: 0.25;
+    }
+}
+
+.step__main {
+    flex: 1;
+    min-width: 0;
+}
+
+.step__title {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 4px 0;
-    font-size: var(--font-size-xs);
 }
 
-.trace__output {
-    flex-basis: 100%;
-    margin-top: 2px;
+.step__state {
+    color: var(--color-primary);
+}
+
+.step__cost {
+    margin-left: auto;
+}
+
+.step__output {
+    margin-top: 3px;
     padding: 6px 8px;
     border-radius: var(--radius-sm);
     background: #fff;
@@ -658,6 +929,30 @@ onBeforeUnmount(() => {
     word-break: break-word;
     max-height: 140px;
     overflow: auto;
+}
+
+/* 报错只占一行：不论多长都不抢掉正文的位置，完整内容走 title 提示 */
+.err {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: var(--font-size-xs);
+    color: var(--color-danger);
+}
+
+.err__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 首字未到时的占位：转圈 + 一句当前在做什么 */
+.typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--font-size-sm);
 }
 
 .chat__input {
