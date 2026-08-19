@@ -23,7 +23,7 @@
             <a-spin :spinning="listLoading">
                 <a-empty
                     v-if="!conversations.length && !listLoading"
-                    :image="null"
+                    :image="simpleEmptyImage"
                     description="还没有对话记录"
                 />
                 <div
@@ -182,7 +182,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onBeforeUnmount, ref } from "vue";
 import { useRoute } from "vue-router";
-import { Modal, message } from "ant-design-vue";
+import { Modal, message, Empty } from "ant-design-vue";
 import {
     PlusOutlined,
     EditOutlined,
@@ -207,6 +207,11 @@ const NODE_TYPE_LABEL = {
 };
 
 const route = useRoute();
+
+// 侧边栏空位置小，用简约版的空状态图。
+// 不能写 :image="null" —— Empty 内部会做 `'type' in image` 判断，
+// 而 typeof null 恰好是 'object'，会直接报 Cannot use 'in' operator。
+const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE;
 
 const agents = ref([]);
 const conversations = ref([]);
