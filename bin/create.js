@@ -2,8 +2,9 @@
  * graduation-kit create —— 分步向导生成毕设项目骨架。
  * 落盘结构与 graduation-project skill 的 §1.5 约定一致。
  */
-import { existsSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { text, confirm, select, multiselect, closePrompt } from './prompt.js';
 import {
   BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
@@ -20,6 +21,20 @@ const warn = (s) => line(`${paint('yellow', '!')} ${s}`);
 
 /** 脚手架条目转 select/multiselect 选项：原字段照留，附加右侧灰色注解 */
 const toItem = (s, note) => ({ ...s, note });
+
+/**
+ * 向导抬头打印的版本号。
+ * 全局装的 graduation-kit 不会随远端仓库自动更新，把版本摆出来，
+ * 用户一眼能看出手上跑的是不是最新那份，省得为已修的 bug 再来问一遍。
+ */
+function pkgVersion() {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    return JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8')).version;
+  } catch {
+    return '未知';
+  }
+}
 
 /** 三套后端运行时的产物一并挡住，避免第一次 git add . 就把依赖提上去 */
 const GITIGNORE = `# 依赖
@@ -401,7 +416,7 @@ export async function create(opts, ctx) {
     withSkills = !opts.noSkills;
   } else {
     line('');
-    line(paint('cyan', '毕业设计脚手架向导'));
+    line(`${paint('cyan', '毕业设计脚手架向导')} ${paint('dim', `v${pkgVersion()}`)}`);
     line(paint('dim', '一个后端 + 一个或多个前端 + 数据库脚本 + skills，按 Ctrl+C 可随时退出'));
 
     name = await text('项目目录名', {

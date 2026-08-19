@@ -500,9 +500,24 @@ node verify.js && node verify-editor.js && node audit.js
 
 **端口被占** —— 后端端口写在 `backend/.env`（springboot 在 `application.yml`），前端在 `.env.development`。两边都改，前端的代理目标也要跟着改。
 
-**报 `toItem is not defined`** —— 这是旧版的 bug，已修。`npx` 会缓存旧代码，跑 `npx --ignore-existing github:Soulmte/graduation-kit create` 重拉；link 过来的在 clone 目录 `git pull` 即可。
+**报 `toItem is not defined`** —— 这是旧版的 bug，早已修。报这个错说明跑的是一份旧代码，按你的用法对症处理：
 
-**改了仓库代码，`graduation-kit` 命令跑的还是旧的** —— `npm link` 是符号链接，不存在缓存；如果真跑的旧代码，说明当前用的是 `npx` 拉下的副本，不是 link 那份。`which graduation-kit` 确认一下。
+| 你敲的命令 | 代码来源 | 怎么拿到最新 |
+| --- | --- | --- |
+| `npx github:Soulmte/graduation-kit create` | npx 缓存的副本 | `npx --ignore-existing github:Soulmte/graduation-kit create` |
+| `graduation-kit create` | 全局 `node_modules/graduation-kit/` | 见下条 |
+
+**注意 `graduation-kit create` 不会自动更新。** 它跑的是你机器上已装好的那份文件，仓库往远端推多少次都不影响它。想更新得看它是怎么装上去的：
+
+```bash
+# 先看它指向哪里。realpath 落在你的 clone 目录 = npm link，落在 node_modules 里 = npm i -g 装的副本
+node -e "console.log(require('fs').realpathSync(require('path').join(require('child_process').execSync('npm root -g').toString().trim(),'graduation-kit')))"
+```
+
+- **npm link 装的**（realpath 指向你的 clone 目录）：进那个目录 `git pull` 就完事，符号链接不存在缓存
+- **`npm i -g` 装的**（realpath 在 `node_modules` 里）：必须重装一次 `npm i -g github:Soulmte/graduation-kit`
+
+向导启动时会打印自己的版本号，对不上就是没更新成功。
 
 **论文转 Word 后章节串位** —— 转换脚本按单独一行的 `---` 分割章节，所以正文里不能出现分割线。图片需要自己手动插，脚本不管图。
 
