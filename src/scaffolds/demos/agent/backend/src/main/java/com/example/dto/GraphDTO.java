@@ -30,6 +30,8 @@ public class GraphDTO {
     public static final String TYPE_START = "start";
     /** 知识检索节点：召回资料拼进提示词 */
     public static final String TYPE_KNOWLEDGE = "knowledge";
+    /** 查数据节点：调业务表拿实时数据，具体查什么由 DataSourceProvider 定 */
+    public static final String TYPE_DATASOURCE = "datasource";
     /** 大模型节点：调模型生成回答 */
     public static final String TYPE_LLM = "llm";
     /** 结束节点：输出收尾 */
@@ -63,7 +65,7 @@ public class GraphDTO {
         private String id;
 
         /**
-         * 节点类型：start/knowledge/llm/end
+         * 节点类型：start/knowledge/datasource/llm/end
          */
         private String type;
 
@@ -74,10 +76,11 @@ public class GraphDTO {
 
         /**
          * 节点参数，各类型字段不同：
-         *   start     ：title
-         *   knowledge ：title、topK
-         *   llm       ：title、modelConfigId、systemPrompt、temperature、useHistory、historyLimit
-         *   end       ：title
+         *   start      ：title
+         *   knowledge  ：title、topK
+         *   datasource ：title、source（数据源 key）、params（筛选参数，字段由数据源自己声明）
+         *   llm        ：title、modelConfigId、systemPrompt、temperature、useHistory、historyLimit
+         *   end        ：title
          */
         private Map<String, Object> data = new LinkedHashMap<>();
     }

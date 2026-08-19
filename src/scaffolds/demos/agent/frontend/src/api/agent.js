@@ -58,6 +58,16 @@ export const deleteAgent = (id) => {
     return request.delete(`/agent/deleteById/${id}`);
 };
 
+/**
+ * 可用数据源清单，给编排页的「查数据」节点选。
+ *
+ * 每项带 params 参数声明，前端据此自动渲染表单，
+ * 后端新增数据源不需要改前端代码。
+ */
+export const listDataSource = () => {
+    return request.get("/agent/listDataSource");
+};
+
 // ==================== 前台 ====================
 
 /**

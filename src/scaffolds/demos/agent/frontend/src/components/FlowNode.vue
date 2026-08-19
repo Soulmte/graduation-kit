@@ -33,6 +33,7 @@ import {
     DatabaseOutlined,
     RobotOutlined,
     CheckCircleOutlined,
+    TableOutlined,
 } from "@ant-design/icons-vue";
 
 const props = defineProps({
@@ -41,16 +42,25 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
-    /** 节点类型：start / knowledge / llm / end */
+    /** 节点类型：start / knowledge / datasource / llm / end */
     type: {
         type: String,
         required: true,
+    },
+    /**
+     * 数据源清单，只有 datasource 节点用得上。
+     * 拿它把 key 换成中文名，不传就退而显示 key 本身。
+     */
+    sources: {
+        type: Array,
+        default: () => [],
     },
 });
 
 const META = {
     start: { label: "开始", icon: PlayCircleOutlined },
     knowledge: { label: "知识检索", icon: DatabaseOutlined },
+    datasource: { label: "查数据", icon: TableOutlined },
     llm: { label: "大模型", icon: RobotOutlined },
     end: { label: "结束", icon: CheckCircleOutlined },
 };
@@ -62,6 +72,13 @@ const icon = computed(() => META[props.type]?.icon || PlayCircleOutlined);
 const desc = computed(() => {
     if (props.type === "knowledge") {
         return `召回 ${props.data.topK || 3} 条资料`;
+    }
+    if (props.type === "datasource") {
+        if (!props.data.source) {
+            return "还没选数据源";
+        }
+        const hit = props.sources.find((s) => s.key === props.data.source);
+        return `查 ${hit?.label || props.data.source}`;
     }
     if (props.type === "llm") {
         const history = props.data.useHistory
@@ -100,6 +117,10 @@ const desc = computed(() => {
 
 .flow-node--knowledge {
     border-left-color: #faad14;
+}
+
+.flow-node--datasource {
+    border-left-color: #722ed1;
 }
 
 .flow-node--llm {

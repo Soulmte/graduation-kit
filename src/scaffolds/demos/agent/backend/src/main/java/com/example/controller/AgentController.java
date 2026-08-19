@@ -9,11 +9,14 @@ import com.example.dto.AgentSaveDTO;
 import com.example.dto.GraphDTO;
 import com.example.entity.Agent;
 import com.example.service.AgentService;
+import com.example.service.datasource.DataSourceProvider;
+import com.example.service.datasource.DataSourceRegistry;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 智能体控制器
@@ -31,7 +34,29 @@ public class AgentController {
     @Autowired
     private AgentService agentService;
 
+    @Autowired
+    private DataSourceRegistry dataSourceRegistry;
+
     // ==================== 管理端 ====================
+
+    /**
+     * 列出可用数据源，给编排页的「查数据」节点选。
+     *
+     * 返回的 params 是参数声明，前端据此自动渲染表单控件，
+     * 所以后端新增一个数据源或给已有数据源加筛选条件，前端一行不用改。
+     */
+    @GetMapping("/listDataSource")
+    @RequireAdmin
+    public Result<List<Map<String, Object>>> listDataSource() {
+        List<Map<String, Object>> list = dataSourceRegistry.all().stream()
+                .map(p -> Map.of(
+                        "key", (Object) p.key(),
+                        "label", p.label(),
+                        "description", p.description(),
+                        "params", p.params()))
+                .toList();
+        return Result.success(list);
+    }
 
     /**
      * 分页查询智能体（含草稿）

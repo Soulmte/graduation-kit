@@ -17,6 +17,9 @@
                 <a-button @click="addNode('knowledge')">
                     <template #icon><plus-outlined /></template> 检索节点
                 </a-button>
+                <a-button @click="addNode('datasource')">
+                    <template #icon><plus-outlined /></template> 查数据节点
+                </a-button>
                 <a-button @click="addNode('llm')">
                     <template #icon><plus-outlined /></template> 大模型节点
                 </a-button>
@@ -53,6 +56,13 @@
                 </template>
                 <template #node-knowledge="props">
                     <flow-node :data="props.data" type="knowledge" />
+                </template>
+                <template #node-datasource="props">
+                    <flow-node
+                        :data="props.data"
+                        type="datasource"
+                        :sources="dataSources"
+                    />
                 </template>
                 <template #node-llm="props">
                     <flow-node :data="props.data" type="llm" />
@@ -126,6 +136,73 @@
                     />
                 </template>
 
+                <template v-else-if="current.type === 'datasource'">
+                    <a-form-item
+                        label="数据源"
+                        extra="选完会自动出现它支持的筛选参数。想接自己的业务表，看后端 NoticeDataSource 那个示例类"
+                    >
+                        <a-select
+                            v-model:value="current.data.source"
+                            placeholder="选一个数据源"
+                            @change="onSourceChange"
+                        >
+                            <a-select-option
+                                v-for="s in dataSources"
+                                :key="s.key"
+                                :value="s.key"
+                            >
+                                {{ s.label }}
+                                <span class="text-sub">· {{ s.description }}</span>
+                            </a-select-option>
+                        </a-select>
+                    </a-form-item>
+
+                    <!-- 参数表单按后端的 params 声明渲染，
+                         数据源加了新筛选条件这里不用改 -->
+                    <template v-if="currentSourceParams.length">
+                        <a-divider>筛选参数</a-divider>
+                        <a-form-item
+                            v-for="p in currentSourceParams"
+                            :key="p.name"
+                            :label="p.label"
+                            :extra="p.extra"
+                        >
+                            <a-input
+                                v-if="p.type === 'text'"
+                                v-model:value="current.data.params[p.name]"
+                                :maxlength="100"
+                                allow-clear
+                            />
+                            <a-input-number
+                                v-else-if="p.type === 'number'"
+                                v-model:value="current.data.params[p.name]"
+                                :min="1"
+                                :max="10"
+                                style="width: 140px"
+                            />
+                            <a-switch
+                                v-else-if="p.type === 'switch'"
+                                v-model:checked="current.data.params[p.name]"
+                            />
+                            <a-select
+                                v-else-if="p.type === 'select'"
+                                v-model:value="current.data.params[p.name]"
+                                :options="
+                                    (p.options || []).map((o) => ({
+                                        value: o.value,
+                                        label: o.label,
+                                    }))
+                                "
+                                allow-clear
+                            />
+                        </a-form-item>
+                    </template>
+                    <a-empty
+                        v-else-if="current.data.source"
+                        description="这个数据源没有可配的筛选参数"
+                    />
+                </template>
+
                 <template v-else-if="current.type === 'llm'">
                     <a-form-item
                         label="使用模型"
@@ -189,7 +266,7 @@
 
                 <a-divider />
                 <a-button
-                    v-if="current.type === 'knowledge' || current.type === 'llm'"
+                    v-if="current.type !== 'start' && current.type !== 'end'"
                     danger
                     block
                     @click="removeCurrent"
@@ -218,7 +295,11 @@ import { Controls } from "@vue-flow/controls";
 import "@vue-flow/core/dist/style.css";
 import "@vue-flow/core/dist/theme-default.css";
 import "@vue-flow/controls/dist/style.css";
-import { getAgentForEdit, saveAgentGraph } from "@/api/agent";
+import {
+    getAgentForEdit,
+    saveAgentGraph,
+    listDataSource,
+} from "@/api/agent";
 import { listEnabledModelConfig } from "@/api/modelConfig";
 import { testRetrieveKnowledge } from "@/api/knowledge";
 import FlowNode from "@/components/FlowNode.vue";
@@ -236,6 +317,7 @@ const nodes = ref([]);
 const edges = ref([]);
 const viewport = ref({ x: 0, y: 0, zoom: 1 });
 const modelOptions = ref([]);
+const dataSources = ref([]);
 
 const drawerVisible = ref(false);
 const currentId = ref(null);
@@ -251,6 +333,26 @@ const current = computed(() =>
     nodes.value.find((n) => n.id === currentId.value),
 );
 
+// 当前选中数据源的参数声明，抽屉里据此渲染控件
+const currentSourceParams = computed(() => {
+    const key = current.value?.data?.source;
+    if (!key) return [];
+    return dataSources.value.find((s) => s.key === key)?.params || [];
+});
+
+// 换数据源就清掉旧参数：不同数据源的参数名根本不一样，
+// 留着旧值只会存进 graph_json 变成没人读的脏数据。
+// 同时把声明了但没值的参数补上默认值，免得控件绑到 undefined。
+const onSourceChange = (key) => {
+    if (!current.value) return;
+    const params = {};
+    const specs = dataSources.value.find((s) => s.key === key)?.params || [];
+    for (const p of specs) {
+        params[p.name] = p.type === "switch" ? false : p.type === "number" ? 3 : "";
+    }
+    current.value.data.params = params;
+};
+
 const goBack = () => router.push("/admin/agent");
 
 const fetchModels = async () => {
@@ -259,6 +361,18 @@ const fetchModels = async () => {
         value: m.id,
         label: m.isDefault === 1 ? `${m.name}（默认）` : m.name,
     }));
+};
+
+// 数据源清单来自后端扫到的 DataSourceProvider 实现类。
+// 拉不到不能把整个编排页卡死——就算没数据源，其他节点还要能改。
+const fetchDataSources = async () => {
+    try {
+        const res = await listDataSource();
+        dataSources.value = res.data || [];
+    } catch {
+        dataSources.value = [];
+        message.warning("数据源清单没拉到，查数据节点暂时选不了");
+    }
 };
 
 const fetchAgent = async () => {
@@ -277,6 +391,15 @@ const fetchAgent = async () => {
 
     nodes.value = graph.nodes || [];
     edges.value = graph.edges || [];
+
+    // 早前存的画布可能没有 params 字段，v-model 绑到 undefined 上会报错，
+    // 这里统一补上空对象。
+    for (const node of nodes.value) {
+        if (node.type === "datasource" && !node.data.params) {
+            node.data.params = {};
+        }
+    }
+
     if (graph.viewport) viewport.value = graph.viewport;
     loaded.value = true;
 };
@@ -316,31 +439,34 @@ const nextNodeId = (type) => {
     return `${type}_${max + 1}`;
 };
 
+// 新节点的初始参数。datasource 故意不预选数据源：
+// 选哪个库得看业务，默认填一个反而容易被忽略着就保存了。
+const NODE_DEFAULTS = {
+    knowledge: () => ({ title: "检索知识库", topK: 3 }),
+    datasource: () => ({ title: "查业务数据", source: null, params: {} }),
+    llm: () => ({
+        title: "生成回答",
+        modelConfigId: null,
+        systemPrompt:
+            "你是一位专业的咨询助手。回答要口语化、分条。" +
+            "参考资料里有的就依据资料回答，没有就直说不确定，不要编造。",
+        temperature: 0.7,
+        useHistory: true,
+        historyLimit: 6,
+    }),
+};
+
 const addNode = (type) => {
     const id = nextNodeId(type);
 
     // 新节点放在现有节点最右边再往右一截，避免叠在一起看不见
     const maxX = nodes.value.reduce((acc, n) => Math.max(acc, n.position?.x || 0), 0);
 
-    const data =
-        type === "knowledge"
-            ? { title: "检索知识库", topK: 3 }
-            : {
-                  title: "生成回答",
-                  modelConfigId: null,
-                  systemPrompt:
-                      "你是一位专业的咨询助手。回答要口语化、分条。" +
-                      "参考资料里有的就依据资料回答，没有就直说不确定，不要编造。",
-                  temperature: 0.7,
-                  useHistory: true,
-                  historyLimit: 6,
-              };
-
     nodes.value.push({
         id,
         type,
         position: { x: maxX + 120, y: 340 },
-        data,
+        data: NODE_DEFAULTS[type](),
     });
 
     currentId.value = id;
@@ -411,6 +537,7 @@ const handleSave = async () => {
 onMounted(() => {
     fetchAgent();
     fetchModels();
+    fetchDataSources();
 });
 </script>
 

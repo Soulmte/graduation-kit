@@ -6,6 +6,8 @@ import com.example.dto.ChatDTO;
 import com.example.dto.GraphDTO;
 import com.example.entity.*;
 import com.example.service.*;
+import com.example.service.datasource.DataSourceProvider;
+import com.example.service.datasource.DataSourceRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
     private final ConversationService conversationService;
     private final MessageService messageService;
     private final LlmClient llmClient;
+    private final DataSourceRegistry dataSourceRegistry;
     private final ObjectMapper objectMapper;
 
     /**
@@ -61,6 +64,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
                                    ConversationService conversationService,
                                    MessageService messageService,
                                    LlmClient llmClient,
+                                   DataSourceRegistry dataSourceRegistry,
                                    ObjectMapper objectMapper) {
         this.agentService = agentService;
         this.modelConfigService = modelConfigService;
@@ -68,6 +72,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
         this.conversationService = conversationService;
         this.messageService = messageService;
         this.llmClient = llmClient;
+        this.dataSourceRegistry = dataSourceRegistry;
         this.objectMapper = objectMapper;
     }
 
@@ -171,6 +176,7 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
                 String output = switch (node.getType()) {
                     case GraphDTO.TYPE_START -> "收到提问：" + brief(question, 40);
                     case GraphDTO.TYPE_KNOWLEDGE -> runKnowledge(node, agent, question, context);
+                    case GraphDTO.TYPE_DATASOURCE -> runDataSource(node, question, context);
                     case GraphDTO.TYPE_LLM -> {
                         LlmClient.LlmResult result = runLlm(emitter, node, agent, conversationId,
                                 questionId, context);
@@ -272,11 +278,62 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
     }
 
     /**
+     * 查数据节点：按画布上选的数据源去查业务表，结果存进 context。
+     *
+     * 与 knowledge 节点的分工：knowledge 查的是事先录好的文档，
+     * 这里查的是项目自己的业务表（实时数据）。两者可以同时用，
+     * 提示词里会分成「参考资料」与「实时数据」两段给模型。
+     *
+     * 多个 datasource 节点串在一条链上时结果会累加，不会互相覆盖。
+     */
+    @SuppressWarnings("unchecked")
+    private String runDataSource(GraphDTO.Node node, String question, Map<String, Object> context) {
+        String key = (String) node.getData().get("source");
+        DataSourceProvider provider = dataSourceRegistry.get(key);
+        if (provider == null) {
+            // 一般是数据源实现类被删了、key 改了，但画布还存着旧值
+            throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(),
+                    "找不到数据源【" + key + "】，可能实现类已被删除，去编排页重新选一个");
+        }
+
+        Object rawParams = node.getData().get("params");
+        Map<String, Object> params = rawParams instanceof Map<?, ?> m
+                ? (Map<String, Object>) m
+                : Collections.emptyMap();
+
+        String result;
+        try {
+            result = provider.query(params, question);
+        } catch (Exception e) {
+            // 数据源是开发者自己写的，出错概率不低。
+            // 包一层把数据源名字带上，不然堆栈里看不出是哪个节点炸的。
+            log.error("数据源执行失败，source={}", key, e);
+            throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(),
+                    "数据源【" + provider.label() + "】查询失败：" + e.getMessage());
+        }
+
+        if (!StringUtils.hasText(result)) {
+            return provider.label() + "：没查到数据";
+        }
+
+        // 累加而不是覆盖，支持一条链上挂多个数据源
+        StringBuilder merged = new StringBuilder();
+        Object exists = context.get("dataResult");
+        if (exists != null) {
+            merged.append(exists).append('\n');
+        }
+        merged.append('【').append(provider.label()).append("】\n").append(result);
+        context.put("dataResult", merged.toString());
+
+        return provider.label() + "：查到 " + result.trim().lines().count() + " 行数据";
+    }
+
+    /**
      * 大模型节点：组提示词 → 调模型 → 逐字往前端推。
      *
-     * 消息顺序是 system → 历史对话 → （参考资料 + 本次提问），
+     * 消息顺序是 system → 历史对话 → （参考资料 + 实时数据 + 本次提问），
      * 把资料拼在最后一条 user 里而不是塞进 system：
-     * 资料是“本次相关”的，放 system 会让模型误以为它对整个对话都成立。
+     * 资料是「本次相关」的，放 system 会让模型误以为它对整个对话都成立。
      */
     private LlmClient.LlmResult runLlm(SseEmitter emitter, GraphDTO.Node node, Agent agent,
                                        Long conversationId, Long questionId,
@@ -317,13 +374,26 @@ public class AgentExecuteServiceImpl implements AgentExecuteService {
             }
         }
 
+        // 提示词按「资料 → 实时数据 → 问题」的顺序拼。
+        // 两类来源分段标注而不是揉成一堆：模型能分清哪些是预先录的文档、
+        // 哪些是刚从库里查出来的，回答时不容易把两者弄混。
         String question = String.valueOf(context.get("question"));
         Object material = context.get("knowledge");
-        String userContent = material == null
-                ? question
-                : "参考资料：\n" + material + "\n请优先依据上面的资料回答下面的问题，"
-                        + "资料里没提到的就说不确定。\n问题：" + question;
-        messages.add(Map.of("role", Message.ROLE_USER, "content", userContent));
+        Object dataResult = context.get("dataResult");
+
+        StringBuilder userContent = new StringBuilder();
+        if (material != null) {
+            userContent.append("参考资料：\n").append(material).append('\n');
+        }
+        if (dataResult != null) {
+            userContent.append("实时数据（来自系统数据库，比参考资料更新）：\n")
+                    .append(dataResult).append('\n');
+        }
+        if (userContent.length() > 0) {
+            userContent.append("请优先依据上面的内容回答下面的问题，里面没提到的就说不确定。\n问题：");
+        }
+        userContent.append(question);
+        messages.add(Map.of("role", Message.ROLE_USER, "content", userContent.toString()));
 
         BigDecimal temperature = decimalOf(data.get("temperature"));
 

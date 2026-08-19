@@ -269,6 +269,7 @@ import { streamChat } from "@/api/chat";
 const NODE_TYPE_LABEL = {
     start: "开始",
     knowledge: "知识检索",
+    datasource: "查数据",
     llm: "大模型",
     end: "结束",
 };
@@ -277,6 +278,7 @@ const NODE_TYPE_LABEL = {
 const NODE_TAG_COLOR = {
     start: "default",
     knowledge: "cyan",
+    datasource: "purple",
     llm: "blue",
     end: "green",
 };
@@ -285,6 +287,7 @@ const NODE_TAG_COLOR = {
 const PENDING_HINT = {
     start: "正在准备……",
     knowledge: "正在查资料……",
+    datasource: "正在查数据……",
     llm: "正在思考……",
     end: "即将完成……",
 };

@@ -265,15 +265,62 @@ npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_
 | 管理员 | `/admin/agent` | 新建智能体、拖拽编排、发布与撕回、维护知识库、看全量会话与执行轨迹 |
 | 普通用户 | `/user/agent` | 选助手、流式提问、翻推理过程、管自己的历史会话 |
 
-画布只有四种节点，连成一条链：
+画布只有五种节点，连成一条链：
 
 ```
-开始 → 知识检索（可选）→ 大模型 → 结束
+开始 → 知识检索（可选）→ 查数据（可选）→ 大模型 → 结束
 ```
 
 检索节点能调召回条数，大模型节点能选模型、写系统提示词、调温度、定带多少条历史。改完点【保存编排】，再回列表点【发布】，前台才看得到。编排页还带了个【试检索】，输个问题直接看会召回哪几条资料。
 
-数据库比干净版多 5 张表：`model_config` `agent` `knowledge` `conversation` `message`。后端多 31 条接口，前端多 7 个页面。
+#### 让智能体查你自己的业务表
+
+知识检索只能查事先录好的文档。想让智能体拿到**实时业务数据**（房源、商品、课程、工单、库存……）就用【查数据】节点。它背后是一个注册式扩展点，接自己的表只需写一个类：
+
+```java
+@Component
+public class HouseDataSource implements DataSourceProvider {
+
+    private final HouseService houseService;
+
+    public HouseDataSource(HouseService houseService) {
+        this.houseService = houseService;
+    }
+
+    @Override
+    public String key() { return "house"; }
+
+    @Override
+    public String label() { return "房源库"; }
+
+    @Override
+    public String description() { return "按城市与价格查在售房源"; }
+
+    // 声明要在画布上能配哪些筛选条件，管理端自动渲染成表单
+    @Override
+    public List<ParamSpec> params() {
+        return List.of(
+            ParamSpec.text("city", "城市", "留空不限"),
+            ParamSpec.number("maxPrice", "价格上限", "单位元/月")
+        );
+    }
+
+    // 拿到画布上配好的参数去查，结果拼成模型看得懂的文本
+    @Override
+    public String query(Map<String, Object> params, String question) {
+        List<House> rows = houseService.search(params);
+        return rows.stream()
+            .map(h -> h.getTitle() + "，" + h.getPrice() + " 元/月")
+            .collect(Collectors.joining("\n"));
+    }
+}
+```
+
+写完重启后端就行。Spring 会自动把它收进注册中心，管理端下拉框、画布节点、提示词拼接、推理步骤展示**全部自动生效，前端一行不用改**。包里带了个能直接跑的示例 `NoticeDataSource`（查脚手架自带的公告表），照它改最快。
+
+两类数据在提示词里分段标注：知识检索的结果进「参考资料」，查数据的结果进「实时数据」，模型能分清哪个更新。一条链上可以串多个查数据节点，结果会累加不会互盖。
+
+数据库比干净版多 5 张表：`model_config` `agent` `knowledge` `conversation` `message`。后端多 32 条接口，前端多 7 个页面。
 
 几个刻意的设计：
 
@@ -283,6 +330,7 @@ npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_
 - **检索没用向量库**，而是二元滑窗切词 + 加权打分（关键词 5 分、标题 3 分、正文 1 分）。毕设的知识量就几十到几百条，关键词召回够用，不用额外部署 embedding 服务与向量数据库，答辩时也更容易讲清原理。
 - **API Key 出口打掩码**（`sk-***abc`），接口拿不到原文；更新时留空表示不改。
 - **每条回答存执行轨迹**（`message.node_trace`），记每步耗时与产出。答得不对时能分清是检索没召回到资料，还是召回了但模型没用好。
+- **数据源做成注册式扩展点**（`DataSourceProvider`），接一张业务表只需写一个 `@Component`，不用改引擎也不用改前端。参数表单由后端声明、前端自动渲染，避开了「加一个筛选条件要改三处代码」的麻烦。
 - **新对话不提前建会话**，发第一句时后端才建并通过 `meta` 事件回传 ID。用户点进来看一眼就走，库里不会攒空会话。
 
 默认账号：`admin` 管理员，`test` `zhang` 普通用户，密码都是 `123456`。种子数据里 3 个智能体故意不一样：一个带检索节点、一个不带（对比用）、一个是草稿（验证前台看不见）；7 条知识里有 1 条全局共享、1 条已停用。

@@ -14,6 +14,7 @@ import com.example.dto.GraphDTO;
 import com.example.entity.*;
 import com.example.mapper.*;
 import com.example.service.AgentService;
+import com.example.service.datasource.DataSourceRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -38,17 +39,20 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, Agent> implements
     private final KnowledgeMapper knowledgeMapper;
     private final ConversationMapper conversationMapper;
     private final MessageMapper messageMapper;
+    private final DataSourceRegistry dataSourceRegistry;
     private final ObjectMapper objectMapper;
 
     public AgentServiceImpl(ModelConfigMapper modelConfigMapper,
                             KnowledgeMapper knowledgeMapper,
                             ConversationMapper conversationMapper,
                             MessageMapper messageMapper,
+                            DataSourceRegistry dataSourceRegistry,
                             ObjectMapper objectMapper) {
         this.modelConfigMapper = modelConfigMapper;
         this.knowledgeMapper = knowledgeMapper;
         this.conversationMapper = conversationMapper;
         this.messageMapper = messageMapper;
+        this.dataSourceRegistry = dataSourceRegistry;
         this.objectMapper = objectMapper;
     }
 
@@ -331,6 +335,18 @@ public class AgentServiceImpl extends ServiceImpl<AgentMapper, Agent> implements
                 if (topK < 1 || topK > 10) {
                     throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(),
                             "【" + name + "】的召回条数要在 1~10 之间");
+                }
+            }
+            case GraphDTO.TYPE_DATASOURCE -> {
+                String source = (String) data.get("source");
+                if (!StringUtils.hasText(source)) {
+                    throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(),
+                            "【" + name + "】还没选数据源");
+                }
+                if (dataSourceRegistry.get(source) == null) {
+                    // 实现类被删掉或改了 key，早报比等到用户提问时才炸好
+                    throw new BusinessException(ResultCode.GRAPH_INVALID.getCode(),
+                            "【" + name + "】选的数据源【" + source + "】不存在了，重新选一个");
                 }
             }
             case GraphDTO.TYPE_LLM -> {
