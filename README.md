@@ -78,6 +78,26 @@ npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板�
 
 端口、库名、启动命令这些也都写进了项目根的 `README.md`，终端滚走了能回去查。
 
+### 验证项目完整性
+
+生成项目后，可用 `verify` 检查结构和配置：
+
+```bash
+cd my-project
+npx github:Soulmte/graduation-kit verify
+
+# 或指定目录
+npx github:Soulmte/graduation-kit verify /path/to/project
+```
+
+检查项包括：
+- 目录结构（backend / frontend / docs / uploads）
+- 关键文件存在性（pom.xml / package.json / .sql 等）
+- 配置改写（数据库名、端口、uploads 路径）
+- 占位符残留（`__DB_PASSWORD__` / `scaffold_db`）
+
+退出码为 0 表示通过，为 1 表示有错误（可用于 CI）。
+
 ### 先确认它是通的，再动手改
 
 后端起来后可以直接探活，不用等前端：
@@ -124,6 +144,7 @@ npx github:Soulmte/graduation-kit install --only thesis-writer
 ```bash
 npx github:Soulmte/graduation-kit create [名称]     向导：脚手架 + SQL + skills
 npx github:Soulmte/graduation-kit install [选项]   只安装 skills
+npx github:Soulmte/graduation-kit verify [目录]     验证项目结构与配置完整性
 npx github:Soulmte/graduation-kit list             列出包内 skill
 npx github:Soulmte/graduation-kit uninstall        移除已安装的 skill
 npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
