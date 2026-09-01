@@ -162,6 +162,17 @@ function detectBackend(dir) {
  * 检测前端类型
  */
 function detectFrontend(dir) {
+  // 先检查小程序特征文件（不依赖 package.json）
+  if (existsSync(join(dir, 'manifest.json'))) {
+    // uniapp 有 manifest.json
+    return 'uniapp';
+  }
+  if (existsSync(join(dir, 'project.config.json'))) {
+    // 微信小程序有 project.config.json
+    return 'wxapp';
+  }
+  
+  // 再检查 vite 项目
   if (!existsSync(join(dir, 'package.json'))) return null;
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
   if (pkg.dependencies?.react) return 'react';
@@ -171,8 +182,6 @@ function detectFrontend(dir) {
     if (pkg.dependencies?.['naive-ui']) return 'vue-naive';
     return 'vue';
   }
-  if (existsSync(join(dir, 'manifest.json'))) return 'uniapp';
-  if (existsSync(join(dir, 'project.config.json'))) return 'wxapp';
   return 'unknown';
 }
 
@@ -240,7 +249,7 @@ function verifyFrontend(result, dir, name, type) {
       checkContent(result, env, '.env.development', /http:\/\/localhost:\d{4}/, '已配置后端端口');
     }
   } else if (type === 'uniapp') {
-    checkFile(result, join(dir, 'package.json'), 'package.json');
+    checkFile(result, join(dir, 'package.json'), 'package.json', false); // uniapp 的 package.json 是可选的
     checkFile(result, join(dir, 'manifest.json'), 'manifest.json');
     const cfg = join(dir, 'config', 'index.js');
     if (checkFile(result, cfg, 'config/index.js')) {

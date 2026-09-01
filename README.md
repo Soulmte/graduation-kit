@@ -98,6 +98,25 @@ npx github:Soulmte/graduation-kit verify /path/to/project
 
 退出码为 0 表示通过，为 1 表示有错误（可用于 CI）。
 
+### 诊断包完整性
+
+如果怀疑包安装不完整或遇到奇怪问题，可以运行诊断命令：
+
+```bash
+npx github:Soulmte/graduation-kit diagnose
+```
+
+检查项包括：
+- 系统信息（Node.js 版本、平台、架构）
+- 路径长度（Windows MAX_PATH 限制检测）
+- 脚手架目录结构（backends / frontends / demos / docs）
+- 文件数量验证（前端应有 216 个文件）
+
+**常见问题诊断：**
+- **只生成了 backend 没有前端**：版本号未更新导致，运行 `npm install -g graduation-kit@latest` 强制更新
+- **路径过长警告（Windows）**：建议在盘符根目录生成项目（如 `D:\my-project`）
+- **前端文件数少于 200**：包可能损坏，重新安装
+
 ### 先确认它是通的，再动手改
 
 后端起来后可以直接探活，不用等前端：
@@ -142,12 +161,13 @@ npx github:Soulmte/graduation-kit install --only thesis-writer
 ## 命令
 
 ```bash
-npx github:Soulmte/graduation-kit create [名称]     向导：脚手架 + SQL + skills
-npx github:Soulmte/graduation-kit install [选项]   只安装 skills
-npx github:Soulmte/graduation-kit verify [目录]     验证项目结构与配置完整性
-npx github:Soulmte/graduation-kit list             列出包内 skill
-npx github:Soulmte/graduation-kit uninstall        移除已安装的 skill
-npx github:Soulmte/graduation-kit doctor           校验 frontmatter 规范
+npx github:Soulmte/graduation-kit create [名称]      向导：脚手架 + SQL + skills
+npx github:Soulmte/graduation-kit install [选项]    只安装 skills
+npx github:Soulmte/graduation-kit verify [目录]      验证项目结构与配置完整性
+npx github:Soulmte/graduation-kit diagnose          诊断包完整性与系统兼容性
+npx github:Soulmte/graduation-kit list              列出包内 skill
+npx github:Soulmte/graduation-kit uninstall         移除已安装的 skill
+npx github:Soulmte/graduation-kit doctor            校验 frontmatter 规范
 ```
 
 通用选项

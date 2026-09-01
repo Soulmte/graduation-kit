@@ -261,6 +261,7 @@ graduation-kit — 毕业设计一件套 agent skills
   npx github:Soulmte/graduation-kit create [名称]      分步向导：脚手架 + SQL + skills
   npx github:Soulmte/graduation-kit install [选项]     只安装 skills 到 .agents/skills/
   npx github:Soulmte/graduation-kit verify [目录]      验证项目结构与配置完整性
+  npx github:Soulmte/graduation-kit diagnose           诊断包完整性与系统兼容性
   npx github:Soulmte/graduation-kit list               列出包内 skill
   npx github:Soulmte/graduation-kit uninstall [选项]   移除已安装的 skill
   npx github:Soulmte/graduation-kit doctor             校验 frontmatter 规范
@@ -355,6 +356,9 @@ if (opts.help || !cmd) {
   const targetDir = opts.dir || opts.name || process.cwd();
   const exitCode = await verify(targetDir);
   process.exit(exitCode);
+} else if (cmd === 'diagnose') {
+  const { diagnose } = await import('./diagnose.js');
+  await diagnose();
 } else {
   fail(`未知命令：${cmd}`);
   info(HELP);

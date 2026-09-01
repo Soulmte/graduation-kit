@@ -182,8 +182,16 @@ export function assertEmptyTarget(dir) {
 }
 
 export function copyTree(from, to) {
-  mkdirSync(to, { recursive: true });
-  cpSync(from, to, { recursive: true });
+  if (!existsSync(from)) {
+    throw new Error(`源目录不存在：${from}`);
+  }
+  
+  try {
+    mkdirSync(to, { recursive: true });
+    cpSync(from, to, { recursive: true, errorOnExist: false, force: true });
+  } catch (err) {
+    throw new Error(`拷贝失败：${from} -> ${to}\n原因：${err.message}`);
+  }
 }
 
 export function defaultProjectName(input) {

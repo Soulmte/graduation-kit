@@ -501,7 +501,14 @@ export async function create(opts, ctx) {
   copyTree(demo ? demo.docs : join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
   const sqlTo = join(root, 'docs', sqlFile);
   if (sqlFile !== 'scaffold_db.sql') {
-    renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+    try {
+      renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+    } catch (err) {
+      // 如果重命名失败，尝试拷贝再删除
+      const { copyFileSync, unlinkSync } = await import('node:fs');
+      copyFileSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+      unlinkSync(join(root, 'docs', 'scaffold_db.sql'));
+    }
   }
   patchSql(sqlTo, db.name);
   ok(`docs/${sqlFile} ${paint('dim', `库名 ${db.name}`)}`);
