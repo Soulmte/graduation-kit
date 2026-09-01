@@ -42,14 +42,16 @@ export async function confirm(label, def = true) {
 }
 
 /**
- * 单选。items: [{ id, label, note }]，返回选中的 item。
+ * 单选。items: [{ id, label, note, recommended }]，返回选中的 item。
  */
 export async function select(label, items, def = 1) {
   console.log('');
   console.log(`${paint('cyan', '?')} ${label}`);
   items.forEach((it, i) => {
+    const num = paint('green', String(i + 1));
+    const rec = it.recommended ? paint('yellow', ' ★') : '';
     const note = it.note ? paint('dim', `  ${it.note}`) : '';
-    console.log(`  ${paint('green', String(i + 1))}) ${it.label}${note}`);
+    console.log(`  ${num}) ${it.label}${rec}${note}`);
   });
   for (;;) {
     const a = (await read(`  序号 ${paint('dim', `(${def})`)} `)) || String(def);
@@ -64,11 +66,14 @@ export async function select(label, items, def = 1) {
  */
 export async function multiselect(label, items, def = [1]) {
   console.log('');
-  console.log(`${paint('cyan', '?')} ${label} ${paint('dim', '（逗号分隔多选，a 全选）')}`);
+  console.log(`${paint('cyan', '?')} ${label}`);
   items.forEach((it, i) => {
+    const num = paint('green', String(i + 1));
+    const rec = it.recommended ? paint('yellow', ' ★') : '';
     const note = it.note ? paint('dim', `  ${it.note}`) : '';
-    console.log(`  ${paint('green', String(i + 1))}) ${it.label}${note}`);
+    console.log(`  ${num}) ${it.label}${rec}${note}`);
   });
+  console.log(`  ${paint('dim', '(逗号分隔多选，a 全选)')}`);
   const defStr = def.join(',');
   for (;;) {
     const a = (await read(`  序号 ${paint('dim', `(${defStr})`)} `)) || defStr;

@@ -183,30 +183,58 @@ export function assertEmptyTarget(dir) {
   }
 }
 
+/** 递归统计目录内文件数，用于校验拷贝是否完整 */
+function countFiles(dir) {
+  if (!existsSync(dir)) return 0;
+  let n = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) n += countFiles(join(dir, entry.name));
+    else n += 1;
+  }
+  return n;
+}
+
 export function copyTree(from, to) {
   if (!existsSync(from)) {
     throw new Error(`源目录不存在：${from}`);
   }
-  
+
   try {
     // 确保目标目录存在
     mkdirSync(to, { recursive: true });
-    
+
     // 使用 cpSync 递归拷贝，Windows 下更可靠
-    cpSync(from, to, { 
-      recursive: true, 
-      errorOnExist: false, 
+    cpSync(from, to, {
+      recursive: true,
+      errorOnExist: false,
       force: true,
       // Windows 下保留符号链接的处理
       verbatimSymlinks: false,
     });
   } catch (err) {
-    // 如果 cpSync 失败（某些 Node 版本或文件系统问题），回退到手动拷贝
-    if (err.code === 'ERR_FS_CP_UNKNOWN' || err.message.includes('EPERM')) {
+    // cpSync 在部分 Node 版本 / 文件系统上会中途失败，一律回退到手动拷贝
+    const msg = err.message || err.code || String(err);
+    try {
       copyTreeManual(from, to);
-    } else {
-      throw new Error(`拷贝失败：${from} -> ${to}\n原因：${err.message}`);
+    } catch (fallbackErr) {
+      throw new Error(
+        `拷贝失败：${from}\n  -> ${to}\n原因：${fallbackErr.message || fallbackErr.code || fallbackErr}\n（首次错误：${msg}）\n\n请运行 graduation-kit diagnose 排查环境问题`,
+      );
     }
+  }
+
+  // 落盘后校验：源里有文件而目标为空，说明拷贝其实没成功，绝不能静默放过
+  const expected = countFiles(from);
+  const actual = countFiles(to);
+  if (expected > 0 && actual === 0) {
+    throw new Error(
+      `拷贝未生效：${from}\n  -> ${to}\n源目录有 ${expected} 个文件，目标目录为空。\n\n常见原因：杀毒软件拦截、磁盘空间不足、目标路径过长（Windows 260 字符限制）\n请运行 graduation-kit diagnose 排查`,
+    );
+  }
+  if (expected > 0 && actual < expected) {
+    throw new Error(
+      `拷贝不完整：${from}\n  -> ${to}\n预期 ${expected} 个文件，实际只有 ${actual} 个。\n\n请删除 ${to} 后重试，或运行 graduation-kit diagnose 排查`,
+    );
   }
 }
 
@@ -214,23 +242,29 @@ export function copyTree(from, to) {
 function copyTreeManual(from, to) {
   mkdirSync(to, { recursive: true });
   const entries = readdirSync(from, { withFileTypes: true });
+  const errors = [];
   
   for (const entry of entries) {
     const srcPath = join(from, entry.name);
     const destPath = join(to, entry.name);
     
-    if (entry.isDirectory()) {
-      copyTreeManual(srcPath, destPath);
-    } else if (entry.isFile() || entry.isSymbolicLink()) {
-      try {
+    try {
+      if (entry.isDirectory()) {
+        copyTreeManual(srcPath, destPath);
+      } else if (entry.isFile() || entry.isSymbolicLink()) {
         cpSync(srcPath, destPath, { force: true });
-      } catch (err) {
-        // 某些符号链接或特殊文件跳过
-        if (err.code !== 'ENOENT') {
-          console.warn(`跳过文件：${srcPath}（${err.message}）`);
-        }
+      }
+    } catch (err) {
+      // 某些符号链接或特殊文件跳过，但记录错误
+      if (err.code !== 'ENOENT') {
+        errors.push(`${srcPath}: ${err.message || err.code}`);
       }
     }
+  }
+  
+  // 如果超过 10% 的文件失败，抛出错误
+  if (errors.length > 0 && errors.length > entries.length * 0.1) {
+    throw new Error(`大量文件拷贝失败 (${errors.length}/${entries.length}):\n${errors.slice(0, 5).join('\n')}`);
   }
 }
 

@@ -619,50 +619,61 @@ export async function create(opts, ctx) {
 
   // ---- 落盘 ----
   line('');
-  mkdirSync(root, { recursive: true });
+  try {
+    mkdirSync(root, { recursive: true });
 
-  copyTree(demo ? demo.backend : join(SRC_SCAFFOLDS, 'backends', be.id), join(root, 'backend'));
-  const bePatched = patchBackend(join(root, 'backend'), be, db);
-  ok(`backend/ ${paint('dim', `← ${demo ? `${template.id} demo` : be.id}`)}`);
-  if (bePatched.length) line(`  ${paint('dim', `已改写 ${bePatched.join('、')}`)}`);
+    copyTree(demo ? demo.backend : join(SRC_SCAFFOLDS, 'backends', be.id), join(root, 'backend'));
+    const bePatched = patchBackend(join(root, 'backend'), be, db);
+    ok(`backend/ ${paint('dim', `← ${demo ? `${template.id} demo` : be.id}`)}`);
+    if (bePatched.length) line(`  ${paint('dim', `已改写 ${bePatched.join('、')}`)}`);
 
-  for (const f of fes) {
-    const dirName = frontendDirName(f.id, fes.length);
-    copyTree(demo ? demo.frontend : join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
-    const changed = patchFrontend(join(root, dirName), f, be.port);
-    ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
-    if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
-  }
-
-  mkdirSync(join(root, 'docs'), { recursive: true });
-  copyTree(demo ? demo.docs : join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
-  const sqlTo = join(root, 'docs', sqlFile);
-  if (sqlFile !== 'scaffold_db.sql') {
-    try {
-      renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
-    } catch (err) {
-      // 如果重命名失败，尝试拷贝再删除
-      const { copyFileSync, unlinkSync } = await import('node:fs');
-      copyFileSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
-      unlinkSync(join(root, 'docs', 'scaffold_db.sql'));
+    for (const f of fes) {
+      const dirName = frontendDirName(f.id, fes.length);
+      copyTree(demo ? demo.frontend : join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
+      const changed = patchFrontend(join(root, dirName), f, be.port);
+      ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
+      if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
     }
-  }
-  patchSql(sqlTo, db.name);
-  ok(`docs/${sqlFile} ${paint('dim', `库名 ${db.name}`)}`);
 
-  mkdirSync(join(root, 'uploads'), { recursive: true });
-  writeFileSync(join(root, 'uploads', '.gitkeep'), '');
-  ok(`uploads/ ${paint('dim', '用户上传的图片落在这里')}`);
+    mkdirSync(join(root, 'docs'), { recursive: true });
+    copyTree(demo ? demo.docs : join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
+    const sqlTo = join(root, 'docs', sqlFile);
+    if (sqlFile !== 'scaffold_db.sql') {
+      try {
+        renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+      } catch (err) {
+        // 如果重命名失败，尝试拷贝再删除
+        const { copyFileSync, unlinkSync } = await import('node:fs');
+        copyFileSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+        unlinkSync(join(root, 'docs', 'scaffold_db.sql'));
+      }
+    }
+    patchSql(sqlTo, db.name);
+    ok(`docs/${sqlFile} ${paint('dim', `库名 ${db.name}`)}`);
 
-  writeFileSync(join(root, '.gitignore'), GITIGNORE);
-  ok(`.gitignore ${paint('dim', '已挡住依赖与构建产物')}`);
+    mkdirSync(join(root, 'uploads'), { recursive: true });
+    writeFileSync(join(root, 'uploads', '.gitkeep'), '');
+    ok(`uploads/ ${paint('dim', '用户上传的图片落在这里')}`);
 
-  writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template }));
-  ok(`README.md ${paint('dim', '端口、库名、启动命令存档')}`);
+    writeFileSync(join(root, '.gitignore'), GITIGNORE);
+    ok(`.gitignore ${paint('dim', '已挡住依赖与构建产物')}`);
 
-  if (withSkills) {
+    writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template }));
+    ok(`README.md ${paint('dim', '端口、库名、启动命令存档')}`);
+
+    if (withSkills) {
+      line('');
+      await installSkills({ ...opts, dir: root, global: false, force: true });
+    }
+  } catch (err) {
     line('');
-    await installSkills({ ...opts, dir: root, global: false, force: true });
+    fail(`项目生成失败：${err.message || err.code || String(err)}`);
+    line('');
+    warn(`已生成的部分文件在：${paint('cyan', root)}`);
+    line(`请删除该目录后重试，或运行 ${paint('cyan', 'graduation-kit diagnose')} 排查环境问题`);
+    line('');
+    if (err.stack) console.error(paint('dim', err.stack));
+    throw err;
   }
 
   // ---- 自动验证项目结构（静默模式） ----

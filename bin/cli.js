@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+
+// 检查 Node.js 版本
+const nodeVersion = process.versions.node;
+const [major] = nodeVersion.split('.').map(Number);
+if (major < 18) {
+  console.error(`\x1b[31m× Node.js 版本过低：${nodeVersion}\x1b[0m`);
+  console.error(`\x1b[33m需要 Node.js 18 或更高版本，请升级后再试\x1b[0m`);
+  console.error(`\x1b[2m下载地址：https://nodejs.org/\x1b[0m`);
+  process.exit(1);
+}
+
 import { existsSync, mkdirSync, readdirSync, rmSync, statSync, cpSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
@@ -341,8 +352,12 @@ if (opts.help || !cmd) {
   try {
     await create(opts, { SRC_SCAFFOLDS, installSkills: install });
   } catch (e) {
-    info('');
-    fail(e.message);
+    const msg = e.message || e.code || String(e);
+    fail(msg || '未知错误，请运行 graduation-kit diagnose 检查环境');
+    if (e.stack) {
+      console.error('\n详细错误：');
+      console.error(e.stack);
+    }
     process.exit(1);
   }
 } else if (cmd === 'list') {
