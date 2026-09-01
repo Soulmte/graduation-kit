@@ -10,17 +10,28 @@ import {
   BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
   findTemplate, demoPaths, frontendDirName,
   patchBackend, patchFrontend, patchSql, sqlFileName, assertEmptyTarget, copyTree,
-  validName, validDbName,
+  validName, validDbName, validDbPassword, escapePasswordForYaml,
 } from './scaffold.js';
 
-const C = { reset: '\x1b[0m', dim: '\x1b[2m', green: '\x1b[32m', cyan: '\x1b[36m', yellow: '\x1b[33m' };
+const C = { 
+  reset: '\x1b[0m', 
+  dim: '\x1b[2m', 
+  green: '\x1b[32m', 
+  cyan: '\x1b[36m', 
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  bold: '\x1b[1m',
+};
 const paint = (c, s) => (process.stdout.isTTY ? `${C[c]}${s}${C.reset}` : s);
 const line = (s = '') => console.log(s);
 const ok = (s) => line(`${paint('green', '✓')} ${s}`);
-const warn = (s) => line(`${paint('yellow', '!')} ${s}`);
+const warn = (s) => line(`${paint('yellow', '⚠')} ${s}`);
+const info = (s) => line(`${paint('cyan', 'ℹ')} ${s}`);
+const fail = (s) => line(`${paint('red', '✗')} ${s}`);
 
-/** 脚手架条目转 select/multiselect 选项：原字段照留，附加右侧灰色注解 */
-const toItem = (s, note) => ({ ...s, note });
+/** 脚手架条目转 select/multiselect 选项：原字段照留，附加右侧灰色注解和推荐标记 */
+const toItem = (s, note, recommended) => ({ ...s, note, recommended });
 
 /**
  * 向导抬头打印的版本号。
@@ -334,26 +345,66 @@ ${info?.readme || ''}
 
 /** create --list：列出可选模板与脚手架，未完善的标注出来 */
 function listScaffolds() {
-  line('\n可选模板（选一个）');
+  line('');
+  line(paint('bold', paint('cyan', '━━━ 可选模板 ━━━')));
+  line('');
+  line(paint('dim', '  模板决定项目初始状态：干净脚手架或带业务的 demo'));
+  line('');
   for (const t of TEMPLATES) {
-    const tag = t.ready ? '' : paint('dim', '未完善');
-    line(`  ${t.id.padEnd(16)} ${t.label.padEnd(22)} ${tag}`);
-    line(`  ${''.padEnd(16)} ${paint('dim', t.note)}`);
+    const status = t.ready ? paint('green', '✓') : paint('dim', '✗ 未完善');
+    const rec = t.id === 'clean' ? paint('yellow', ' ★ 推荐') : '';
+    line(`  ${status} ${paint('bold', t.id.padEnd(16))}${rec} ${t.label}`);
+    line(`     ${paint('dim', t.note)}`);
     if (t.be) {
-      line(`  ${''.padEnd(16)} ${paint('dim', `技术栈固定：${t.be} + ${t.fe.join('、')}`)}`);
+      line(`     ${paint('dim', `技术栈固定：${t.be} + ${t.fe.join('、')}`)}`);
     }
+    line('');
   }
-  line('\n可选后端（一个，仅 clean 模板需要选）');
+  
+  line(paint('bold', paint('cyan', '━━━ 可选后端框架 ━━━')));
+  line(paint('dim', '  （仅 clean 模板需要选择，推荐 Spring Boot）'));
+  line('');
   for (const b of BACKENDS) {
-    const tag = b.ready ? paint('green', ':' + b.port) : paint('dim', '未完善');
-    line(`  ${b.id.padEnd(16)} ${b.label.padEnd(22)} ${tag}`);
+    if (!b.ready) continue;
+    const rec = b.id === 'springboot' ? paint('yellow', ' ★ 推荐') : '';
+    const port = paint('dim', `:${b.port}`);
+    const extra = b.id === 'springboot' ? paint('dim', '  企业级主流，面试认可度高') : '';
+    line(`  ${paint('green', '✓')} ${paint('bold', b.id.padEnd(16))}${rec} ${b.label.padEnd(22)} ${port}${extra}`);
   }
-  line('\n可选前端（可多选）');
+  const unreadyBe = BACKENDS.filter(b => !b.ready);
+  if (unreadyBe.length) {
+    line('');
+    line(paint('dim', '  未完善：' + unreadyBe.map(b => b.id).join('、')));
+  }
+  line('');
+  
+  line(paint('bold', paint('cyan', '━━━ 可选前端框架 ━━━')));
+  line(paint('dim', '  （可多选，用逗号分隔；推荐 Vue + Ant Design）'));
+  line('');
   for (const f of FRONTENDS) {
-    const tag = f.ready ? '' : paint('dim', '未完善');
-    line(`  ${f.id.padEnd(16)} ${f.label}${tag ? '  ' + tag : ''}`);
+    if (!f.ready) continue;
+    const rec = f.id === 'vue-antd' ? paint('yellow', ' ★ 推荐') : '';
+    const extra = f.id === 'vue-antd' ? paint('dim', '  组件丰富、文档完善、后台首选') : '';
+    line(`  ${paint('green', '✓')} ${paint('bold', f.id.padEnd(20))}${rec} ${f.label}${extra}`);
   }
-  line(`\n${paint('dim', '示例：npx github:Soulmte/graduation-kit create my-app --be springboot --fe react,vue-antd')}\n`);
+  const unreadyFe = FRONTENDS.filter(f => !f.ready);
+  if (unreadyFe.length) {
+    line('');
+    line(paint('dim', '  未完善：' + unreadyFe.map(f => f.id).join('、')));
+  }
+  line('');
+  
+  line(paint('cyan', '━━━ 使用示例 ━━━'));
+  line('');
+  line('  # 交互式创建（推荐）');
+  line(paint('dim', '  npx github:Soulmte/graduation-kit create my-project'));
+  line('');
+  line('  # 非交互式创建');
+  line(paint('dim', '  npx github:Soulmte/graduation-kit create my-project --be springboot --fe vue-antd'));
+  line('');
+  line('  # 多个前端');
+  line(paint('dim', '  npx github:Soulmte/graduation-kit create my-project --be springboot --fe react,vue-antd'));
+  line('');
 }
 
 /** 把 --template 解析成模板对象，缺省按 clean */
@@ -361,7 +412,16 @@ function resolveTemplate(id) {
   if (!id) return findTemplate('clean');
   const t = findTemplate(id);
   if (!t) {
-    throw new Error(`未知模板 --template ${id}，可选：${readyTemplates().map((x) => x.id).join(' / ')}`);
+    const available = readyTemplates().map((x) => x.id).join(' / ');
+    line('');
+    fail(`未知模板: ${id}`);
+    line('');
+    info('可选模板：');
+    readyTemplates().forEach((t) => {
+      line(`  ${paint('green', '✓')} ${paint('bold', t.id.padEnd(16))} ${t.label}`);
+    });
+    line('');
+    throw new Error(`请使用有效的模板名: ${available}`);
   }
   if (!t.ready) throw new Error(`${t.id} 模板尚未完善，暂不可选`);
   return t;
@@ -380,14 +440,47 @@ function resolveFlags(opts, template) {
   }
 
   const be = BACKENDS.find((b) => b.id === opts.be);
-  if (!be) throw new Error(`未知后端 --be ${opts.be}，可选：${readyBackends().map((b) => b.id).join(' / ')}`);
+  if (!be) {
+    line('');
+    fail(`未知后端框架: ${opts.be}`);
+    line('');
+    info('可选后端框架：');
+    readyBackends().forEach((b) => {
+      const rec = b.id === 'springboot' ? paint('yellow', ' ★ 推荐') : '';
+      line(`  ${paint('green', '✓')} ${paint('bold', b.id.padEnd(16))}${rec} ${b.label.padEnd(22)} ${paint('dim', `:${b.port}`)}`);
+    });
+    line('');
+    throw new Error(`请使用有效的后端框架: ${readyBackends().map((b) => b.id).join(' / ')}`);
+  }
   if (!be.ready) throw new Error(`${be.id} 脚手架尚未完善，暂不可选`);
 
   const ids = String(opts.fe || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean);
-  if (!ids.length) throw new Error('--fe 至少指定一个前端');
+  if (!ids.length) {
+    line('');
+    fail('缺少前端框架');
+    line('');
+    info('可选前端框架（可多选，用逗号分隔）：');
+    readyFrontends().forEach((f) => {
+      const rec = f.id === 'vue-antd' ? paint('yellow', ' ★ 推荐') : '';
+      line(`  ${paint('green', '✓')} ${paint('bold', f.id.padEnd(20))}${rec} ${f.label}`);
+    });
+    line('');
+    throw new Error(`请使用 --fe 指定至少一个前端框架`);
+  }
   const fes = ids.map((id) => {
     const f = FRONTENDS.find((x) => x.id === id);
-    if (!f) throw new Error(`未知前端 --fe ${id}，可选：${readyFrontends().map((x) => x.id).join(' / ')}`);
+    if (!f) {
+      line('');
+      fail(`未知前端框架: ${id}`);
+      line('');
+      info('可选前端框架：');
+      readyFrontends().forEach((f) => {
+        const rec = f.id === 'vue-antd' ? paint('yellow', ' ★ 推荐') : '';
+        line(`  ${paint('green', '✓')} ${paint('bold', f.id.padEnd(20))}${rec} ${f.label}`);
+      });
+      line('');
+      throw new Error(`请使用有效的前端框架: ${readyFrontends().map((x) => x.id).join(' / ')}`);
+    }
     if (!f.ready) throw new Error(`${id} 脚手架尚未完善，暂不可选`);
     return f;
   });
@@ -416,37 +509,81 @@ export async function create(opts, ctx) {
     withSkills = !opts.noSkills;
   } else {
     line('');
-    line(`${paint('cyan', '毕业设计脚手架向导')} ${paint('dim', `v${pkgVersion()}`)}`);
-    line(paint('dim', '一个后端 + 一个或多个前端 + 数据库脚本 + skills，按 Ctrl+C 可随时退出'));
+    line(`${paint('bold', paint('cyan', '━━━ 毕业设计脚手架向导 ━━━'))} ${paint('dim', `v${pkgVersion()}`)}`);
+    line('');
+    line(`${paint('dim', '   一条命令生成：后端 + 前端 + 数据库 + Skills')}`);
+    line(`${paint('dim', '   按 Ctrl+C 可随时退出')}`);
+    line('');
+    line(paint('dim', '─────────────────────────────────────────────────'));
+    line('');
 
     name = await text('项目目录名', {
       def: opts.name || 'my-graduation-project',
       validate: validName,
     });
+    line('');
 
-    const tplItems = readyTemplates().map((t) => toItem(t, t.note));
+    const tplItems = readyTemplates().map((t) => {
+      const isClean = t.id === 'clean';
+      const recommended = isClean;
+      return toItem(t, t.note, recommended);
+    });
     template = await select('选择模板', tplItems, 1);
+    line('');
 
     if (template.be) {
       // demo 模板技术栈已固定，不再问后端前端
       be = BACKENDS.find((b) => b.id === template.be);
       fes = template.fe.map((id) => FRONTENDS.find((f) => f.id === id));
+      info(`${template.label} 技术栈：${be.label} + ${fes.map((f) => f.label).join('、')}`);
       line('');
-      line(paint('dim', `  ${template.label} 已固定用 ${be.label} + ${fes.map((f) => f.label).join('、')}`));
     } else {
-      const beItems = readyBackends().map((b) => toItem(b, `${b.lang}，端口 ${b.port}`));
-      be = await select('选择后端（只能一个）', beItems, 1);
+      const beItems = readyBackends().map((b) => {
+        const recommended = b.id === 'springboot';
+        let note = `${b.lang}，端口 ${b.port}`;
+        if (b.id === 'springboot') {
+          note += '  推荐：生态成熟、企业主流';
+        }
+        return toItem(b, note, recommended);
+      });
+      line(paint('yellow', '   ★ 推荐 Spring Boot：Java 企业级主流，工具链完善，面试认可度高'));
+      line('');
+      be = await select('选择后端框架', beItems, 1);
+      line('');
 
-      const feItems = readyFrontends().map((f) => toItem(f));
-      fes = await multiselect('选择前端（可多个）', feItems, [1]);
+      const feItems = readyFrontends().map((f) => {
+        // Vue + Ant Design 为首推
+        const recommended = f.id === 'vue-antd';
+        let note = '';
+        if (f.id === 'vue-antd') {
+          note = '企业级组件库，开箱即用  推荐：表单表格完善，后台首选';
+        } else if (f.id === 'vue-elementplus') {
+          note = 'Element Plus，社区广泛使用';
+        } else if (f.id === 'react') {
+          note = 'React 18，适合现代前端开发';
+        } else if (f.id === 'uniapp') {
+          note = '跨端开发，一套代码多端运行';
+        } else if (f.id === 'wxapp') {
+          note = '微信小程序原生开发';
+        }
+        return toItem(f, note, recommended);
+      });
+      line(paint('yellow', '   ★ 推荐 Vue + Ant Design：组件丰富、文档完善、适合毕设快速开发'));
+      line('');
+      fes = await multiselect('选择前端框架（可多选）', feItems, [1]);
+      line('');
     }
 
-    line('');
     const dbName = await text('数据库名', { def: 'scaffold_db', validate: validDbName });
-    const dbPass = await text('MySQL root 密码', { def: '' });
+    const dbPass = await text('MySQL root 密码（留空表示无密码）', { 
+      def: '', 
+      validate: validDbPassword 
+    });
     db = { name: dbName, password: dbPass };
+    line('');
 
-    withSkills = await confirm('同时安装 skills 到 .agents/skills/', true);
+    withSkills = await confirm('同时安装 Agent Skills（需求定义、代码审查、论文写作等）', true);
+    line('');
   }
 
   const root = resolve(opts.dir || process.cwd(), name);
@@ -528,32 +665,61 @@ export async function create(opts, ctx) {
     await installSkills({ ...opts, dir: root, global: false, force: true });
   }
 
+  // ---- 自动验证项目结构（静默模式） ----
+  const { verify } = await import('./verify.js');
+  const verifyResult = await verify(root, true);
+  
+  if (verifyResult !== 0) {
+    line('');
+    warn('项目结构验证发现问题，但不影响使用');
+    info('详细信息请运行: graduation-kit verify ' + name);
+  }
+
   // ---- 后续步骤 ----
   line('');
-  line(paint('cyan', '下一步'));
-  line(`  cd ${name}`);
-  line(`  mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}`);
+  line(paint('green', '✓ 项目创建成功！'));
   line('');
-  line(`  ${paint('dim', '# 后端')}`);
-  line(`  cd backend && ${RUN_HINT[be.id] || '见该目录说明'}`);
+  line(paint('cyan', '━━━ 下一步操作 ━━━'));
   line('');
-  line(`  ${paint('dim', '# 前端')}`);
+  line(paint('bold', '1. 进入项目目录'));
+  line(`   cd ${name}`);
+  line('');
+  line(paint('bold', '2. 创建并导入数据库'));
+  line(`   mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}`);
+  line(paint('dim', '   提示：脚本会自动创建数据库，无需手动建库'));
+  line('');
+  line(paint('bold', '3. 启动后端'));
+  line(`   cd backend && ${RUN_HINT[be.id] || '见该目录说明'}`);
+  line(paint('dim', `   后端端口：${be.port}`));
+  line('');
+  line(paint('bold', '4. 启动前端（另开终端）'));
   for (const f of fes) {
-    line(`  cd ${frontendDirName(f.id, fes.length)} && ${FE_HINT[f.kind]}`);
-  }
-  if (!db.password) {
-    line('');
-    warn('数据库密码留空，启动前请到 backend 配置里补上。');
-  }
-  if (fes.some((f) => f.kind !== 'vite')) {
-    line('');
-    warn('小程序真机调试连不上 localhost，需把 config/index.js 的 LAN_HOST 改成电脑局域网 IP。');
+    const dirName = frontendDirName(f.id, fes.length);
+    line(`   cd ${dirName} && ${FE_HINT[f.kind]}`);
   }
   line('');
+  line(paint('bold', '5. 登录测试'));
   const demoInfo = DEMO_INFO[template.id];
   if (demoInfo) {
-    demoInfo.hints.forEach((h) => line(paint('dim', h)));
+    demoInfo.hints.forEach((h) => line(`   ${paint('dim', h)}`));
   } else {
-    line(paint('dim', '默认账号：admin / 123456（管理员），test / 123456（普通用户）'));
+    line(`   ${paint('dim', '管理员：admin / 123456')}`);
+    line(`   ${paint('dim', '普通用户：test / 123456')}`);
   }
+  line('');
+  if (!db.password) {
+    warn('数据库密码留空，启动前请到 backend/ 配置文件中补上');
+    line('');
+  }
+  if (fes.some((f) => f.kind !== 'vite')) {
+    warn('小程序真机调试时，需将 config/index.js 中的 LAN_HOST 改为电脑局域网 IP');
+    line('');
+  }
+  line(paint('cyan', '━━━━━━━━━━━━━━━━━━'));
+  line('');
+  info('详细说明请查看项目根目录的 README.md');
+  if (withSkills) {
+    info('Agent Skills 已安装到 .agents/skills/，新开会话即可使用');
+  }
+  line('');
 }

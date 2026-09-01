@@ -80,7 +80,7 @@ npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板�
 
 ### 验证项目完整性
 
-生成项目后，可用 `verify` 检查结构和配置：
+生成项目后会自动验证结构，也可手动运行：
 
 ```bash
 cd my-project
@@ -98,24 +98,86 @@ npx github:Soulmte/graduation-kit verify /path/to/project
 
 退出码为 0 表示通过，为 1 表示有错误（可用于 CI）。
 
-### 诊断包完整性
+### 推荐技术栈
 
-如果怀疑包安装不完整或遇到奇怪问题，可以运行诊断命令：
+**首推组合（适合快速开发、面试加分）**：
+- 🏆 后端：**Spring Boot 3.x** （Java 17 + MyBatis-Plus，端口 8080）
+  - 企业级主流框架，生态成熟
+  - 工具链完善（Maven、Spring Initializr）
+  - 面试认可度高，简历加分项
+- 🏆 前端：**Vue 3 + Ant Design Vue**
+  - 企业级组件库，开箱即用
+  - 表单表格组件完善，后台系统首选
+  - 中文文档详尽，学习曲线平缓
+
+交互式创建时，推荐项会显示 ★ 标记。非交互式创建：
+
+```bash
+npx github:Soulmte/graduation-kit create my-app --be springboot --fe vue-antd
+```
+
+其他组合：
+- **Express + React**：全栈 JavaScript，Node.js 开发者首选
+- **Flask + Vue + Element Plus**：Python 后端 + 社区广泛使用的前端
+- **Go + Vue + Naive UI**：高性能后端 + 现代化 UI（含暗色模式）
+- **任意后端 + uni-app**：需要跨端（H5/小程序/App）时选择
+
+### 输入规范
+
+为避免配置文件解析错误和系统兼容性问题，以下字段有格式限制：
+
+**项目名**：
+- 只能包含字母、数字、连字符(-)、下划线(_)、点(.)
+- 不能以 . 或 - 开头（避免隐藏文件或解析问题）
+- 不能使用系统保留名（con、prn、aux、nul、com1-9、lpt1-9）
+- 不能包含路径分隔符（/ \ : 等）或特殊字符（* ? " < > |）
+- 最多 100 字符
+
+**数据库名**：
+- 只能包含字母、数字、下划线(_)、美元符号($)
+- 不能使用 MySQL 保留字（database、table、select、insert、update、delete、user 等）
+- 不能以数字开头
+- 最多 64 字符（MySQL 限制）
+
+**数据库密码**：
+- **避免使用**：引号（" ' `）、反斜杠（\）、换行符（会导致配置文件解析失败）
+- **可以使用但会自动转义**：YAML 特殊字符（: # & * ! | > % @）
+- **安全字符**：字母、数字、常见符号（. _ - + = , ; / ）
+- 最多 128 字符
+- 留空表示无密码
+
+示例：
+```bash
+# ✓ 合法
+npx github:Soulmte/graduation-kit create my-shop-2024 --db shop_db
+# 密码输入：P@ssw0rd.2024  （会自动转义 @ 符号）
+
+# ✗ 不合法
+npx github:Soulmte/graduation-kit create .hidden --db database
+# 项目名不能以 . 开头，数据库名不能用保留字
+```
+
+### 诊断系统环境
+
+如果遇到奇怪问题或想检查环境是否满足要求：
 
 ```bash
 npx github:Soulmte/graduation-kit diagnose
 ```
 
 检查项包括：
-- 系统信息（Node.js 版本、平台、架构）
-- 路径长度（Windows MAX_PATH 限制检测）
-- 脚手架目录结构（backends / frontends / demos / docs）
-- 文件数量验证（前端应有 216 个文件）
+- Node.js 版本（需要 18+）
+- 终端兼容性（CMD / PowerShell / Git Bash）
+- 包完整性（脚手架资源、Skills 数量）
+- 必需工具（git、mysql）
+- 可选工具（Java、Maven、Python、Go、.NET）
+- 系统信息（操作系统、架构）
 
 **常见问题诊断：**
-- **只生成了 backend 没有前端**：版本号未更新导致，运行 `npm install -g graduation-kit@latest` 强制更新
-- **路径过长警告（Windows）**：建议在盘符根目录生成项目（如 `D:\my-project`）
-- **前端文件数少于 200**：包可能损坏，重新安装
+- **Node 版本过低**：升级到 18+ 或使用 nvm 管理版本
+- **终端显示异常**：Windows 推荐使用 PowerShell 或 Git Bash
+- **包资源缺失**：重新安装或从 Gitee clone 后使用
+- **MySQL 未安装**：下载 MySQL 8.0+ 并配置 PATH
 
 ### 先确认它是通的，再动手改
 

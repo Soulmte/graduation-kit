@@ -107,6 +107,8 @@ function replaceInFile(file, edits) {
  */
 export function patchBackend(dir, backend, db) {
   const changed = [];
+  const escapedPassword = escapePasswordForYaml(db.password);
+  
   const envEdits = [
     ['__DB_PASSWORD__', db.password],
     ['DB_NAME=scaffold_db', `DB_NAME=${db.name}`],
@@ -116,7 +118,7 @@ export function patchBackend(dir, backend, db) {
 
   const yml = join(dir, 'src', 'main', 'resources', 'application.yml');
   if (replaceInFile(yml, [
-    ['__DB_PASSWORD__', db.password],
+    ['__DB_PASSWORD__', escapedPassword],
     ['/scaffold_db?', `/${db.name}?`],
     ['path: ../../uploads', 'path: ../uploads'],
   ])) changed.push('application.yml');
@@ -187,10 +189,48 @@ export function copyTree(from, to) {
   }
   
   try {
+    // 确保目标目录存在
     mkdirSync(to, { recursive: true });
-    cpSync(from, to, { recursive: true, errorOnExist: false, force: true });
+    
+    // 使用 cpSync 递归拷贝，Windows 下更可靠
+    cpSync(from, to, { 
+      recursive: true, 
+      errorOnExist: false, 
+      force: true,
+      // Windows 下保留符号链接的处理
+      verbatimSymlinks: false,
+    });
   } catch (err) {
-    throw new Error(`拷贝失败：${from} -> ${to}\n原因：${err.message}`);
+    // 如果 cpSync 失败（某些 Node 版本或文件系统问题），回退到手动拷贝
+    if (err.code === 'ERR_FS_CP_UNKNOWN' || err.message.includes('EPERM')) {
+      copyTreeManual(from, to);
+    } else {
+      throw new Error(`拷贝失败：${from} -> ${to}\n原因：${err.message}`);
+    }
+  }
+}
+
+/** 手动递归拷贝（回退方案） */
+function copyTreeManual(from, to) {
+  mkdirSync(to, { recursive: true });
+  const entries = readdirSync(from, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = join(from, entry.name);
+    const destPath = join(to, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyTreeManual(srcPath, destPath);
+    } else if (entry.isFile() || entry.isSymbolicLink()) {
+      try {
+        cpSync(srcPath, destPath, { force: true });
+      } catch (err) {
+        // 某些符号链接或特殊文件跳过
+        if (err.code !== 'ENOENT') {
+          console.warn(`跳过文件：${srcPath}（${err.message}）`);
+        }
+      }
+    }
   }
 }
 
@@ -203,16 +243,93 @@ export function defaultProjectName(input) {
 /** 目录名合法性：避免用户输入带路径分隔符或非法字符 */
 export function validName(name) {
   if (!name) return '名称不能为空';
-  // 限字母数字与 - _ 。空格和中文会让 mvn / npm 在部分环境下报错
+  if (name.length > 100) return '名称过长（最多 100 字符）';
+  
+  // 不能以 . 或 - 开头（隐藏文件或解析问题）
+  if (/^[.-]/.test(name)) return '名称不能以 . 或 - 开头';
+  
+  // Windows 保留名检查（不区分大小写）
+  const reserved = ['con', 'prn', 'aux', 'nul', 'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9', 'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9'];
+  const lower = name.toLowerCase().replace(/\.[^.]*$/, ''); // 去除扩展名
+  if (reserved.includes(lower)) return `名称不能使用系统保留字：${lower}`;
+  
+  // 禁止路径分隔符和其他危险字符
+  if (/[\/\\:*?"<>|]/.test(name)) {
+    return '名称不能包含路径分隔符或特殊字符（/ \\ : * ? " < > |）';
+  }
+  
+  // 限字母数字与 - _ .（空格和中文会让构建工具报错）
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
     return '名称只能用字母数字与 - _ .，且以字母数字开头';
   }
+  
   return null;
 }
 
 /** 库名只允许 MySQL 标识符常见字符 */
 export function validDbName(name) {
   if (!name) return '库名不能为空';
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return '库名只能用字母数字下划线，且不以数字开头';
+  if (name.length > 64) return '库名过长（MySQL 限制 64 字符）';
+  
+  // MySQL 保留字检查（不区分大小写）
+  const reserved = ['database', 'table', 'select', 'insert', 'update', 'delete', 'user', 'group', 'order', 'where', 'from', 'join', 'index', 'key', 'primary', 'foreign'];
+  if (reserved.includes(name.toLowerCase())) {
+    return `库名不能使用 MySQL 保留字：${name}`;
+  }
+  
+  // 允许字母数字下划线和美元符号（MySQL 合法字符）
+  if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name)) {
+    return '库名只能用字母、数字、下划线、美元符号，且不以数字开头';
+  }
+  
   return null;
+}
+
+/** 验证 MySQL 密码：检查可能导致配置文件解析问题的字符 */
+export function validDbPassword(password) {
+  if (!password) return null; // 允许空密码
+  if (password.length > 128) return '密码过长（最多 128 字符）';
+  
+  // 检查危险字符：引号、反斜杠、换行等
+  const dangerous = ['"', "'", '`', '\\', '\n', '\r', '\t'];
+  const found = dangerous.filter(c => password.includes(c));
+  if (found.length > 0) {
+    const names = {'"': '双引号', "'": '单引号', '`': '反引号', '\\': '反斜杠', '\n': '换行', '\r': '回车', '\t': '制表符'};
+    return `密码不能包含 ${found.map(c => names[c] || c).join('、')}`;
+  }
+  
+  // 检查 YAML 特殊字符（给出警告但不阻止，因为可以转义）
+  const yamlSpecial = [':', '#', '&', '*', '!', '|', '>', '%'];
+  const foundYaml = yamlSpecial.filter(c => password.includes(c));
+  if (foundYaml.length > 0) {
+    return `警告：密码包含 YAML 特殊字符 (${foundYaml.join(' ')})，将自动转义处理`;
+  }
+  
+  return null;
+}
+
+/** 安全转义密码用于 YAML 配置文件 */
+export function escapePasswordForYaml(password) {
+  if (!password) return '';
+  
+  // YAML 特殊字符需要加引号
+  const needsQuote = /[:\s#&*!|>@%'"]/.test(password);
+  
+  if (needsQuote) {
+    // 引号内的反斜杠和双引号需要转义
+    const escaped = password.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    return `"${escaped}"`;
+  }
+  
+  return password;
+}
+
+/** 安全转义密码用于 properties 配置文件 */
+export function escapePasswordForProperties(password) {
+  if (!password) return '';
+  // properties 文件需要转义冒号、等号、反斜杠
+  return password
+    .replace(/\\/g, '\\\\')
+    .replace(/:/g, '\\:')
+    .replace(/=/g, '\\=');
 }
