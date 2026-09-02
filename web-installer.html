@@ -6,22 +6,22 @@
   <title>毕业设计脚手架 — 在线安装</title>
   <style>
     :root {
-      --surface-0: #05070C;
-      --surface-1: #0A0D12;
-      --surface-2: #0F131C;
-      --surface-3: #161D2B;
-      --surface-4: #1E2636;
-      --accent: #38BDF8;
-      --accent-dim: #0EA5E9;
-      --text-primary: #F8FAFC;
-      --text-secondary: #94A3B8;
-      --text-tertiary: #64748B;
-      --border: rgba(148, 163, 184, 0.12);
-      --success: #6EE7B7;
-      --warning: #FCD34D;
-      --error: #F87171;
+      --surface-0: oklch(98% 0.008 30);
+      --surface-1: oklch(96% 0.009 30);
+      --surface-2: oklch(94% 0.01 30);
+      --surface-3: oklch(93% 0.01 30);
+      --surface-4: oklch(92% 0.01 30);
+      --accent: oklch(58% 0.22 25);
+      --accent-dim: oklch(50% 0.2 25);
+      --text-primary: oklch(28% 0.015 30);
+      --text-secondary: oklch(48% 0.012 30);
+      --text-tertiary: oklch(62% 0.01 30);
+      --border: oklch(88% 0.008 30);
+      --success: oklch(65% 0.18 145);
+      --warning: oklch(75% 0.15 85);
+      --error: oklch(60% 0.22 25);
       
-      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
       --font-mono: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
       
       --radius-sm: 8px;
@@ -29,9 +29,9 @@
       --radius-lg: 16px;
       --radius-pill: 999px;
       
-      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
     
     * {
@@ -46,25 +46,100 @@
       color: var(--text-primary);
       line-height: 1.6;
       min-height: 100vh;
-      overflow-x: hidden;
     }
     
     .container {
-      max-width: min(90vw, 720px);
+      max-width: 1400px;
       margin: 0 auto;
       padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+    
+    @media (min-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr 340px;
+        align-items: start;
+      }
+    }
+    
+    .main-content {
+      min-width: 0;
+    }
+    
+    .summary-panel {
+      display: none;
+    }
+    
+    @media (min-width: 1024px) {
+      .summary-panel {
+        display: block;
+        position: sticky;
+        top: 2rem;
+        background: var(--surface-1);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+      }
+      
+      .summary-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      
+      .summary-tree {
+        background: var(--surface-0);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        overflow-x: auto;
+        white-space: pre;
+      }
+      
+      .summary-cli {
+        background: var(--surface-0);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: var(--text-tertiary);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      
+      .summary-cli-label {
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
     }
     
     /* Header */
     .header {
       text-align: center;
       margin-bottom: clamp(3rem, 6vw, 5rem);
+      grid-column: 1 / -1;
     }
     
     .logo {
       width: clamp(48px, 10vw, 64px);
       height: clamp(48px, 10vw, 64px);
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      background: var(--accent);
       border-radius: 50%;
       margin: 0 auto clamp(1rem, 3vw, 1.5rem);
       display: flex;
@@ -73,7 +148,7 @@
       font-size: clamp(1.5rem, 4vw, 2rem);
       font-weight: 700;
       color: var(--surface-0);
-      box-shadow: var(--shadow-lg);
+      box-shadow: var(--shadow-md);
     }
     
     h1 {
@@ -81,10 +156,7 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 0.5rem;
-      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
     }
     
     .subtitle {
@@ -143,7 +215,7 @@
     select {
       width: 100%;
       padding: 0.75rem 1rem;
-      background: var(--surface-2);
+      background: var(--surface-0);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text-primary);
@@ -157,7 +229,11 @@
     select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+      box-shadow: 0 0 0 3px oklch(from var(--accent) l c h / 0.12);
+    }
+    
+    input.error {
+      border-color: var(--error);
     }
     
     input::placeholder {
@@ -168,6 +244,29 @@
       font-size: 0.8125rem;
       color: var(--text-tertiary);
       margin-top: 0.375rem;
+    }
+    
+    .input-error {
+      font-size: 0.8125rem;
+      color: var(--error);
+      margin-top: 0.375rem;
+      display: none;
+    }
+    
+    .input-error.active {
+      display: block;
+    }
+    
+    .os-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+      font-family: var(--font-mono);
     }
     
     /* Checkbox Group */
@@ -192,7 +291,7 @@
       align-items: center;
       gap: 0.75rem;
       padding: 0.875rem 1rem;
-      background: var(--surface-2);
+      background: var(--surface-0);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       cursor: pointer;
@@ -202,7 +301,7 @@
     }
     
     .checkbox-item input:checked + .checkbox-label {
-      background: var(--surface-3);
+      background: var(--surface-2);
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent);
     }
@@ -240,7 +339,8 @@
     }
     
     .checkbox-label:hover {
-      background: var(--surface-3);
+      background: var(--surface-2);
+      border-color: var(--accent);
     }
     
     /* Radio Group */
@@ -264,7 +364,7 @@
       align-items: flex-start;
       gap: 0.75rem;
       padding: 0.875rem 1rem;
-      background: var(--surface-2);
+      background: var(--surface-0);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       cursor: pointer;
@@ -272,7 +372,7 @@
     }
     
     .radio-item input:checked + .radio-label {
-      background: var(--surface-3);
+      background: var(--surface-2);
       border-color: var(--accent);
     }
     
@@ -330,7 +430,7 @@
     .btn {
       width: 100%;
       padding: 1rem 1.5rem;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      background: var(--accent);
       border: none;
       border-radius: var(--radius-pill);
       color: var(--surface-0);
@@ -348,6 +448,7 @@
     .btn:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: var(--shadow-lg);
+      background: var(--accent-dim);
     }
     
     .btn:active:not(:disabled) {
@@ -360,9 +461,14 @@
     }
     
     .btn-secondary {
-      background: var(--surface-2);
+      background: var(--surface-0);
       color: var(--text-primary);
       border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-2);
+      border-color: var(--text-tertiary);
     }
     
     /* Progress */
@@ -390,7 +496,7 @@
     .progress-spinner {
       width: 24px;
       height: 24px;
-      border: 3px solid var(--surface-3);
+      border: 3px solid var(--surface-2);
       border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -409,7 +515,7 @@
     .progress-bar-container {
       width: 100%;
       height: 8px;
-      background: var(--surface-3);
+      background: var(--surface-2);
       border-radius: var(--radius-pill);
       overflow: hidden;
       margin-bottom: 0.75rem;
@@ -417,7 +523,7 @@
     
     .progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dim) 100%);
+      background: var(--accent);
       border-radius: var(--radius-pill);
       transition: width 0.3s ease;
       width: 0%;
@@ -552,6 +658,12 @@
         grid-template-columns: 1fr;
       }
     }
+    
+    @media (max-width: 1023px) {
+      .main-content {
+        grid-column: 1 / -1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -563,41 +675,44 @@
       <p class="subtitle">无需命令行，在线生成并下载完整项目包</p>
     </header>
 
-    <!-- Form -->
-    <form id="configForm">
-      <!-- 基本信息 -->
-      <section class="form-section">
-        <h2 class="form-section-title">基本信息</h2>
-        <div class="form-group">
-          <label for="projectName">项目目录名</label>
-          <input type="text" id="projectName" name="projectName" placeholder="my-graduation-project" required>
-          <div class="input-hint">支持英文、数字、连字符，不能有空格</div>
-        </div>
-        
-        <div class="form-group">
-          <label for="template">项目模板</label>
-          <div class="radio-group">
-            <div class="radio-item">
-              <input type="radio" id="template-clean" name="template" value="clean" checked>
-              <label for="template-clean" class="radio-label">
-                <span class="radio-indicator"></span>
-                <div class="radio-content">
-                  <div class="radio-title">干净脚手架</div>
-                  <div class="radio-desc">只有登录注册、用户、公告、日志基础功能</div>
-                </div>
-              </label>
-            </div>
-            <div class="radio-item">
-              <input type="radio" id="template-trade" name="template" value="trade">
-              <label for="template-trade" class="radio-label">
-                <span class="radio-indicator"></span>
-                <div class="radio-content">
-                  <div class="radio-title">交易 Demo</div>
-                  <div class="radio-desc">商家、商品、购物车、订单、支付、退款完整流程</div>
-                </div>
-              </label>
-            </div>
-            <div class="radio-item">
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Form -->
+      <form id="configForm">
+        <!-- 基本信息 -->
+        <section class="form-section">
+          <h2 class="form-section-title">基本信息</h2>
+          <div class="form-group">
+            <label for="projectName">项目目录名</label>
+            <input type="text" id="projectName" name="projectName" placeholder="my-graduation-project" required>
+            <div class="input-hint">支持英文、数字、连字符，不能有空格</div>
+            <div class="input-error" id="projectNameError"></div>
+          </div>
+          
+          <div class="form-group">
+            <label for="template">项目模板</label>
+            <div class="radio-group">
+              <div class="radio-item">
+                <input type="radio" id="template-clean" name="template" value="clean" checked>
+                <label for="template-clean" class="radio-label">
+                  <span class="radio-indicator"></span>
+                  <div class="radio-content">
+                    <div class="radio-title">干净脚手架</div>
+                    <div class="radio-desc">只有登录注册、用户、公告、日志基础功能</div>
+                  </div>
+                </label>
+              </div>
+              <div class="radio-item">
+                <input type="radio" id="template-trade" name="template" value="trade">
+                <label for="template-trade" class="radio-label">
+                  <span class="radio-indicator"></span>
+                  <div class="radio-content">
+                    <div class="radio-title">交易 Demo</div>
+                    <div class="radio-desc">商家、商品、购物车、订单、支付、退款完整流程</div>
+                  </div>
+                </label>
+              </div>
+              <div class="radio-item">
               <input type="radio" id="template-booking" name="template" value="booking">
               <label for="template-booking" class="radio-label">
                 <span class="radio-indicator"></span>
@@ -737,6 +852,7 @@
           <label for="dbName">数据库名</label>
           <input type="text" id="dbName" name="dbName" placeholder="scaffold_db" value="scaffold_db" required>
           <div class="input-hint">生成的 SQL 文件将使用此名称</div>
+          <div class="input-error" id="dbNameError"></div>
         </div>
         <div class="form-group">
           <label for="dbPass">MySQL root 密码（可选）</label>
@@ -753,7 +869,7 @@
             <input type="checkbox" id="installSkills" name="installSkills" checked>
             <label for="installSkills" class="checkbox-label">
               <span class="checkbox-indicator"></span>
-              <span>包含 6 个核心 skill（需求定义、代码审查、论文写作等）</span>
+              <span>包含 6 个核心 skill（需求定义、代码审查、论文写作等）<span class="os-badge" id="osBadge"></span></span>
             </label>
           </div>
         </div>
@@ -807,11 +923,20 @@
     </footer>
   </div>
 
+  <!-- Summary Panel (desktop only) -->
+  <aside class="summary-panel">
+    <div class="summary-title">预览</div>
+    <div class="summary-tree" id="summaryTree"></div>
+    <div class="summary-cli-label">等价命令</div>
+    <div class="summary-cli" id="summaryCli"></div>
+  </aside>
+</div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     // Configuration
     const NPM_PACKAGE = 'graduation-kit';
-    const NPM_VERSION = '1.1.4';
+    const NPM_VERSION = '1.1.5';
     const CDN_BASE = 'https://cdn.jsdelivr.net/npm';
     
     // Backend port mapping
@@ -836,6 +961,168 @@
     const progressTitle = document.getElementById('progressTitle');
     const progressText = document.getElementById('progressText');
     const submitBtn = document.getElementById('submitBtn');
+    const summaryTree = document.getElementById('summaryTree');
+    const summaryCli = document.getElementById('summaryCli');
+    
+    // OS Detection
+    const isWindows = /Windows/i.test(navigator.userAgent);
+    document.getElementById('osBadge').textContent = isWindows ? 'Windows' : 'Mac/Linux';
+    
+    // Load saved config from localStorage
+    function loadSavedConfig() {
+      try {
+        const saved = localStorage.getItem('gk_lastConfig');
+        if (saved) {
+          const config = JSON.parse(saved);
+          if (config.projectName) document.getElementById('projectName').value = config.projectName;
+          if (config.backend) {
+            const backendRadio = document.querySelector(`input[name="backend"][value="${config.backend}"]`);
+            if (backendRadio) backendRadio.checked = true;
+          }
+          if (config.frontend && Array.isArray(config.frontend)) {
+            config.frontend.forEach(fe => {
+              const checkbox = document.querySelector(`input[name="frontend"][value="${fe}"]`);
+              if (checkbox) checkbox.checked = true;
+            });
+          }
+          if (config.template) {
+            const templateRadio = document.querySelector(`input[name="template"][value="${config.template}"]`);
+            if (templateRadio) templateRadio.checked = true;
+          }
+          // Don't restore dbPass for security
+        }
+      } catch (e) {
+        console.warn('Failed to load saved config:', e);
+      }
+    }
+    
+    // Save config to localStorage
+    function saveConfig(data) {
+      try {
+        const toSave = {
+          projectName: data.projectName,
+          backend: data.backend,
+          frontend: data.frontend,
+          template: data.template
+        };
+        localStorage.setItem('gk_lastConfig', JSON.stringify(toSave));
+      } catch (e) {
+        console.warn('Failed to save config:', e);
+      }
+    }
+    
+    // Auto-derive database name from project name
+    const projectNameInput = document.getElementById('projectName');
+    const dbNameInput = document.getElementById('dbName');
+    let dbNameAutoDerive = true;
+    
+    projectNameInput.addEventListener('input', () => {
+      if (dbNameAutoDerive) {
+        const derived = projectNameInput.value.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_db';
+        dbNameInput.value = derived;
+        dbNameInput.setAttribute('data-auto', 'true');
+      }
+      updateSummary();
+    });
+    
+    dbNameInput.addEventListener('input', () => {
+      // User manually edited, stop auto-derive
+      if (dbNameInput.value !== projectNameInput.value.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_db') {
+        dbNameAutoDerive = false;
+        dbNameInput.removeAttribute('data-auto');
+      }
+      updateSummary();
+    });
+    
+    // Inline validation
+    function validateField(field) {
+      const errorEl = document.getElementById(field.id + 'Error');
+      if (!errorEl) return true;
+      
+      let error = '';
+      
+      if (field.id === 'projectName') {
+        if (!field.value.trim()) {
+          error = '项目名不能为空';
+        } else if (!/^[a-zA-Z0-9_-]+$/.test(field.value.trim())) {
+          error = '只能包含英文、数字、下划线和连字符';
+        }
+      } else if (field.id === 'dbName') {
+        if (!field.value.trim()) {
+          error = '数据库名不能为空';
+        } else if (!/^[a-zA-Z0-9_]+$/.test(field.value.trim())) {
+          error = '只能包含英文、数字、下划线';
+        }
+      }
+      
+      if (error) {
+        errorEl.textContent = error;
+        errorEl.classList.add('active');
+        field.classList.add('error');
+        return false;
+      } else {
+        errorEl.textContent = '';
+        errorEl.classList.remove('active');
+        field.classList.remove('error');
+        return true;
+      }
+    }
+    
+    projectNameInput.addEventListener('blur', () => validateField(projectNameInput));
+    dbNameInput.addEventListener('blur', () => validateField(dbNameInput));
+    
+    // Update summary panel
+    function updateSummary() {
+      const projectName = document.getElementById('projectName').value.trim() || 'my-project';
+      const template = document.querySelector('input[name="template"]:checked')?.value || 'clean';
+      const backend = document.querySelector('input[name="backend"]:checked')?.value || 'springboot';
+      const frontends = Array.from(document.querySelectorAll('input[name="frontend"]:checked')).map(el => el.value);
+      const dbName = document.getElementById('dbName').value.trim() || 'scaffold_db';
+      const installSkills = document.getElementById('installSkills').checked;
+      
+      // Build tree
+      let tree = `${projectName}/\n├── backend/\n`;
+      
+      if (template === 'clean') {
+        if (frontends.length === 1) {
+          tree += `├── frontend/\n`;
+        } else if (frontends.length > 1) {
+          frontends.forEach((fe, i) => {
+            tree += `├── frontend-${fe}/\n`;
+          });
+        }
+      } else {
+        tree += `├── frontend/\n`;
+      }
+      
+      tree += `├── docs/\n│   └── ${dbName}.sql\n├── uploads/\n`;
+      
+      if (installSkills) {
+        tree += `├── install-skills.${isWindows ? 'bat' : 'sh'}\n`;
+      }
+      
+      tree += `└── README.md`;
+      
+      summaryTree.textContent = tree;
+      
+      // Build CLI equivalent
+      const beFlag = template === 'clean' ? ` --backend ${backend}` : '';
+      const feFlag = template === 'clean' && frontends.length > 0 ? ` --frontend ${frontends.join(',')}` : '';
+      const templateFlag = template !== 'clean' ? ` --template ${template}` : '';
+      const dbFlag = dbName !== 'scaffold_db' ? ` --db-name ${dbName}` : '';
+      const skillsFlag = !installSkills ? ' --no-skills' : '';
+      
+      summaryCli.textContent = `npx graduation-kit@${NPM_VERSION} ${projectName}${beFlag}${feFlag}${templateFlag}${dbFlag}${skillsFlag}`;
+    }
+    
+    // Listen to form changes
+    document.querySelectorAll('input[name="template"], input[name="backend"], input[name="frontend"], input[name="installSkills"]').forEach(el => {
+      el.addEventListener('change', updateSummary);
+    });
+    
+    // Initialize
+    loadSavedConfig();
+    updateSummary();
     
     // Template selection handler
     document.querySelectorAll('input[name="template"]').forEach(radio => {
@@ -855,6 +1142,14 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
+      // Validate all fields
+      const projectNameValid = validateField(projectNameInput);
+      const dbNameValid = validateField(dbNameInput);
+      
+      if (!projectNameValid || !dbNameValid) {
+        return;
+      }
+      
       // Collect form data
       formData = {
         projectName: document.getElementById('projectName').value.trim(),
@@ -867,15 +1162,17 @@
       };
       
       // Validate
-      if (!formData.projectName.match(/^[a-zA-Z0-9_-]+$/)) {
-        alert('项目名只能包含英文、数字、下划线和连字符');
+      if (formData.template === 'clean' && formData.frontend.length === 0) {
+        const errorEl = document.createElement('div');
+        errorEl.className = 'input-error active';
+        errorEl.textContent = '请至少选择一个前端框架';
+        document.querySelector('.checkbox-group').parentElement.appendChild(errorEl);
+        setTimeout(() => errorEl.remove(), 3000);
         return;
       }
       
-      if (formData.template === 'clean' && formData.frontend.length === 0) {
-        alert('请至少选择一个前端框架');
-        return;
-      }
+      // Save config
+      saveConfig(formData);
       
       // Show progress
       form.style.display = 'none';
@@ -967,7 +1264,6 @@
       updateProgress(85, '添加安装脚本', '下载 Skills 安装脚本...');
       
       if (formData.installSkills) {
-        const isWindows = /Windows/i.test(navigator.userAgent);
         const scriptName = isWindows ? 'install-skills.bat' : 'install-skills.sh';
         const scriptContent = await downloadFile(scriptName);
         zip.file(scriptName, scriptContent);
