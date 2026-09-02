@@ -23,8 +23,14 @@
 在你打算放项目的父目录下：
 
 ```bash
+# 从 npm registry（国内自动走淘宝镜像，最快）
+npx graduation-kit create
+
+# 或从 GitHub 仓库
 npx github:Soulmte/graduation-kit create
 ```
+
+国内网络不稳时，npm 会自动使用淘宝镜像加速，无需手动配置。
 
 ### 方式 2：浏览器在线下载（适合跑不了 npx 的环境）
 
@@ -70,12 +76,12 @@ my-graduation-project/
 参数给全就跳过提问，适合写进脚本：
 
 ```bash
-npx github:Soulmte/graduation-kit create my-app --be springboot --fe react
-npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
-npx github:Soulmte/graduation-kit create my-booking --template booking --db booking_db
-npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
-npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
-npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板与脚手架可选
+npx graduation-kit create my-app --be springboot --fe react
+npx graduation-kit create my-shop --template trade --db shop_db
+npx graduation-kit create my-booking --template booking --db booking_db
+npx graduation-kit create rent-agent --template agent --db agent_db
+npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+npx graduation-kit create --list      # 先看看有哪些模板与脚手架可选
 ```
 
 ### 生成之后的五步
@@ -112,10 +118,10 @@ npx github:Soulmte/graduation-kit create --list      # 先看看有哪些模板�
 
 ```bash
 cd my-project
-npx github:Soulmte/graduation-kit verify
+npx graduation-kit verify
 
 # 或指定目录
-npx github:Soulmte/graduation-kit verify /path/to/project
+npx graduation-kit verify /path/to/project
 ```
 
 检查项包括：
@@ -141,7 +147,7 @@ npx github:Soulmte/graduation-kit verify /path/to/project
 交互式创建时，推荐项会显示 ★ 标记。非交互式创建：
 
 ```bash
-npx github:Soulmte/graduation-kit create my-app --be springboot --fe vue-antd
+npx graduation-kit create my-app --be springboot --fe vue-antd
 ```
 
 其他组合：
@@ -177,11 +183,11 @@ npx github:Soulmte/graduation-kit create my-app --be springboot --fe vue-antd
 示例：
 ```bash
 # ✓ 合法
-npx github:Soulmte/graduation-kit create my-shop-2024 --db shop_db
+npx graduation-kit create my-shop-2024 --db shop_db
 # 密码输入：P@ssw0rd.2024  （会自动转义 @ 符号）
 
 # ✗ 不合法
-npx github:Soulmte/graduation-kit create .hidden --db database
+npx graduation-kit create .hidden --db database
 # 项目名不能以 . 开头，数据库名不能用保留字
 ```
 
@@ -190,7 +196,7 @@ npx github:Soulmte/graduation-kit create .hidden --db database
 如果遇到奇怪问题或想检查环境是否满足要求：
 
 ```bash
-npx github:Soulmte/graduation-kit diagnose
+npx graduation-kit diagnose
 ```
 
 检查项包括：
@@ -237,13 +243,13 @@ npm link
 
 ```bash
 # 装到当前项目
-npx github:Soulmte/graduation-kit install
+npx graduation-kit install
 
 # 装到全局，所有项目可用
-npx github:Soulmte/graduation-kit install -g
+npx graduation-kit install -g
 
 # 只要论文那一个
-npx github:Soulmte/graduation-kit install --only thesis-writer
+npx graduation-kit install --only thesis-writer
 ```
 
 ### 方式 2：一键脚本安装（推荐 clone 后使用）
@@ -269,13 +275,13 @@ bash install-skills.sh
 ## 命令
 
 ```bash
-npx github:Soulmte/graduation-kit create [名称]      向导：脚手架 + SQL + skills
-npx github:Soulmte/graduation-kit install [选项]    只安装 skills
-npx github:Soulmte/graduation-kit verify [目录]      验证项目结构与配置完整性
-npx github:Soulmte/graduation-kit diagnose          诊断包完整性与系统兼容性
-npx github:Soulmte/graduation-kit list              列出包内 skill
-npx github:Soulmte/graduation-kit uninstall         移除已安装的 skill
-npx github:Soulmte/graduation-kit doctor            校验 frontmatter 规范
+npx graduation-kit create [名称]      向导：脚手架 + SQL + skills
+npx graduation-kit install [选项]    只安装 skills
+npx graduation-kit verify [目录]      验证项目结构与配置完整性
+npx graduation-kit diagnose          诊断包完整性与系统兼容性
+npx graduation-kit list              列出包内 skill
+npx graduation-kit uninstall         移除已安装的 skill
+npx graduation-kit doctor            校验 frontmatter 规范
 ```
 
 通用选项
@@ -322,7 +328,7 @@ npx github:Soulmte/graduation-kit doctor            校验 frontmatter 规范
 毕设选题里买卖类占很大一块（商城、点餐、票务、二手交易、农产品直销……），这些题目的骨架其实是同一套：商家管商品，买家下单付款，卖家发货，中间可能退款。这个 demo 把这套流程完整写了一遍，改个名词就能套到自己的题目上。
 
 ```bash
-npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
+npx graduation-kit create my-shop --template trade --db shop_db
 ```
 
 三个角色各有入口：
@@ -362,7 +368,7 @@ npx github:Soulmte/graduation-kit create my-shop --template trade --db shop_db
 另一大类选题卖的不是货，而是“某个时间段的服务能力”（体检预约、场馆预定、理发到店、自习室选座、课程约课……）。这类题目的难点不在付款，而在时段名额的并发与状态流转。
 
 ```bash
-npx github:Soulmte/graduation-kit create my-booking --template booking --db booking_db
+npx graduation-kit create my-booking --template booking --db booking_db
 ```
 
 三个角色各有入口：
@@ -402,7 +408,7 @@ npx github:Soulmte/graduation-kit create my-booking --template booking --db book
 带 AI 的题目现在很多（智能租房咨询、智能客服、智能就业指导、智能健康助手……）。这类题目如果只是把问题直接转发给大模型，工作量和技术含量都不够看。这个 demo 把“管理员在后台拖拽配出一个智能体，用户在前台直接用”这条链路写完了。
 
 ```bash
-npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
+npx graduation-kit create rent-agent --template agent --db agent_db
 ```
 
 > 跑前先填 API Key。种子数据里 `model_config.api_key` 是**空的**（不能把密钥写进仓库），不填无法对话。启动后用 `admin` 登录，进【模型配置】点编辑填上即可。DeepSeek 的 Key 在 [platform.deepseek.com](https://platform.deepseek.com) 申请，价格便宜；不想花钱就本地装 [Ollama](https://ollama.com) 拉个 `qwen2.5:7b`，厂商选“本地 Ollama”、Key 留空。
@@ -701,6 +707,7 @@ node verify.js && node verify-editor.js && node audit.js
 
 | 你敲的命令 | 代码来源 | 怎么拿到最新 |
 | --- | --- | --- |
+| `npx graduation-kit create` | npx 缓存的副本 | `npx --ignore-existing graduation-kit create` |
 | `npx github:Soulmte/graduation-kit create` | npx 缓存的副本 | `npx --ignore-existing github:Soulmte/graduation-kit create` |
 | `graduation-kit create` | 全局 `node_modules/graduation-kit/` | 见下条 |
 
