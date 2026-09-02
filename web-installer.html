@@ -810,13 +810,20 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     // Configuration
-    const GITHUB_REPO = 'Soulmte/graduation-kit';
-    const GITHUB_BRANCH = 'main';
-    const CDN_BASE = 'https://cdn.jsdelivr.net/gh';
-    const API_BASE = 'https://api.github.com';
+    const NPM_PACKAGE = 'graduation-kit';
+    const NPM_VERSION = '1.1.4';
+    const CDN_BASE = 'https://cdn.jsdelivr.net/npm';
+    
+    // Backend port mapping
+    const BACKEND_PORTS = {
+      springboot: 8080,
+      express: 8081,
+      flask: 8082,
+      go: 8084,
+      dotnet: 8085
+    };
     
     // State
-    let filesCache = null;
     let generatedBlob = null;
     let formData = null;
     
@@ -870,78 +877,64 @@
         return;
       }
       
-      // Hide form, show progress
+      // Show progress
       form.style.display = 'none';
-      errorSection.classList.remove('active');
       progressSection.classList.add('active');
+      submitBtn.disabled = true;
       
       try {
         await generateProject();
-      } catch (error) {
-        showError(error.message);
+      } catch (err) {
+        console.error(err);
+        showError(err.message || '生成失败，请重试');
+      } finally {
+        submitBtn.disabled = false;
       }
     });
     
-    // Retry button
-    document.getElementById('retryBtn').addEventListener('click', () => {
-      errorSection.classList.remove('active');
-      form.style.display = 'block';
-    });
-    
-    // Start over button
-    document.getElementById('startOver').addEventListener('click', () => {
-      successSection.classList.remove('active');
-      form.style.display = 'block';
-      form.reset();
-      document.getElementById('fe-react').checked = true;
-      generatedBlob = null;
-    });
-    
-    // Download again button
+    // Button handlers
     document.getElementById('downloadAgain').addEventListener('click', () => {
       if (generatedBlob) {
         downloadBlob(generatedBlob, `${formData.projectName}.zip`);
       }
     });
     
+    document.getElementById('startOver').addEventListener('click', () => {
+      location.reload();
+    });
+    
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      errorSection.classList.remove('active');
+      form.style.display = 'block';
+    });
+    
     // Main generation logic
     async function generateProject() {
-      // Step 1: Get file tree
-      updateProgress(10, '获取文件列表', '正在从 CDN 拉取仓库结构...');
+      // Step 1: Get file list from CDN
+      updateProgress(10, '获取文件列表', '正在从 CDN 拉取 npm 包结构...');
       
-      // Use jsDelivr to get file list (no rate limit, CORS-enabled)
-      const treeRes = await fetch(
-        `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/`,
-        { headers: { 'Accept': 'application/json' } }
-      );
-      
-      if (!treeRes.ok) {
-        throw new Error(`CDN 错误: ${treeRes.status} ${treeRes.statusText}`);
-      }
-      
-      // jsDelivr returns directory listing as JSON
-      const fileList = await treeRes.json();
-      
-      // Use jsDelivr data API to get flat file list
       const API_BASE = 'https://data.jsdelivr.com/v1/packages';
-      const listRes = await fetch(`${API_BASE}/gh/${GITHUB_REPO}@${GITHUB_BRANCH}?structure=flat`);
+      const listRes = await fetch(`${API_BASE}/npm/${NPM_PACKAGE}@${NPM_VERSION}?structure=flat`);
       
       if (!listRes.ok) {
-        throw new Error(`获取文件列表失败: ${listRes.status}`);
+        throw new Error(`获取文件列表失败: ${listRes.status} - 请检查网络或稍后重试`);
       }
       
-      const data = await listRes.json();
+      let data;
+      try {
+        data = await listRes.json();
+      } catch (e) {
+        throw new Error(`CDN 返回了非预期格式，请稍后重试`);
+      }
       
-      // Convert to our format
       const allFiles = data.files
-        .filter(f => !f.name.startsWith('/.git')) // Skip .git folder
+        .filter(f => !f.name.startsWith('/.git'))
         .map(f => ({
-          path: f.name.replace(/^\//, ''), // Remove leading slash
-          type: 'blob',
-          url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}${f.name}`
+          path: f.name.replace(/^\//, ''),
+          size: f.size
         }));
       
-      // Step 2: Filter files
+      // Step 2: Determine what to download based on template
       updateProgress(20, '筛选所需文件', '根据您的配置过滤文件...');
       
       const neededFiles = filterFiles(allFiles);
@@ -950,7 +943,7 @@
         throw new Error('没有找到需要的文件，请检查配置');
       }
       
-      // Step 3: Download files
+      // Step 3: Download and process files
       updateProgress(30, '下载文件', `准备下载 ${neededFiles.length} 个文件...`);
       
       const zip = new JSZip();
@@ -958,32 +951,35 @@
       
       for (let i = 0; i < total; i++) {
         const file = neededFiles[i];
-        const progress = 30 + (i / total) * 60;
+        const progress = 30 + (i / total) * 50;
         updateProgress(
           progress,
           '下载文件',
-          `正在下载: ${file.path} (${i + 1}/${total})`
+          `正在下载: ${file.targetPath} (${i + 1}/${total})`
         );
         
-        const content = await downloadFile(file);
-        zip.file(file.targetPath, content);
+        const content = await downloadFile(file.path);
+        const processed = processFileContent(content, file);
+        zip.file(file.targetPath, processed);
       }
       
-      // Step 4: Generate run scripts
-      updateProgress(92, '生成启动脚本', '创建 Windows 和 Unix 启动脚本...');
+      // Step 4: Add install-skills script
+      updateProgress(85, '添加安装脚本', '生成 Skills 安装脚本...');
       
-      const runScripts = generateRunScripts();
-      zip.file('_run.bat', runScripts.windows);
-      zip.file('_run.sh', runScripts.unix);
+      if (formData.installSkills) {
+        const installScripts = generateInstallScripts();
+        zip.file('install-skills.bat', installScripts.windows);
+        zip.file('install-skills.sh', installScripts.unix);
+      }
       
       // Step 5: Generate README
-      updateProgress(95, '生成说明文档', '创建使用指南...');
+      updateProgress(90, '生成说明文档', '创建使用指南...');
       
       const readme = generateReadme();
-      zip.file('使用说明.txt', readme);
+      zip.file('README.md', readme);
       
       // Step 6: Package zip
-      updateProgress(97, '打包 ZIP', '正在压缩文件...');
+      updateProgress(95, '打包 ZIP', '正在压缩文件...');
       
       generatedBlob = await zip.generateAsync({
         type: 'blob',
@@ -1010,8 +1006,14 @@
           </div>
           <div class="file-info-row">
             <span class="file-info-label">文件数</span>
-            <span class="file-info-value">${neededFiles.length + 3} 个</span>
+            <span class="file-info-value">${neededFiles.length + (formData.installSkills ? 3 : 1)} 个</span>
           </div>
+          ${formData.installSkills ? `
+          <div class="file-info-row">
+            <span class="file-info-label">Skills 安装</span>
+            <span class="file-info-value">解压后运行 install-skills 脚本</span>
+          </div>
+          ` : ''}
         `;
         
         // Auto download
@@ -1019,59 +1021,72 @@
       }, 500);
     }
     
-    // Filter files based on user selection
+    // Map source paths to flat target paths
     function filterFiles(allFiles) {
       const needed = [];
+      const seen = new Set();
       
-      // Always include bin/ and package.json
-      for (const file of allFiles) {
-        if (file.path.startsWith('bin/') || file.path === 'package.json') {
-          needed.push({ ...file, targetPath: file.path });
-        }
-      }
+      const add = (file, targetPath, meta) => {
+        if (seen.has(targetPath)) return;
+        seen.add(targetPath);
+        needed.push({ path: file.path, targetPath, ...meta });
+      };
       
-      // Template-specific logic
       if (formData.template === 'clean') {
-        // Backend (注意是复数 backends)
-        const backendPath = `src/scaffolds/backends/${formData.backend}/`;
+        // backend: src/scaffolds/backends/<id>/** -> backend/**
+        const bePrefix = `src/scaffolds/backends/${formData.backend}/`;
         for (const file of allFiles) {
-          if (file.path.startsWith(backendPath)) {
-            needed.push({ ...file, targetPath: file.path });
+          if (file.path.startsWith(bePrefix)) {
+            add(file, 'backend/' + file.path.slice(bePrefix.length), { role: 'backend' });
           }
         }
         
-        // Frontend (注意是复数 frontends)
+        // frontend: single -> frontend/, multiple -> frontend-<id>/
+        const feTotal = formData.frontend.length;
         for (const fe of formData.frontend) {
-          const fePath = `src/scaffolds/frontends/${fe}/`;
+          const fePrefix = `src/scaffolds/frontends/${fe}/`;
+          const feDir = feTotal === 1 ? 'frontend' : `frontend-${fe}`;
           for (const file of allFiles) {
-            if (file.path.startsWith(fePath)) {
-              needed.push({ ...file, targetPath: file.path });
+            if (file.path.startsWith(fePrefix)) {
+              add(file, `${feDir}/` + file.path.slice(fePrefix.length), { role: 'frontend', feId: fe });
             }
           }
         }
         
-        // docs/ 和 uploads/
+        // docs + uploads
         for (const file of allFiles) {
-          if (file.path.startsWith('src/scaffolds/docs/') || 
-              file.path.startsWith('src/scaffolds/uploads/')) {
-            needed.push({ ...file, targetPath: file.path });
+          if (file.path.startsWith('src/scaffolds/docs/')) {
+            const rel = file.path.slice('src/scaffolds/docs/'.length);
+            const target = rel === 'scaffold_db.sql' ? `docs/${formData.dbName}.sql` : `docs/${rel}`;
+            add(file, target, { role: 'sql' });
+          } else if (file.path.startsWith('src/scaffolds/uploads/')) {
+            add(file, 'uploads/' + file.path.slice('src/scaffolds/uploads/'.length), { role: 'asset' });
           }
         }
       } else {
-        // Demo 模板在 demos/<name>/
-        const demoPath = `src/scaffolds/demos/${formData.template}/`;
+        // Demo templates ship their own backend/frontend/docs
+        const demoPrefix = `src/scaffolds/demos/${formData.template}/`;
         for (const file of allFiles) {
-          if (file.path.startsWith(demoPath)) {
-            needed.push({ ...file, targetPath: file.path });
+          if (!file.path.startsWith(demoPrefix)) continue;
+          const rel = file.path.slice(demoPrefix.length);
+          
+          if (rel.startsWith('docs/')) {
+            const docRel = rel.slice('docs/'.length);
+            const target = docRel === 'scaffold_db.sql' ? `docs/${formData.dbName}.sql` : `docs/${docRel}`;
+            add(file, target, { role: 'sql' });
+          } else if (rel.startsWith('backend/')) {
+            add(file, rel, { role: 'backend' });
+          } else if (rel.startsWith('frontend/')) {
+            add(file, rel, { role: 'frontend', feId: 'vue-antd' });
+          } else {
+            add(file, rel, { role: 'asset' });
           }
         }
-      }
-      
-      // Skills（注意在 src/skills/ 不是 src/scaffolds/skills/）
-      if (formData.installSkills) {
+        
+        // Demos still need the shared uploads placeholder
         for (const file of allFiles) {
-          if (file.path.startsWith('src/skills/')) {
-            needed.push({ ...file, targetPath: file.path });
+          if (file.path.startsWith('src/scaffolds/uploads/')) {
+            add(file, 'uploads/' + file.path.slice('src/scaffolds/uploads/'.length), { role: 'asset' });
           }
         }
       }
@@ -1079,101 +1094,365 @@
       return needed;
     }
     
-    // Download a single file
-    async function downloadFile(file, headers) {
-      // Use jsDelivr CDN directly (no rate limit, CORS-enabled)
-      const res = await fetch(
-        `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${file.path}`
-      );
-      
+    // Text files get placeholder substitution; everything else stays binary
+    const TEXT_EXT = /\.(java|js|mjs|cjs|jsx|ts|tsx|vue|py|go|cs|json|yml|yaml|xml|sql|md|txt|html|css|scss|less|properties|env|sh|bat|gitignore|wxss|wxml|conf|toml|csproj|sln|mod|sum)$/i;
+    const TEXT_NAMES = new Set(['.env', '.env.development', '.env.production', '.gitignore', 'Dockerfile', 'Makefile']);
+    
+    function isTextFile(targetPath) {
+      const name = targetPath.split('/').pop();
+      return TEXT_NAMES.has(name) || TEXT_EXT.test(name);
+    }
+    
+    async function downloadFile(sourcePath) {
+      const res = await fetch(`${CDN_BASE}/${NPM_PACKAGE}@${NPM_VERSION}/${sourcePath}`);
       if (!res.ok) {
-        throw new Error(`下载失败: ${file.path}`);
+        throw new Error(`下载失败: ${sourcePath} (${res.status})`);
       }
-      
-      // Get as ArrayBuffer
       const arrayBuffer = await res.arrayBuffer();
       return new Uint8Array(arrayBuffer);
     }
     
-    // Generate run scripts
-    function generateRunScripts() {
-      const args = [
-        formData.projectName,
-        `--template ${formData.template}`,
-        formData.template === 'clean' ? `--be ${formData.backend}` : '',
-        formData.template === 'clean' && formData.frontend.length > 0 ? `--fe ${formData.frontend.join(',')}` : '',
-        `--db ${formData.dbName}`,
-        formData.dbPass ? `--db-pass "${formData.dbPass}"` : '',
-        !formData.installSkills ? '--no-skills' : ''
-      ].filter(Boolean).join(' ');
+    // Apply the same substitutions the CLI does, minus one directory level for uploads
+    function processFileContent(bytes, file) {
+      if (!isTextFile(file.targetPath)) return bytes;
       
+      let text;
+      try {
+        text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      } catch {
+        return bytes; // Not valid UTF-8, treat as binary
+      }
+      
+      const port = BACKEND_PORTS[formData.template === 'clean' ? formData.backend : 'springboot'] || 8080;
+      const name = file.targetPath.split('/').pop();
+      const edits = [];
+      
+      if (file.role === 'backend') {
+        edits.push(['__DB_PASSWORD__', name.endsWith('.yml') || name.endsWith('.yaml')
+          ? escapeYaml(formData.dbPass)
+          : formData.dbPass]);
+        edits.push(['DB_NAME=scaffold_db', `DB_NAME=${formData.dbName}`]);
+        edits.push(['/scaffold_db?', `/${formData.dbName}?`]);
+        // Scaffold nests backend one level deeper than the generated project
+        edits.push(['UPLOAD_DIR=../../uploads', 'UPLOAD_DIR=../uploads']);
+        edits.push(['path: ../../uploads', 'path: ../uploads']);
+        edits.push(["'../../uploads'", "'../uploads'"]);
+        edits.push(['"../../uploads"', '"../uploads"']);
+        edits.push(["'../../../uploads'", "'../../uploads'"]);
+        edits.push(["'../../../../uploads'", "'../../../uploads'"]);
+      } else if (file.role === 'frontend') {
+        edits.push(['http://localhost:8080', `http://localhost:${port}`]);
+        if (port !== 8080) edits.push([':8080', `:${port}`]);
+      } else if (file.role === 'sql') {
+        edits.push(['`scaffold_db`', '`' + formData.dbName + '`']);
+        edits.push(['数据库：scaffold_db', `数据库：${formData.dbName}`]);
+        edits.push(['< scaffold_db.sql', `< docs/${formData.dbName}.sql`]);
+      }
+      
+      for (const [from, to] of edits) {
+        if (from && text.includes(from)) text = text.split(from).join(to);
+      }
+      
+      return text;
+    }
+    
+    function escapeYaml(password) {
+      if (!password) return '';
+      if (/^[A-Za-z0-9_.-]+$/.test(password)) return password;
+      return '"' + password.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    }
+    
+    // Skills installers: pull from npm into ~/.agents/skills
+    function generateInstallScripts() {
       const windows = `@echo off
 chcp 65001 >nul
-echo 正在创建项目...
-node bin/cli.js create ${args}
+setlocal
+
+echo ============================================
+echo  安装毕设 Agent Skills
+echo ============================================
 echo.
-echo 完成！按任意键退出...
-pause >nul
+
+where node >nul 2>nul
+if errorlevel 1 (
+  echo [错误] 没找到 Node.js。
+  echo 请先安装 Node.js 18 或更高版本：https://nodejs.org
+  echo.
+  pause
+  exit /b 1
+)
+
+echo 正在安装 skills 到 %USERPROFILE%\\.agents\\skills ...
+echo 这一步会从 npm 下载，请保持网络畅通。
+echo.
+
+call npx -y ${NPM_PACKAGE}@${NPM_VERSION} install --global
+if errorlevel 1 (
+  echo.
+  echo [错误] 安装失败。可以试试手动执行：
+  echo   npx ${NPM_PACKAGE}@${NPM_VERSION} install --global
+  echo.
+  pause
+  exit /b 1
+)
+
+echo.
+echo ============================================
+echo  安装完成
+echo ============================================
+echo.
+echo 新开一个 agent 会话后 skill 才会生效（不用重启编辑器）。
+echo.
+pause
 `;
-      
-      const unix = `#!/bin/bash
-echo "正在创建项目..."
-node bin/cli.js create ${args}
-echo ""
-echo "完成！"
+
+      const unix = `#!/usr/bin/env bash
+set -euo pipefail
+
+echo "============================================"
+echo " 安装毕设 Agent Skills"
+echo "============================================"
+echo
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "[错误] 没找到 Node.js。"
+  echo "请先安装 Node.js 18 或更高版本：https://nodejs.org"
+  exit 1
+fi
+
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+if [ "$NODE_MAJOR" -lt 18 ]; then
+  echo "[错误] Node.js 版本过低（当前 $(node -v)），需要 18 或更高。"
+  exit 1
+fi
+
+echo "正在安装 skills 到 \$HOME/.agents/skills ..."
+echo "这一步会从 npm 下载，请保持网络畅通。"
+echo
+
+npx -y ${NPM_PACKAGE}@${NPM_VERSION} install --global
+
+echo
+echo "============================================"
+echo " 安装完成"
+echo "============================================"
+echo
+echo "新开一个 agent 会话后 skill 才会生效（不用重启编辑器）。"
 `;
-      
+
       return { windows, unix };
     }
     
     // Generate README
     function generateReadme() {
-      return `毕业设计脚手架 - 使用说明
+      const beLabel = {
+        springboot: 'Spring Boot 3 (Java)',
+        express: 'Express 4 (Node.js)',
+        flask: 'Flask 3 (Python)',
+        go: 'Gin (Go)',
+        dotnet: 'ASP.NET Core (C#)'
+      }[formData.template === 'clean' ? formData.backend : 'springboot'] || formData.backend;
+      
+      const feLabels = formData.template === 'clean' 
+        ? formData.frontend.map(fe => ({
+            react: 'React 18',
+            'vue-elementplus': 'Vue 3 + Element Plus',
+            'vue-antd': 'Vue 3 + Ant Design Vue',
+            'vue-naive': 'Vue 3 + Naive UI',
+            uniapp: 'uni-app',
+            wxapp: '微信小程序'
+          }[fe] || fe))
+        : ['Vue 3 + Ant Design Vue'];
+      
+      const port = BACKEND_PORTS[formData.template === 'clean' ? formData.backend : 'springboot'] || 8080;
+      
+      return `# ${formData.projectName}
 
-项目名称: ${formData.projectName}
-模板: ${formData.template}
-后端: ${formData.backend || '(由模板决定)'}
-前端: ${formData.frontend.join(', ') || '(由模板决定)'}
-数据库: ${formData.dbName}
-Skills: ${formData.installSkills ? '已包含' : '不包含'}
+> 由 **毕业设计脚手架** 在线生成 | [GitHub](https://github.com/Soulmte/graduation-kit) · [Gitee](https://gitee.com/rain-drops/graduation-kit)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 项目信息
 
-快速开始：
+- **模板**: ${formData.template === 'clean' ? '干净脚手架' : formData.template === 'trade' ? '交易 Demo' : formData.template === 'booking' ? '预约 Demo' : 'AI Agent Demo'}
+- **后端**: ${beLabel} (端口 ${port})
+- **前端**: ${feLabels.join(', ')}
+- **数据库**: MySQL 5.7+ / 8.0+，库名 \`${formData.dbName}\`
+- **Skills**: ${formData.installSkills ? '已包含安装脚本（运行 install-skills）' : '未包含'}
 
-1. 确保已安装 Node.js 18+ (https://nodejs.org)
+---
 
-2. 双击运行：
-   - Windows 用户: 双击 _run.bat
-   - Mac/Linux 用户: 在终端运行 bash _run.sh
+## 快速开始
 
-3. 或手动执行命令：
-   node bin/cli.js create ${formData.projectName} \\
-     --template ${formData.template} \\
-     ${formData.template === 'clean' ? `--be ${formData.backend} \\` : ''}
-     ${formData.template === 'clean' && formData.frontend.length > 0 ? `--fe ${formData.frontend.join(',')} \\` : ''}
-     --db ${formData.dbName}${formData.dbPass ? ` \\
-     --db-pass "${formData.dbPass}"` : ''}${!formData.installSkills ? ` \\
-     --no-skills` : ''}
+### 1. 导入数据库
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+\`\`\`bash
+mysql -u root ${formData.dbPass ? `-p${formData.dbPass}` : ''} < docs/${formData.dbName}.sql
+\`\`\`
 
-生成后的项目结构：
+### 2. 启动后端
 
+${formData.template === 'clean' && formData.backend === 'springboot' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+mvn spring-boot:run
+# 或用 IDE 运行 Application.java
+\`\`\`
+
+后端将运行在 http://localhost:${port}` : ''}
+${formData.template === 'clean' && formData.backend === 'express' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+npm install
+npm start
+\`\`\`
+
+后端将运行在 http://localhost:${port}` : ''}
+${formData.template === 'clean' && formData.backend === 'flask' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+pip install -r requirements.txt
+python app.py
+\`\`\`
+
+后端将运行在 http://localhost:${port}` : ''}
+${formData.template === 'clean' && formData.backend === 'go' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+go mod download
+go run main.go
+\`\`\`
+
+后端将运行在 http://localhost:${port}` : ''}
+${formData.template === 'clean' && formData.backend === 'dotnet' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+dotnet restore
+dotnet run
+\`\`\`
+
+后端将运行在 http://localhost:${port}` : ''}
+${formData.template !== 'clean' ? `进入 \`backend/\` 目录：
+
+\`\`\`bash
+cd backend
+mvn spring-boot:run
+\`\`\`
+
+后端将运行在 http://localhost:8080` : ''}
+
+### 3. 启动前端
+
+${formData.frontend.length === 1 ? `进入 \`frontend/\` 目录：` : `进入对应的前端目录（如 \`frontend-react/\`）：`}
+
+\`\`\`bash
+cd ${formData.frontend.length === 1 ? 'frontend' : `frontend-${formData.frontend[0]}`}
+npm install
+npm run dev
+\`\`\`
+
+前端开发服务器通常运行在 http://localhost:5173 或 3000（Vite / Vue CLI 自动分配）
+
+---
+
+## 目录结构
+
+\`\`\`
 ${formData.projectName}/
-  ├── backend/          后端代码
-  ├── frontend/         前端代码（可能有多个）
-  ├── docs/            数据库 SQL 脚本
-  ├── uploads/         上传文件目录
-  ${formData.installSkills ? '├── .agents/skills/  Agent Skills' : ''}
-  └── README.md        项目说明
+├── backend/           后端代码
+${formData.frontend.length === 1 ? '├── frontend/          前端代码' : formData.frontend.map(fe => `├── frontend-${fe}/    ${fe} 前端`).join('\n')}
+├── docs/
+│   └── ${formData.dbName}.sql   数据库建表脚本
+├── uploads/           上传文件目录（后端配置指向这里）
+${formData.installSkills ? '├── install-skills.bat  Windows Skills 安装脚本\n├── install-skills.sh   Unix/Linux/Mac Skills 安装脚本\n' : ''}└── README.md          本说明文档
+\`\`\`
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
 
-需要帮助？
+## Agent Skills（可选）
 
-GitHub: https://github.com/Soulmte/graduation-kit
-Gitee:  https://gitee.com/rain-drops/graduation-kit
+${formData.installSkills ? `本项目包含 **6 个核心 Agent Skills**，用于辅助毕设开发：
+
+- \`graduation-project\` — 毕业设计全流程编排
+- \`feature-forge\` — 需求定义与功能边界
+- \`database-designer\` — 数据库设计与建表
+- \`api-designer\` — 接口设计与文档
+- \`code-reviewer\` — 代码审查与质量把关
+- \`thesis-writer\` — 毕业论文写作（含绘图与格式校验）
+
+### 安装方式
+
+**Windows 用户**：双击 \`install-skills.bat\`
+
+**Mac / Linux 用户**：
+
+\`\`\`bash
+bash install-skills.sh
+\`\`\`
+
+安装完成后，在 Zed 或 Claude Code 等支持 Agent Skills 的编辑器里新建会话即可使用。` : `本项目未包含 Agent Skills。如需安装，运行：
+
+\`\`\`bash
+npx graduation-kit@${NPM_VERSION} install --global
+\`\`\`
+
+或访问 [GitHub](https://github.com/Soulmte/graduation-kit) 下载完整版。`}
+
+---
+
+## 默认账号
+
+- **管理员**: \`admin\` / \`123456\`
+- **普通用户**: \`user\` / \`123456\`
+
+首次运行会自动插入这些测试账号（见 SQL 脚本）。
+
+---
+
+## 技术栈说明
+
+### 后端
+
+${beLabel} + MyBatis-Plus（或对应 ORM）+ JWT 认证 + 统一返回结构
+
+### 前端
+
+${feLabels.join(' / ')} + Vite / Vue CLI + Axios + 路由守卫
+
+### 数据库
+
+MySQL 5.7+ / 8.0+，建议本地开发用 MySQL 8.0
+
+---
+
+## 常见问题
+
+### 后端启动报错
+
+1. 检查数据库是否已导入：\`mysql -u root -e "SHOW DATABASES LIKE '${formData.dbName}';"\`
+2. 检查 \`backend/.env\` 或 \`application.yml\` 里的数据库密码是否正确
+3. 确认 MySQL 服务正在运行
+
+### 前端无法连接后端
+
+检查 \`.env.development\` 或 \`config/index.js\` 里的 API 地址，应为 \`http://localhost:${port}\`
+
+### 上传文件 404
+
+确认 \`uploads/\` 目录存在且后端配置指向正确（已自动配置为 \`../uploads\`）
+
+---
+
+## 更多帮助
+
+- **GitHub**: https://github.com/Soulmte/graduation-kit
+- **Gitee**: https://gitee.com/rain-drops/graduation-kit
+- **CLI 用法**: \`npx graduation-kit --help\`
+
+祝毕设顺利！
 `;
     }
     

@@ -18,31 +18,77 @@
 
 ## 快速开始
 
-### 方式 1：npx 命令行（推荐）
+### 方式 1：在线生成器（最快，无需安装）
+
+打开网页：**[在线生成器](https://soulmte.github.io/graduation-kit/web-installer.html)**
+
+或用 Gitee 国内镜像：**[Gitee 在线生成器](https://rain-drops.gitee.io/graduation-kit/web-installer.html)**
+
+填写项目配置（项目名、模板、后端、前端、数据库名和密码），点击生成，浏览器会：
+
+1. 从 jsDelivr CDN 直接拉取 `graduation-kit@1.1.4` npm 包
+2. 根据你的选择筛选文件并重写配置（数据库密码、端口、路径等）
+3. 打包成 zip 下载，**解压即用，无需再跑脚本**
+
+下载的 zip 结构：
+
+```
+my-project/
+├── backend/              已配置好的后端（数据库密码、端口已写入）
+├── frontend/             已配置好的前端（API 地址已对齐后端端口）
+├── docs/你的库名.sql      建表脚本（库名已替换）
+├── uploads/              上传文件目录
+├── install-skills.bat    Windows Skills 一键安装
+├── install-skills.sh     Unix/Linux/Mac Skills 一键安装
+└── README.md             启动说明
+```
+
+解压后：
+1. 导入 SQL：`mysql -uroot -p < docs/你的库名.sql`
+2. 启动后端：`cd backend && mvn spring-boot:run`（或其他后端对应命令）
+3. 启动前端：`cd frontend && npm install && npm run dev`
+4. 可选：运行 `install-skills.bat`（Windows）或 `bash install-skills.sh`（Mac/Linux）安装 Agent Skills
+
+> **优势**：全程浏览器内完成，无需 Node.js 环境，下载的是成品代码而非 CLI 工具，国内通过 jsDelivr CDN 秒开。
+
+### 方式 2：npx 命令行（适合开发者）
 
 在你打算放项目的父目录下：
 
 ```bash
-# 从 npm registry（国内自动走淘宝镜像，最快）
+# 从 npm registry（国内自动走淘宝镜像）
 npx graduation-kit create
 
-# 或从 GitHub 仓库
-npx github:Soulmte/graduation-kit create
+# 或指定版本
+npx graduation-kit@1.1.4 create
 ```
 
 国内网络不稳时，npm 会自动使用淘宝镜像加速，无需手动配置。
 
-### 方式 2：浏览器在线下载（适合跑不了 npx 的环境）
+分步向导会依次问你项目名、模板、后端、前端、数据库名和 MySQL 密码，跑完得到：
 
-打开网页：**[在线安装器](https://soulmte.github.io/graduation-kit/web-installer.html)**
+```
+my-graduation-project/
+├── .agents/skills/     六个毕设 skill
+├── backend/            你选的后端
+├── frontend/           你选的前端
+├── docs/库名.sql       建表脚本，文件名跟随你填的库名
+├── uploads/            用户上传的图片
+├── .gitignore          已挡住依赖与构建产物
+└── README.md           端口、库名、启动命令存档
+```
 
-或用 Gitee 国内镜像：**[Gitee 在线安装器](https://rain-drops.gitee.io/graduation-kit/web-installer.html)**
+参数给全就跳过提问，适合写进脚本：
 
-填表后点击生成，浏览器会下载一个 zip 包，解压后双击 `_run.bat`（Windows）或在终端运行 `bash _run.sh`（Mac/Linux）。
+```bash
+npx graduation-kit create my-app --be springboot --fe react
+npx graduation-kit create my-shop --template trade --db shop_db
+npx graduation-kit create --list      # 先看看有哪些模板与脚手架可选
+```
 
-### 方式 3：git clone 手动运行
+### 方式 3：git clone 本地运行
 
-网络不稳或想本地修改时用这个：
+想本地修改或网络极不稳定时：
 
 ```bash
 # GitHub
@@ -55,15 +101,6 @@ git clone https://gitee.com/rain-drops/graduation-kit.git
 cd graduation-kit
 node bin/cli.js create
 ```
-
----
-
-分步向导会依次问你项目名、模板、后端、前端、数据库名和 MySQL 密码，跑完得到一个可直接开发的项目：
-
-```
-my-graduation-project/
-├── .agents/skills/     六个毕设 skill
-├── backend/            你选的后端
 ├── frontend/           你选的前端
 ├── docs/库名.sql       建表脚本，文件名跟随你填的库名
 ├── uploads/            用户上传的图片
