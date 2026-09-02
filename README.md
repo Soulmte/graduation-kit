@@ -28,7 +28,8 @@
 
 1. 从 jsDelivr CDN 直接拉取 `graduation-kit@1.1.4` npm 包
 2. 根据你的选择筛选文件并重写配置（数据库密码、端口、路径等）
-3. 打包成 zip 下载，**解压即用，无需再跑脚本**
+3. 自动识别操作系统，只下载对应的 Skills 安装脚本（Windows 下载 .bat，Mac/Linux 下载 .sh）
+4. 打包成 zip 下载，**解压即用，无需再跑脚本**
 
 下载的 zip 结构：
 
@@ -38,8 +39,8 @@ my-project/
 ├── frontend/             已配置好的前端（API 地址已对齐后端端口）
 ├── docs/你的库名.sql      建表脚本（库名已替换）
 ├── uploads/              上传文件目录
-├── install-skills.bat    Windows Skills 一键安装
-├── install-skills.sh     Unix/Linux/Mac Skills 一键安装
+├── install-skills.bat    Skills 一键安装（Windows 系统）
+│   或 install-skills.sh  （Mac/Linux 系统，根据浏览器自动选择）
 └── README.md             启动说明
 ```
 
@@ -47,7 +48,7 @@ my-project/
 1. 导入 SQL：`mysql -uroot -p < docs/你的库名.sql`
 2. 启动后端：`cd backend && mvn spring-boot:run`（或其他后端对应命令）
 3. 启动前端：`cd frontend && npm install && npm run dev`
-4. 可选：运行 `install-skills.bat`（Windows）或 `bash install-skills.sh`（Mac/Linux）安装 Agent Skills
+4. 可选：双击运行 `install-skills.bat`（Windows）或 `bash install-skills.sh`（Mac/Linux）安装 Agent Skills
 
 > **优势**：全程浏览器内完成，无需 Node.js 环境，下载的是成品代码而非 CLI 工具，国内通过 jsDelivr CDN 秒开。
 
@@ -292,6 +293,7 @@ npx graduation-kit install --only thesis-writer
 ### 方式 2：一键脚本安装
 
 **适用场景：**
+- 用在线生成器下载的项目（会根据操作系统自动包含对应脚本）
 - 用 `git clone` 或 `npx` 下载后，想快速装 skills 到全局
 - 不想打命令，双击就能装
 
