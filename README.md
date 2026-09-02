@@ -252,25 +252,24 @@ npx graduation-kit install -g
 npx graduation-kit install --only thesis-writer
 ```
 
-### 方式 2：一键脚本安装（推荐 clone 后使用）
+### 方式 2：一键脚本安装
 
-如果你已经 clone 了仓库，可以直接运行一键安装脚本：
+**适用场景：**
+- 用 `git clone` 或 `npx` 下载后，想快速装 skills 到全局
+- 不想打命令，双击就能装
 
-**Windows：**
-```bash
-install-skills.bat
-```
+**Windows：** 双击 `install-skills.bat`  
+**Mac / Linux：** 运行 `bash install-skills.sh`
 
-**Mac / Linux：**
-```bash
-bash install-skills.sh
-```
+脚本会：
+1. 检查 Node.js 版本（需要 18+）
+2. 询问是否覆盖已存在的 skill
+3. 自动判断本地包还是 npm registry
+4. 装到 `~/.agents/skills/`（全局）
 
-脚本会自动把 `src/skills/` 下的 7 个核心 skill 复制到 `~/.agents/skills/`，支持覆盖已存在的 skill。
+装完后记得**重启编辑器**（Zed / Cursor / VS Code 等），新会话才会加载。
 
-安装时会询问是否一并装上三个上游增强包。它们已随包内置，无需联网。
-
-升级包之后重装要加 `-f`，否则遇到已存在的目录会直接跳过，你会以为装上了新版其实还是旧的。
+> **注意：** 升级包之后重新安装建议选 `Y` 覆盖，否则会跳过已存在的目录，拿到的还是旧版本。
 
 ## 命令
 
