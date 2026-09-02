@@ -546,28 +546,6 @@
       color: var(--text-primary);
     }
     
-    /* Rate Limit Warning */
-    .rate-limit {
-      background: var(--surface-2);
-      border: 1px solid var(--warning);
-      border-radius: var(--radius-sm);
-      padding: 0.875rem 1rem;
-      margin-top: 1rem;
-      font-size: 0.8125rem;
-      color: var(--text-secondary);
-      display: none;
-    }
-    
-    .rate-limit.show {
-      display: block;
-    }
-    
-    .rate-limit-title {
-      color: var(--warning);
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-    
     /* Responsive */
     @media (max-width: 640px) {
       .checkbox-group {
@@ -781,20 +759,6 @@
         </div>
       </section>
 
-      <!-- GitHub Token (Optional) -->
-      <section class="form-section">
-        <h2 class="form-section-title">高级选项</h2>
-        <div class="form-group">
-          <label for="githubToken">GitHub Personal Token（可选）</label>
-          <input type="password" id="githubToken" name="githubToken" placeholder="ghp_...">
-          <div class="input-hint">提供 token 可提升 API 限额从 60次/小时 到 5000次/小时</div>
-        </div>
-        <div class="rate-limit" id="rateLimit">
-          <div class="rate-limit-title">⚠ API 限流提示</div>
-          <div id="rateLimitText">当前剩余请求次数：检测中...</div>
-        </div>
-      </section>
-
       <!-- Submit Button -->
       <button type="submit" class="btn" id="submitBtn">
         <span>生成并下载项目包</span>
@@ -848,6 +812,7 @@
     // Configuration
     const GITHUB_REPO = 'Soulmte/graduation-kit';
     const GITHUB_BRANCH = 'main';
+    const CDN_BASE = 'https://cdn.jsdelivr.net/gh';
     const API_BASE = 'https://api.github.com';
     
     // State
@@ -864,8 +829,6 @@
     const progressTitle = document.getElementById('progressTitle');
     const progressText = document.getElementById('progressText');
     const submitBtn = document.getElementById('submitBtn');
-    const rateLimitEl = document.getElementById('rateLimit');
-    const rateLimitText = document.getElementById('rateLimitText');
     
     // Template selection handler
     document.querySelectorAll('input[name="template"]').forEach(radio => {
@@ -893,8 +856,7 @@
         frontend: Array.from(document.querySelectorAll('input[name="frontend"]:checked')).map(el => el.value),
         dbName: document.getElementById('dbName').value.trim(),
         dbPass: document.getElementById('dbPass').value,
-        installSkills: document.getElementById('installSkills').checked,
-        githubToken: document.getElementById('githubToken').value.trim()
+        installSkills: document.getElementById('installSkills').checked
       };
       
       // Validate
@@ -944,30 +906,68 @@
     
     // Main generation logic
     async function generateProject() {
-      const token = formData.githubToken;
-      const headers = {
-        'Accept': 'application/vnd.github.v3+json'
-      };
-      if (token) {
-        headers['Authorization'] = `token ${token}`;
-      }
-      
       // Step 1: Get file tree
-      updateProgress(10, '获取文件列表', '正在从 GitHub 拉取仓库结构...');
+      updateProgress(10, '获取文件列表', '正在从 CDN 拉取仓库结构...');
       
+      // Use jsDelivr to get file list (no rate limit, CORS-enabled)
       const treeRes = await fetch(
-        `${API_BASE}/repos/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`,
-        { headers }
+        `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/`,
+        { headers: { 'Accept': 'application/json' } }
       );
       
       if (!treeRes.ok) {
-        throw new Error(`GitHub API 错误: ${treeRes.status} ${treeRes.statusText}`);
+        throw new Error(`CDN 错误: ${treeRes.status} ${treeRes.statusText}`);
       }
       
-      checkRateLimit(treeRes.headers);
+      // jsDelivr returns directory listing as JSON
+      const fileList = await treeRes.json();
       
-      const treeData = await treeRes.json();
-      const allFiles = treeData.tree.filter(item => item.type === 'blob');
+      // Convert jsDelivr format to GitHub API format
+      const allFiles = [];
+      
+      async function scanDir(path = '') {
+        const dirRes = await fetch(`${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}${path}`);
+        if (!dirRes.ok) return;
+        
+        const listing = await dirRes.json();
+        
+        for (const item of listing.files || []) {
+          const itemPath = path ? `${path}/${item.name}` : item.name;
+          
+          if (item.type === 'file') {
+            allFiles.push({
+              path: itemPath.replace(/^\//, ''),
+              type: 'blob',
+              url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${itemPath}`
+            });
+          } else if (item.type === 'directory') {
+            await scanDir(itemPath);
+          }
+        }
+      }
+      
+      // Scan only needed directories to avoid rate limit
+      const dirsToScan = [
+        '/src/scaffolds/backends',
+        '/src/scaffolds/frontends', 
+        '/src/scaffolds/demos',
+        '/src/skills',
+        '/bin'
+      ];
+      
+      for (const dir of dirsToScan) {
+        await scanDir(dir);
+      }
+      
+      // Add root files
+      const rootFiles = ['package.json', 'README.md', '.gitignore'];
+      for (const file of rootFiles) {
+        allFiles.push({
+          path: file,
+          type: 'blob',
+          url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${file}`
+        });
+      }
       
       // Step 2: Filter files
       updateProgress(20, '筛选所需文件', '根据您的配置过滤文件...');
@@ -993,7 +993,7 @@
           `正在下载: ${file.path} (${i + 1}/${total})`
         );
         
-        const content = await downloadFile(file, headers);
+        const content = await downloadFile(file);
         zip.file(file.targetPath, content);
       }
       
@@ -1109,25 +1109,18 @@
     
     // Download a single file
     async function downloadFile(file, headers) {
+      // Use jsDelivr CDN directly (no rate limit, CORS-enabled)
       const res = await fetch(
-        `${API_BASE}/repos/${GITHUB_REPO}/contents/${file.path}?ref=${GITHUB_BRANCH}`,
-        { headers }
+        `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${file.path}`
       );
       
       if (!res.ok) {
         throw new Error(`下载失败: ${file.path}`);
       }
       
-      const data = await res.json();
-      
-      // Decode base64
-      const binary = atob(data.content.replace(/\s/g, ''));
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      
-      return bytes;
+      // Get as ArrayBuffer
+      const arrayBuffer = await res.arrayBuffer();
+      return new Uint8Array(arrayBuffer);
     }
     
     // Generate run scripts
@@ -1224,20 +1217,6 @@ Gitee:  https://gitee.com/rain-drops/graduation-kit
       progressSection.classList.remove('active');
       errorSection.classList.add('active');
       document.getElementById('errorMessage').textContent = message;
-    }
-    
-    // Check rate limit
-    function checkRateLimit(headers) {
-      const remaining = headers.get('X-RateLimit-Remaining');
-      const limit = headers.get('X-RateLimit-Limit');
-      
-      if (remaining !== null) {
-        rateLimitText.textContent = `当前剩余请求次数：${remaining} / ${limit}`;
-        
-        if (parseInt(remaining) < 20) {
-          rateLimitEl.classList.add('show');
-        }
-      }
     }
     
     // Download blob as file
