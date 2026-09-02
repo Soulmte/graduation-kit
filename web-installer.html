@@ -922,52 +922,24 @@
       // jsDelivr returns directory listing as JSON
       const fileList = await treeRes.json();
       
-      // Convert jsDelivr format to GitHub API format
-      const allFiles = [];
+      // Use jsDelivr data API to get flat file list
+      const API_BASE = 'https://data.jsdelivr.com/v1/packages';
+      const listRes = await fetch(`${API_BASE}/gh/${GITHUB_REPO}@${GITHUB_BRANCH}?structure=flat`);
       
-      async function scanDir(path = '') {
-        const dirRes = await fetch(`${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}${path}`);
-        if (!dirRes.ok) return;
-        
-        const listing = await dirRes.json();
-        
-        for (const item of listing.files || []) {
-          const itemPath = path ? `${path}/${item.name}` : item.name;
-          
-          if (item.type === 'file') {
-            allFiles.push({
-              path: itemPath.replace(/^\//, ''),
-              type: 'blob',
-              url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${itemPath}`
-            });
-          } else if (item.type === 'directory') {
-            await scanDir(itemPath);
-          }
-        }
+      if (!listRes.ok) {
+        throw new Error(`获取文件列表失败: ${listRes.status}`);
       }
       
-      // Scan only needed directories to avoid rate limit
-      const dirsToScan = [
-        '/src/scaffolds/backends',
-        '/src/scaffolds/frontends', 
-        '/src/scaffolds/demos',
-        '/src/skills',
-        '/bin'
-      ];
+      const data = await listRes.json();
       
-      for (const dir of dirsToScan) {
-        await scanDir(dir);
-      }
-      
-      // Add root files
-      const rootFiles = ['package.json', 'README.md', '.gitignore'];
-      for (const file of rootFiles) {
-        allFiles.push({
-          path: file,
+      // Convert to our format
+      const allFiles = data.files
+        .filter(f => !f.name.startsWith('/.git')) // Skip .git folder
+        .map(f => ({
+          path: f.name.replace(/^\//, ''), // Remove leading slash
           type: 'blob',
-          url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}/${file}`
-        });
-      }
+          url: `${CDN_BASE}/${GITHUB_REPO}@${GITHUB_BRANCH}${f.name}`
+        }));
       
       // Step 2: Filter files
       updateProgress(20, '筛选所需文件', '根据您的配置过滤文件...');
