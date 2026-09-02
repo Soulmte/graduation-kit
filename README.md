@@ -8,8 +8,9 @@
 
 打开网页填表单，下载 zip 解压即用：
 
-- **GitHub Pages**: https://soulmte.github.io/graduation-kit/web-installer.html
-- **Gitee 镜像**: https://rain-drops.gitee.io/graduation-kit/web-installer.html
+- **GitHub Pages**: https://soulmte.github.io/graduation-kit/
+- **Gitee 镜像**: https://rain-drops.gitee.io/graduation-kit/
+- **第三方托管**: https://d295bv.gicp.fun/ （⚠️ 更新后网址可能变化）
 
 填写项目名、选择技术栈（后端/前端）、配置数据库，点击生成即可下载。解压后：
 
