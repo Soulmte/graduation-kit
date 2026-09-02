@@ -17,6 +17,13 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+if [ "$NODE_MAJOR" -lt 18 ]; then
+  echo " [错误] Node.js 版本过低（当前 $(node -v)），需要 18 或更高。"
+  echo
+  exit 1
+fi
+
 echo " Node.js $(node -v)"
 echo
 
@@ -30,11 +37,11 @@ echo
 if [ -f "$HERE/bin/cli.js" ]; then
   echo " 使用本地包安装..."
   echo
-  node "$HERE/bin/cli.js" install -g $FORCE
+  node "$HERE/bin/cli.js" install -g $FORCE --with-upstream
 else
   echo " 从 npm 安装..."
   echo
-  npx -y graduation-kit@latest install -g $FORCE
+  npx -y graduation-kit@latest install -g $FORCE --with-upstream
 fi
 
 STATUS=$?
@@ -59,6 +66,5 @@ echo " =========================================="
 echo
 echo " 安装位置：$HOME/.agents/skills/"
 echo
-echo " 请重启编辑器（Zed / Cursor / VS Code 等），"
-echo " 新开一个会话才会加载这些 skills。"
+echo " 新开一个 agent 会话即可加载这些 skills（不需要重启编辑器）。"
 echo

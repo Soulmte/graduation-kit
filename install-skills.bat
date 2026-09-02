@@ -1,56 +1,60 @@
 @echo off
-setlocal
-chcp 65001 >nul
-title Graduation Kit - Skills 安装
+setlocal enabledelayedexpansion
+chcp 65001 >nul 2>&1
+title Graduation Kit - Skills Installer
 
 echo.
 echo  ==========================================
-echo    Graduation Kit  -  Skills 安装
+echo    Graduation Kit  -  Skills Installer
 echo  ==========================================
 echo.
 
+REM Check Node.js
 where node >nul 2>nul
 if errorlevel 1 (
-  echo  [错误] 未检测到 Node.js
+  echo  [ERROR] Node.js not found
   echo.
-  echo  请先安装 Node.js 18 或更高版本：
+  echo  Please install Node.js 18 or higher:
   echo    https://nodejs.org/
   echo.
-  echo  安装后重新双击本文件即可。
+  echo  After installation, run this script again.
   echo.
   pause
   exit /b 1
 )
 
 for /f "delims=" %%v in ('node -v') do set "NODE_VER=%%v"
-echo  Node.js %NODE_VER%
+echo  Node.js !NODE_VER!
 echo.
 
-set "FORCE=--force"
+REM Ask for overwrite
+set "FORCE="
 set "ANSWER="
-set /p "ANSWER=已存在的 skill 是否覆盖更新? [Y/n] "
-if /i "%ANSWER%"=="n" set "FORCE="
+set /p "ANSWER=Overwrite existing skills? [Y/n] "
+if /i "!ANSWER!"=="y" set "FORCE=--force"
+if /i "!ANSWER!"=="" set "FORCE=--force"
 echo.
 
+REM Install with --with-upstream to skip interactive prompt
 if exist "%~dp0bin\cli.js" (
-  echo  使用本地包安装...
+  echo  Installing from local package...
   echo.
-  node "%~dp0bin\cli.js" install -g %FORCE%
+  node "%~dp0bin\cli.js" install -g !FORCE! --with-upstream
 ) else (
-  echo  从 npm 安装...
+  echo  Installing from npm registry...
   echo.
-  npx -y graduation-kit@latest install -g %FORCE%
+  npx -y graduation-kit@latest install -g !FORCE! --with-upstream
 )
 
 if errorlevel 1 (
   echo.
-  echo  [失败] 安装未完成，请看上面的错误信息。
+  echo  [FAILED] Installation incomplete. See error above.
   echo.
-  echo  常见排查：
-  echo    1. 检查网络是否通畅
-  echo    2. 换国内镜像后重试：
+  echo  Common troubleshooting:
+  echo    1. Check network connection
+  echo    2. Switch to China mirror:
   echo         npm config set registry https://registry.npmmirror.com
-  echo    3. 跑一次环境诊断：
+  echo    3. Run diagnostics:
   echo         npx graduation-kit diagnose
   echo.
   pause
@@ -59,12 +63,12 @@ if errorlevel 1 (
 
 echo.
 echo  ==========================================
-echo    安装完成
+echo    Installation Complete
 echo  ==========================================
 echo.
-echo  安装位置：%USERPROFILE%\.agents\skills\
+echo  Location: %USERPROFILE%\.agents\skills\
 echo.
-echo  请重启编辑器（Zed / Cursor / VS Code 等），
-echo  新开一个会话才会加载这些 skills。
+echo  Please restart your editor (Zed / Cursor / VS Code)
+echo  and start a new session to load the skills.
 echo.
 pause
