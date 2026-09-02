@@ -1,781 +1,165 @@
 # graduation-kit
 
-毕业设计一件套 agent skills。一条命令装好从需求到答辩的全流程能力：需求定义、数据库设计、接口设计、代码生成、代码审查、UI 风格选型、论文写作与配图绘制。
-
-支持任何读取 `.agents/skills/` 的 agent（Zed、Claude Code 等）。
-
-需要 Node.js 18+；跑起脚手架还需要 MySQL 8，以及你选的那个后端的运行时：
-
-| 后端 | 运行时 |
-|---|---|
-| `springboot` | JDK 17 + Maven |
-| `express` | Node.js 18+ |
-| `flask` | Python 3.10+ |
-| `go` | Go 1.21+ |
-| `dotnet` | .NET 10 SDK |
-
-只装 skill 的话只需要 Node.js，其余一概不需要。
+毕业设计一件套：一条命令生成完整项目（后端 + 前端 + 数据库 + 文档），附赠从需求到答辩的 AI Agent Skills。
 
 ## 快速开始
 
-### 方式 1：在线生成器（推荐，无需安装）
+### 方式 1：在线生成器（推荐）
 
-打开网页：**[在线生成器](https://soulmte.github.io/graduation-kit/web-installer.html)**
+打开网页填表单，下载 zip 解压即用：
 
-或用 Gitee 国内镜像：**[Gitee 在线生成器](https://rain-drops.gitee.io/graduation-kit/web-installer.html)**
+- **GitHub Pages**: https://soulmte.github.io/graduation-kit/web-installer.html
+- **Gitee 镜像**: https://rain-drops.gitee.io/graduation-kit/web-installer.html
 
-**全新界面**（v1.1.5）：
-- **纸面设计风格** — 温润的暖白色调 + 朱红重点色，贴近论文和答辩场景
-- **实时预览面板** — 右侧常驻目录树与等价 CLI 命令，配置即时可见
-- **智能辅助输入** — 项目名输入后自动推导数据库名，可手动修改
-- **行内即时校验** — 字段失焦时立即显示错误，无需等提交
-- **配置记忆** — 刷新页面后自动恢复上次选择（密码除外）
-- **OS 自动识别** — 显示检测到的系统，只下载对应的安装脚本
-
-填写项目配置（项目名、模板、后端、前端、数据库），点击生成，浏览器会：
-
-1. 从 jsDelivr CDN 直接拉取 `graduation-kit@1.1.5` npm 包
-2. 根据你的选择筛选文件并重写配置（数据库密码、端口、路径等）
-3. 自动识别操作系统，只下载对应的 Skills 安装脚本（Windows → .bat，Mac/Linux → .sh）
-4. 打包成 zip 下载，**解压即用**
-
-下载的 zip 结构：
-
-```
-my-project/
-├── backend/              已配置好的后端（数据库密码、端口已写入）
-├── frontend/             已配置好的前端（API 地址已对齐后端端口）
-├── docs/你的库名.sql      建表脚本（库名已替换）
-├── uploads/              上传文件目录
-├── install-skills.bat    Skills 一键安装（Windows 系统）
-│   或 install-skills.sh  （Mac/Linux 系统，根据浏览器自动选择）
-└── README.md             启动说明
-```
-
-解压后：
-1. 导入 SQL：`mysql -uroot -p < docs/你的库名.sql`
-2. 启动后端：`cd backend && mvn spring-boot:run`（或其他后端对应命令）
-3. 启动前端：`cd frontend && npm install && npm run dev`
-4. （可选）双击 `install-skills.bat`（Windows）或 `bash install-skills.sh`（Mac/Linux）安装 Agent Skills
-
-> **优势**：
-> - 全程浏览器内完成，无需 Node.js 环境
-> - 下载的是成品代码（已配置好），而非 CLI 工具
-> - 国内通过 jsDelivr CDN 秒开，无需配置镜像
-> - 只下载代码和对应系统的 Skills 安装脚本，体积最小
-> - 现代化 UI，实时预览，配置体验更直观
-
-### 方式 2：npx 命令行（适合开发者）
-
-在你打算放项目的父目录下：
+填写项目名、选择技术栈（后端/前端）、配置数据库，点击生成即可下载。解压后：
 
 ```bash
-# 从 npm registry（国内自动走淘宝镜像）
+# 1. 导入数据库
+mysql -uroot -p < docs/你的库名.sql
+
+# 2. 启动后端（以 Spring Boot 为例）
+cd backend
+mvn spring-boot:run
+
+# 3. 启动前端（另开终端）
+cd frontend
+npm install && npm run dev
+
+# 4. 浏览器访问前端地址，用 admin/123456 登录
+```
+
+### 方式 2：命令行生成
+
+需要 Node.js 18+：
+
+```bash
 npx graduation-kit create
 
-# 或指定版本
-npx graduation-kit@1.1.4 create
+# 或指定参数跳过交互
+npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db
 ```
 
-国内网络不稳时，npm 会自动使用淘宝镜像加速，无需手动配置。
+## 技术栈选项
 
-分步向导会依次问你项目名、模板、后端、前端、数据库名和 MySQL 密码，跑完得到：
+**后端（选一个）**：
 
-```
-my-graduation-project/
-├── .agents/skills/     六个毕设 skill
-├── backend/            你选的后端
-├── frontend/           你选的前端
-├── docs/库名.sql       建表脚本，文件名跟随你填的库名
-├── uploads/            用户上传的图片
-├── .gitignore          已挡住依赖与构建产物
-└── README.md           端口、库名、启动命令存档
-```
-
-参数给全就跳过提问，适合写进脚本：
-
-```bash
-npx graduation-kit create my-app --be springboot --fe react
-npx graduation-kit create my-shop --template trade --db shop_db
-npx graduation-kit create --list      # 先看看有哪些模板与脚手架可选
-```
-
-### 方式 3：git clone 本地运行
-
-想本地修改或网络极不稳定时：
-
-```bash
-# GitHub
-git clone https://github.com/Soulmte/graduation-kit.git
-cd graduation-kit
-node bin/cli.js create
-
-# 或 Gitee 国内镜像
-git clone https://gitee.com/rain-drops/graduation-kit.git
-cd graduation-kit
-node bin/cli.js create
-```
-├── frontend/           你选的前端
-├── docs/库名.sql       建表脚本，文件名跟随你填的库名
-├── uploads/            用户上传的图片
-├── .gitignore          已挡住依赖与构建产物
-└── README.md           端口、库名、启动命令存档
-```
-
-模板选 `clean` 就是干净脚手架，选 `trade`、`booking` 或 `agent` 就多一整套已写好的业务（详见下面的[可选模板](#可选模板)）。
-
-参数给全就跳过提问，适合写进脚本：
-
-```bash
-npx graduation-kit create my-app --be springboot --fe react
-npx graduation-kit create my-shop --template trade --db shop_db
-npx graduation-kit create my-booking --template booking --db booking_db
-npx graduation-kit create rent-agent --template agent --db agent_db
-npx graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
-npx graduation-kit create --list      # 先看看有哪些模板与脚手架可选
-```
-
-### 生成之后的五步
-
-1. **建库**。进项目目录，把 `docs/` 下那个 SQL 导进 MySQL：
-
-   ```bash
-   mysql -uroot -p --default-character-set=utf8mb4 < docs/你的库名.sql
-   ```
-
-   脚本自带 `CREATE DATABASE`，不用先手动建库。
-
-2. **起后端**。`cd backend`，按终端提示的那条命令跑。各后端的命令：
-
-   | 后端 | 首次启动 |
-   |---|---|
-   | `springboot` | `mvn spring-boot:run` |
-   | `express` | `npm install && npm run dev` |
-   | `flask` | `pip install -r requirements.txt && python app.py` |
-   | `go` | `go mod tidy && go run .` |
-   | `dotnet` | `dotnet restore && dotnet run` |
-
-3. **起前端**。另开一个终端，`cd frontend`（多前端时是 `frontend-<名>/`），`npm install && npm run dev`。小程序那两个不用 dev，直接用微信开发者工具 / HBuilderX 打开目录。
-
-4. **登录验证**。浏览器开前端给出的地址，用 `admin / 123456`（管理员）或 `test / 123456`（普通用户）登录。能进仪表盘说明前后端和数据库都通了。
-
-5. **开工**。新开一个 agent 会话，skill 才会被加载（不需要重启编辑器），然后跟 agent 说你的毕设题目。
-
-端口、库名、启动命令这些也都写进了项目根的 `README.md`，终端滚走了能回去查。
-
-### 验证项目完整性
-
-生成项目后会自动验证结构，也可手动运行：
-
-```bash
-cd my-project
-npx graduation-kit verify
-
-# 或指定目录
-npx graduation-kit verify /path/to/project
-```
-
-检查项包括：
-- 目录结构（backend / frontend / docs / uploads）
-- 关键文件存在性（pom.xml / package.json / .sql 等）
-- 配置改写（数据库名、端口、uploads 路径）
-- 占位符残留（`__DB_PASSWORD__` / `scaffold_db`）
-
-退出码为 0 表示通过，为 1 表示有错误（可用于 CI）。
-
-### 推荐技术栈
-
-**首推组合（适合快速开发、面试加分）**：
-- 🏆 后端：**Spring Boot 3.x** （Java 17 + MyBatis-Plus，端口 8080）
-  - 企业级主流框架，生态成熟
-  - 工具链完善（Maven、Spring Initializr）
-  - 面试认可度高，简历加分项
-- 🏆 前端：**Vue 3 + Ant Design Vue**
-  - 企业级组件库，开箱即用
-  - 表单表格组件完善，后台系统首选
-  - 中文文档详尽，学习曲线平缓
-
-交互式创建时，推荐项会显示 ★ 标记。非交互式创建：
-
-```bash
-npx graduation-kit create my-app --be springboot --fe vue-antd
-```
-
-其他组合：
-- **Express + React**：全栈 JavaScript，Node.js 开发者首选
-- **Flask + Vue + Element Plus**：Python 后端 + 社区广泛使用的前端
-- **Go + Vue + Naive UI**：高性能后端 + 现代化 UI（含暗色模式）
-- **任意后端 + uni-app**：需要跨端（H5/小程序/App）时选择
-
-### 输入规范
-
-为避免配置文件解析错误和系统兼容性问题，以下字段有格式限制：
-
-**项目名**：
-- 只能包含字母、数字、连字符(-)、下划线(_)、点(.)
-- 不能以 . 或 - 开头（避免隐藏文件或解析问题）
-- 不能使用系统保留名（con、prn、aux、nul、com1-9、lpt1-9）
-- 不能包含路径分隔符（/ \ : 等）或特殊字符（* ? " < > |）
-- 最多 100 字符
-
-**数据库名**：
-- 只能包含字母、数字、下划线(_)、美元符号($)
-- 不能使用 MySQL 保留字（database、table、select、insert、update、delete、user 等）
-- 不能以数字开头
-- 最多 64 字符（MySQL 限制）
-
-**数据库密码**：
-- **避免使用**：引号（" ' `）、反斜杠（\）、换行符（会导致配置文件解析失败）
-- **可以使用但会自动转义**：YAML 特殊字符（: # & * ! | > % @）
-- **安全字符**：字母、数字、常见符号（. _ - + = , ; / ）
-- 最多 128 字符
-- 留空表示无密码
-
-示例：
-```bash
-# ✓ 合法
-npx graduation-kit create my-shop-2024 --db shop_db
-# 密码输入：P@ssw0rd.2024  （会自动转义 @ 符号）
-
-# ✗ 不合法
-npx graduation-kit create .hidden --db database
-# 项目名不能以 . 开头，数据库名不能用保留字
-```
-
-### 诊断系统环境
-
-如果遇到奇怪问题或想检查环境是否满足要求：
-
-```bash
-npx graduation-kit diagnose
-```
-
-检查项包括：
-- Node.js 版本（需要 18+）
-- 终端兼容性（CMD / PowerShell / Git Bash）
-- 包完整性（脚手架资源、Skills 数量）
-- 必需工具（git、mysql）
-- 可选工具（Java、Maven、Python、Go、.NET）
-- 系统信息（操作系统、架构）
-
-**常见问题诊断：**
-- **Node 版本过低**：升级到 18+ 或使用 nvm 管理版本
-- **终端显示异常**：Windows 推荐使用 PowerShell 或 Git Bash
-- **包资源缺失**：重新安装或从 Gitee clone 后使用
-- **MySQL 未安装**：下载 MySQL 8.0+ 并配置 PATH
-
-### 先确认它是通的，再动手改
-
-后端起来后可以直接探活，不用等前端：
-
-```bash
-curl http://localhost:8080/api/health
-```
-
-端口换成你选的那个后端的端口（见下面的表）。返回 `{"code":200,...}` 就说明服务和数据库都正常。这一步能把「代码问题」和「环境问题」分开，省掉大量瞎猜。
-
-### 从 Gitee 用
-
-`npx` 只认 `github:` / `gitlab:` / `bitbucket:` 三个简写，Gitee 拉不了。从 Gitee 过来先 clone：
-
-```bash
-git clone https://gitee.com/rain-drops/graduation-kit.git
-cd graduation-kit
-npm link
-```
-
-之后 `graduation-kit create` 就能在任何目录直接用，不必写 `npx`。后续更新只需在这个目录 `git pull`，不用重新 link。
-
-## 只装 skill
-
-项目已经有了、只想要这套 skill：
-
-### 方式 1：命令行安装
-
-```bash
-# 装到当前项目
-npx graduation-kit install
-
-# 装到全局，所有项目可用
-npx graduation-kit install -g
-
-# 只要论文那一个
-npx graduation-kit install --only thesis-writer
-```
-
-### 方式 2：一键脚本安装
-
-**适用场景：**
-- 用在线生成器下载的项目（会根据操作系统自动包含对应脚本）
-- 用 `git clone` 或 `npx` 下载后，想快速装 skills 到全局
-- 不想打命令，双击就能装
-
-**Windows：** 双击 `install-skills.bat`  
-**Mac / Linux：** 运行 `bash install-skills.sh`
-
-脚本会：
-1. 检查 Node.js 版本（需要 18+）
-2. 询问是否覆盖已存在的 skill
-3. 自动判断本地包还是 npm registry
-4. 装到 `~/.agents/skills/`（全局）
-
-装完后记得**重启编辑器**（Zed / Cursor / VS Code 等），新会话才会加载。
-
-> **注意：** 升级包之后重新安装建议选 `Y` 覆盖，否则会跳过已存在的目录，拿到的还是旧版本。
-
-## 命令
-
-```bash
-npx graduation-kit create [名称]      向导：脚手架 + SQL + skills
-npx graduation-kit install [选项]    只安装 skills
-npx graduation-kit verify [目录]      验证项目结构与配置完整性
-npx graduation-kit diagnose          诊断包完整性与系统兼容性
-npx graduation-kit list              列出包内 skill
-npx graduation-kit uninstall         移除已安装的 skill
-npx graduation-kit doctor            校验 frontmatter 规范
-```
-
-通用选项
-
-| 选项 | 说明 |
-|---|---|
-| `-d, --dir <path>` | 指定工作目录（默认当前目录） |
-| `-f, --force` | 覆盖已存在的 skill |
-| `-y, --with-upstream` | 直接带上三个上游增强，不询问 |
-| `--no-upstream` | 只装六个核心 skill |
-
-`install` 专属
-
-| 选项 | 说明 |
-|---|---|
-| `-g, --global` | 装到 `~/.agents/skills/` |
-| `-o, --only <a,b>` | 只处理指定 skill，跳过上游询问 |
-
-`create` 专属
-
-| 选项 | 说明 |
-|---|---|
-| `-t, --template <id>` | 模板：`clean` 干净脚手架 / `trade` 交易 demo / `booking` 预约 demo / `agent` AI Agent demo |
-| `--be <id>` | 后端，只能一个（demo 模板会忽略） |
-| `--fe <a,b>` | 前端，可多个逗号分隔（demo 模板会忽略） |
-| `--db <name>` | 数据库名（默认 `scaffold_db`） |
-| `--db-pass <pwd>` | MySQL root 密码 |
-| `--no-skills` | 不装 skills，只要脚手架 |
-| `--list` | 列出可选模板与脚手架 |
-
-## 可选模板
-
-向导第二步会问你要哪种模板。区别只有一个：**干净脚手架给的是底子，demo 给的是已经写好的业务**。
-
-| `--template` | 内容 | 技术栈 |
-|---|---|---|
-| `clean`（默认） | 登录注册、用户、公告、日志、仪表盘这些底子 | 后端前端自由组合 |
-| `trade` | 在上面那些之外，多了商家、商品、购物车、订单、支付、退款一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
-| `booking` | 多了服务机构、服务项、排班时段、预约单、到店核销、评价一整套 | 固定 Spring Boot + Vue 3 & Ant Design Vue |
-| `agent` | 多了模型配置、拖拽编排智能体、知识库检索、流式对话一整套（需自备大模型 API Key） | 固定 Spring Boot + Vue 3 & Ant Design Vue |
-
-### 交易 demo
-
-毕设选题里买卖类占很大一块（商城、点餐、票务、二手交易、农产品直销……），这些题目的骨架其实是同一套：商家管商品，买家下单付款，卖家发货，中间可能退款。这个 demo 把这套流程完整写了一遍，改个名词就能套到自己的题目上。
-
-```bash
-npx graduation-kit create my-shop --template trade --db shop_db
-```
-
-三个角色各有入口：
-
-| 角色 | 入口 | 能做什么 |
-|---|---|---|
-| 买家 | `/user/mall` | 逛商品、加购物车、下单、支付、确认收货、申请退款 |
-| 商家 | `/merchant/shop` | 维护店铺、管商品（含上下架）、发货、审退款 |
-| 管理员 | `/admin/merchant` | 审店铺、管分类，另有全量订单与退款视图 |
-
-买家在右上角下拉点「申请开店」提交资料，管理员审核通过后账号自动变成商家。种子数据已经把这条路铺好了：`shop1` 的店过审能直接用，`shop2` 的店待审核，用 `admin` 走一遍审核就能看到角色变化。
-
-订单状态机（也写在生成出来的 SQL 注释和 `Orders.java` 里）：
-
-```
-0 待支付 --支付--> 1 待发货 --发货--> 2 待收货 --确认收货--> 3 已完成
-0 待支付 --取消--> 4 已取消
-1 / 2 --申请退款--> 5 退款中 --同意--> 6 已退款
-                            \--拒绝--> 回到原来的状态
-```
-
-数据库比干净版多 8 张表：`merchant` `category` `product` `cart_item` `orders` `order_item` `payment` `refund`（订单表叫 `orders`，因为 `order` 是 MySQL 保留字）。后端多 34 条接口，前端多 11 个页面。
-
-几个刻意的设计，答辩容易被问到，代码注释里都写了理由：
-
-- **一单只属一个商家**。购物车跨店结算后端直接拒绝，让退款和发货的责任方唯一。
-- **扣库存用带条件的 UPDATE**（`stock = stock - n WHERE stock >= n`），靠数据库行锁挡并发超卖，看受影响行数判断成败，而不是先查再改。
-- **金额一律后端算**，前端传的价格不采纳。
-- **订单明细存商品快照**（名称、封面、单价）。商家后来改名改价，旧订单显示的还是成交时的信息。
-- **购物车不存价格**，每次展示实时读商品表，所以调价后购物车立刻跟着变。
-- **买家端 / 商家端 / 管理端走不同路径**（`/mine/*` `/merchant/*` `/admin/*`），不靠参数区分权限。
-
-默认账号：`admin` 管理员，`shop1` `shop2` 商家，`test` `zhangsan` 买家，密码都是 `123456`。`test` 的购物车里预放了 2 件商品，订单列表里 5 笔单覆盖了待支付、待发货、待收货、已完成、退款中五种状态，进去就能看到东西，不用自己造数据。
-
-### 预约 demo
-
-另一大类选题卖的不是货，而是“某个时间段的服务能力”（体检预约、场馆预定、理发到店、自习室选座、课程约课……）。这类题目的难点不在付款，而在时段名额的并发与状态流转。
-
-```bash
-npx graduation-kit create my-booking --template booking --db booking_db
-```
-
-三个角色各有入口：
-
-| 角色 | 入口 | 能做什么 |
-|---|---|---|
-| 用户 | `/user/service` | 找服务、按日期选时段下单、取消、催单、评价 |
-| 服务机构 | `/provider/shop` | 维护机构、管服务项（含上下线）、批量排班、接单拒单核销、回复评价 |
-| 管理员 | `/admin/provider` | 审机构、管分类，另有全量预约视图 |
-
-用户在右上角下拉点「申请入驻」提交资料，管理员审核通过后账号自动变成机构。种子数据里 `shop1` 已过审可直接用，`shop2` 待审核，用 `admin` 走一遍就能看到角色变化。
-
-预约状态机（也写在生成出来的 SQL 注释和 `Appointment.java` 里）：
-
-```
-0 待确认 --机构接单--> 1 已确认 --到店核销--> 2 已完成（可评价）
-0 待确认 --机构拒单--> 4 已拒绝（释放名额）
-0 / 1 --用户取消--> 3 已取消（释放名额）
-1 已确认 --机构标记--> 5 已失约（时间已过，不释放名额）
-```
-
-数据库比干净版多 6 张表：`provider` `service_category` `service_item` `time_slot` `appointment` `review`。后端多 37 条接口，前端多 11 个页面。
-
-几个刻意的设计：
-
-- **库存换成了时段容量**。占名额用 `booked_count = booked_count + 1 WHERE booked_count < capacity AND status = 1`，看受影响行数判断是否抢到，而不是先查再改。
-- **取消与拒单退名额，失约不退**。人没来就是已经消耗了机构的档期。
-- **服务已开始不允许自助取消**，否则机构既抽不出人手又白丢名额。
-- **预约单存快照**（服务名、价格、日期时间），机构后来改名改价或删时段都不影响旧单。
-- **批量排班按服务时长切片**，一次最多 30 天，已存在的时段自动跳过，可以反复点来补新日子。
-- **评价绑定预约单且唯一**（`uk_appointment`），只有已完成的单能评，一单只能评一次。
-
-默认账号：`admin` 管理员，`shop1` `shop2` 机构，`test` `zhang` 用户，密码都是 `123456`。9 笔预约单把六种状态全覆盖了，服务项里也故意留了一个已下线的和一个没排班的，用来验证校验分支。时段日期用 `CURDATE()` 算相对天数，过几天再看仍然有可约时段。
-
-### AI Agent demo
-
-带 AI 的题目现在很多（智能租房咨询、智能客服、智能就业指导、智能健康助手……）。这类题目如果只是把问题直接转发给大模型，工作量和技术含量都不够看。这个 demo 把“管理员在后台拖拽配出一个智能体，用户在前台直接用”这条链路写完了。
-
-```bash
-npx graduation-kit create rent-agent --template agent --db agent_db
-```
-
-> 跑前先填 API Key。种子数据里 `model_config.api_key` 是**空的**（不能把密钥写进仓库），不填无法对话。启动后用 `admin` 登录，进【模型配置】点编辑填上即可。DeepSeek 的 Key 在 [platform.deepseek.com](https://platform.deepseek.com) 申请，价格便宜；不想花钱就本地装 [Ollama](https://ollama.com) 拉个 `qwen2.5:7b`，厂商选“本地 Ollama”、Key 留空。
-
-两个角色各有入口：
-
-| 角色 | 入口 | 能做什么 |
-|---|---|---|
-| 管理员 | `/admin/agent` | 新建智能体、拖拽编排、发布与撕回、维护知识库、看全量会话与执行轨迹 |
-| 普通用户 | `/user/agent` | 选助手、流式提问、翻推理过程、管自己的历史会话 |
-
-画布只有五种节点，连成一条链：
-
-```
-开始 → 知识检索（可选）→ 查数据（可选）→ 大模型 → 结束
-```
-
-检索节点能调召回条数，大模型节点能选模型、写系统提示词、调温度、定带多少条历史。改完点【保存编排】，再回列表点【发布】，前台才看得到。编排页还带了个【试检索】，输个问题直接看会召回哪几条资料。
-
-#### 让智能体查你自己的业务表
-
-知识检索只能查事先录好的文档。想让智能体拿到**实时业务数据**（房源、商品、课程、工单、库存……）就用【查数据】节点。它背后是一个注册式扩展点，接自己的表只需写一个类：
-
-```java
-@Component
-public class HouseDataSource implements DataSourceProvider {
-
-    private final HouseService houseService;
-
-    public HouseDataSource(HouseService houseService) {
-        this.houseService = houseService;
-    }
-
-    @Override
-    public String key() { return "house"; }
-
-    @Override
-    public String label() { return "房源库"; }
-
-    @Override
-    public String description() { return "按城市与价格查在售房源"; }
-
-    // 声明要在画布上能配哪些筛选条件，管理端自动渲染成表单
-    @Override
-    public List<ParamSpec> params() {
-        return List.of(
-            ParamSpec.text("city", "城市", "留空不限"),
-            ParamSpec.number("maxPrice", "价格上限", "单位元/月")
-        );
-    }
-
-    // 拿到画布上配好的参数去查，结果拼成模型看得懂的文本
-    @Override
-    public String query(Map<String, Object> params, String question) {
-        List<House> rows = houseService.search(params);
-        return rows.stream()
-            .map(h -> h.getTitle() + "，" + h.getPrice() + " 元/月")
-            .collect(Collectors.joining("\n"));
-    }
-}
-```
-
-写完重启后端就行。Spring 会自动把它收进注册中心，管理端下拉框、画布节点、提示词拼接、推理步骤展示**全部自动生效，前端一行不用改**。包里带了个能直接跑的示例 `NoticeDataSource`（查脚手架自带的公告表），照它改最快。
-
-两类数据在提示词里分段标注：知识检索的结果进「参考资料」，查数据的结果进「实时数据」，模型能分清哪个更新。一条链上可以串多个查数据节点，结果会累加不会互盖。
-
-数据库比干净版多 5 张表：`model_config` `agent` `knowledge` `conversation` `message`。后端多 32 条接口，前端多 7 个页面。
-
-几个刻意的设计：
-
-- **整张画布存一个 JSON 字段**（`agent.graph_json`），没拆成节点表与边表。编排改动频繁，整体覆盖比增量同步好写也好排错。
-- **发布前会校一遍图**：必须有唯一开始节点、能走到结束、不成环、至少一个大模型节点、引用的模型没被停用。早前存的图重新发布时也会重校。
-- **流式用 SSE**（`SseEmitter` + JDK `HttpClient`），前端用 `fetch` + `ReadableStream` 接。没用原生 `EventSource`：它带不了 `Authorization` 头，会被登录拦截器直接拦下。
-- **检索没用向量库**，而是二元滑窗切词 + 加权打分（关键词 5 分、标题 3 分、正文 1 分）。毕设的知识量就几十到几百条，关键词召回够用，不用额外部署 embedding 服务与向量数据库，答辩时也更容易讲清原理。
-- **API Key 出口打掩码**（`sk-***abc`），接口拿不到原文；更新时留空表示不改。
-- **每条回答存执行轨迹**（`message.node_trace`），记每步耗时与产出。答得不对时能分清是检索没召回到资料，还是召回了但模型没用好。
-- **数据源做成注册式扩展点**（`DataSourceProvider`），接一张业务表只需写一个 `@Component`，不用改引擎也不用改前端。参数表单由后端声明、前端自动渲染，避开了「加一个筛选条件要改三处代码」的麻烦。
-- **新对话不提前建会话**，发第一句时后端才建并通过 `meta` 事件回传 ID。用户点进来看一眼就走，库里不会攒空会话。
-
-默认账号：`admin` 管理员，`test` `zhang` 普通用户，密码都是 `123456`。种子数据里 3 个智能体故意不一样：一个带检索节点、一个不带（对比用）、一个是草稿（验证前台看不见）；7 条知识里有 1 条全局共享、1 条已停用。
-
-## 可选脚手架
-
-后端选一个，五家的接口完全一致（同一套 24 条业务接口、同一套错误码、同一套字段名），前端无感对接任意一个：
-
-| `--be` | 技术栈 | 端口 |
+| 选项 | 技术栈 | 端口 |
 |---|---|---|
 | `springboot` | Java 17 + MyBatis-Plus | 8080 |
 | `express` | Node.js + mysql2 | 8081 |
 | `flask` | Python + PyMySQL | 8082 |
-| `go` | Go 1.21 + database/sql | 8084 |
-| `dotnet` | C# / .NET 10 + MySql.Data | 8085 |
+| `go` | Go + database/sql | 8084 |
+| `dotnet` | .NET 10 + MySql.Data | 8085 |
 
-还有一个 `fastapi`（8083）尚未完成对齐，暂时没放进可选列表。
+**前端（可多选）**：
 
-**换后端不用改前端**。前端只认 `/api` 前缀和统一响应格式，换一家后端重新 `create` 一次就行，页面代码一行不用动。想对比几种技术栈再定选题方向的话，这个特性很省事。
-
-前端可多选，多选时落成 `frontend-<名>/`：
-
-| `--fe` | 技术栈 | 开发端口 |
+| 选项 | 技术栈 | 端口 |
 |---|---|---|
 | `react` | React 18 + 自研组件 | 5176 |
 | `vue-elementplus` | Vue 3 + Element Plus | 5175 |
 | `vue-antd` | Vue 3 + Ant Design Vue | 5174 |
-| `vue-naive` | Vue 3 + Naive UI（含暗色模式） | 5177 |
-| `uniapp` | uni-app 跨端（H5 / 小程序 / App） | HBuilderX |
-| `wxapp` | 微信小程序原生 | 开发者工具 |
+| `vue-naive` | Vue 3 + Naive UI | 5177 |
+| `uniapp` | uni-app 跨端 | - |
+| `wxapp` | 微信小程序原生 | - |
 
-端口错开是有意的：多选几个前端时可以同时跑，不会抢端口。
+**推荐组合**：`springboot` + `vue-antd`（企业级主流，面试认可度高）
 
-每个脚手架都带 13 个成品页面（登录注册、用户管理、公告管理、日志管理、仪表盘、个人中心等），可直接当作你业务模块的模仿对象。
+## 内置功能
 
-## 内置接口
+生成的项目已包含：
 
-五家后端共同的 24 条业务接口，加上一条探活。路径前缀统一 `/api/<模块>`，标 admin 的只有管理员能调：
+- ✅ **用户管理**：注册、登录、JWT 认证、角色权限
+- ✅ **公告管理**：增删改查、富文本编辑
+- ✅ **操作日志**：自动记录关键操作
+- ✅ **文件上传**：头像、图片上传
+- ✅ **仪表盘**：数据统计、图表展示
+- ✅ **个人中心**：修改密码、更新资料
 
-| 模块 | 接口 | admin |
-|---|---|---|
-| user | `POST /api/user/register` | |
-| user | `POST /api/user/login` | |
-| user | `POST /api/user/pageQuery` | ✓ |
-| user | `GET /api/user/listAll` | ✓ |
-| user | `GET /api/user/getById/{id}` | |
-| user | `PUT /api/user/update` | |
-| user | `PUT /api/user/updatePassword` | |
-| user | `DELETE /api/user/deleteById/{id}` | ✓ |
-| user | `DELETE /api/user/deleteBatch` | ✓ |
-| notice | `POST /api/notice/add` | ✓ |
-| notice | `POST /api/notice/pageQuery` | |
-| notice | `GET /api/notice/listAll` | |
-| notice | `GET /api/notice/getById/{id}` | |
-| notice | `PUT /api/notice/update` | ✓ |
-| notice | `DELETE /api/notice/deleteById/{id}` | ✓ |
-| notice | `DELETE /api/notice/deleteBatch` | ✓ |
-| log | `POST /api/log/pageQuery` | ✓ |
-| log | `GET /api/log/listAll` | ✓ |
-| log | `GET /api/log/getById/{id}` | ✓ |
-| log | `DELETE /api/log/deleteById/{id}` | ✓ |
-| log | `DELETE /api/log/deleteBatch` | ✓ |
-| file | `POST /api/file/upload` | |
-| file | `POST /api/file/uploadBatch` | |
-| file | `DELETE /api/file/delete` | |
-| — | `GET /api/health` | |
+## 可选模板
 
-响应一律是 `{code, message, data}`，HTTP 状态码固定 200（只有 token 无效或过期才返 HTTP 401）。业务码共 11 个：
+### `clean`（默认）
+干净脚手架，只包含上述基础功能。
 
-| code | 含义 |
-|---|---|
-| 200 | 成功 |
-| 400 | 参数错误 |
-| 401 | 未登录 |
-| 403 | 无权限 |
-| 404 | 资源不存在 |
-| 500 | 服务器异常 |
-| 1001 | 用户名或密码错误 |
-| 1002 | 用户名已存在 |
-| 1004 | 原密码错误 |
-| 2001 | 数据已存在 |
-| 2002 | 数据不存在 |
-
-自己新增错误码从 1005 开始排（1003 是空号）。改密码走单独的 `updatePassword`，`update` 不接受 `password` 和 `role` 字段——这是有意防的提权口子，你自己加新接口时可以照这个思路写。
-
-## 仓库结构
-
-```
-graduation-kit/
-├── bin/                    CLI 入口
-│   ├── cli.js              命令分发、install / uninstall / list / doctor
-│   ├── create.js           create 向导与非交互生成
-│   ├── scaffold.js         脚手架清单、拷贝、端口与库名改写
-│   └── prompt.js           无依赖的终端交互（text / select / multiselect）
-├── src/
-│   ├── skills/             七个 skill 源文件
-│   │   ├── graduation-project/
-│   │   ├── thesis-writer/      含绘图引擎与 docx 转换脚本
-│   │   ├── feature-forge/
-│   │   ├── database-designer/
-│   │   ├── api-designer/
-│   │   ├── code-reviewer/
-│   │   └── impeccable/
-│   ├── scaffolds/          脚手架源码
-│   │   ├── backends/       springboot / express / flask / fastapi / go / dotnet
-│   │   ├── frontends/      react / vue-×3 / uniapp / wxapp
-│   │   ├── clients/        pyqt / react-native
-│   │   ├── demos/          带业务的完整模板
-│   │   │   ├── trade/      交易 demo：springboot + vue-antd + 8 张交易表
-│   │   │   ├── booking/    预约 demo：springboot + vue-antd + 6 张预约表
-│   │   │   └── agent/      AI Agent demo：springboot + vue-antd + 5 张智能体表
-│   │   ├── docs/           scaffold_db.sql
-│   │   └── uploads/        预置头像等静态文件
-│   └── vendor/             上游组件（随包内置，无需联网）
-├── scripts/
-│   └── smoke.js            逐个后端与模板生成到临时目录验证改写结果
-├── NOTICE.md               第三方许可
-└── LICENSE
-```
-
-`bin/` 是安装器，`src/skills/` 是发给 agent 读的提示词，`src/scaffolds/` 是会被拷进你项目的真实代码。三者互不依赖：只想要 skill 就用 `install`，只想要脚手架就 `create --no-skills`。
-
-## 包含内容
-
-### 核心 skill（默认全装）
-
-| skill | 用途 |
-|---|---|
-| `graduation-project` | 全流程编排。五阶段工作流，站在导师视角把关代码质量 |
-| `thesis-writer` | 论文正文与摘要、八类论文插图绘制、Markdown 转 Word |
-| `feature-forge` | 需求访谈、功能边界、MVP 范围、EARS 需求描述 |
-| `database-designer` | 建表 DDL、ER 关系、索引设计、数据字典 |
-| `api-designer` | RESTful 接口设计、统一响应协议、错误码规范 |
-| `code-reviewer` | 分层规范、安全问题、命名一致性分级审查 |
-
-### 上游增强（安装时询问）
-
-| 组件 | 落地位置 | 许可 |
-|---|---|---|
-| `impeccable` | 独立 skill | Apache-2.0 |
-| `ui-ux-pro-max` | `graduation-project/vendor/` | MIT |
-| `taste-skill` | `graduation-project/vendor/` | MIT |
-
-不装上游也能用：`graduation-project` 会回退到 `style-integration.md` 的内置配色速查表。
-
-## 怎么用
-
-skill 不靠命令调用，直接跟 agent 说你要干什么就行，它会自己匹配。几个典型说法：
-
-| 你说 | 会走 |
-|---|---|
-| 「我毕设题目是图书馆管理系统，帮我开工」 | `graduation-project` 五阶段全流程 |
-| 「题目太宽了，不知道做哪些功能」 | `feature-forge` 需求访谈与 MVP 划边 |
-| 「帮我设计图书借还的表」 | `database-designer` 出 DDL |
-| 「加一个借书记录接口」 | `api-designer` |
-| 「帮我审一下这个模块的代码」 | `code-reviewer` 分级问题清单 |
-| 「写论文第四章」、「画一张系统架构图」 | `thesis-writer` |
-
-推荐的开发顺序：先拿 `feature-forge` 把功能边界定下来，再 `database-designer` 建表，接着 `api-designer` 定接口，然后让 `graduation-project` 逐模块生代码，每写完一个用 `code-reviewer` 过一遍。论文可以边写代码边积累。
-
-论文插图是一套浏览器里的 Canvas 绘图工具，支持八类图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、对比图），输出符合学位论文规范的黑白线稿。拖动标签前记得先点「编辑模式」，否则点不动不是坏了；保存只写浏览器缓存，要点「导出代码」粘回数据文件才算落盘。
-
-## 开发
-
-改完 `bin/` 或脚手架后跑一轮：
+### `trade`（交易系统）
+额外包含：商家入驻、商品管理、购物车、订单流程、支付退款。
 
 ```bash
-npm test          # doctor + smoke，提交前跑这一条就够
-npm run doctor    # 只校验所有 skill 的 frontmatter
-npm run smoke     # 只跑脚手架生成验证
-npm run scaffolds # 列出当前可选脚手架与端口
+npx graduation-kit create my-shop --template trade --db shop_db
 ```
 
-`npm run smoke` 会把每个可用后端各生成一次到系统临时目录，逐项校对目录结构、SQL 文件名与内容、uploads 相对路径、前端端口、以及配置里的库名密码有没有改到位，跑完自动清掉。新增后端或改 `patchBackend()` 的改写表时它能第一时间发现遗漏。
-
-想实际看一眼生成结果：
+### `booking`（预约系统）
+额外包含：服务机构、服务项目、时段排班、预约管理、到店核销、评价系统。
 
 ```bash
-node bin/cli.js create demo --be go --fe vue-naive --db lib_db --dir /tmp/x
-node bin/cli.js install --dir /tmp/x   # 只装 skill 到临时目录
+npx graduation-kit create my-booking --template booking --db booking_db
 ```
 
-绘图引擎的回归测试：
+### `agent`（AI 智能体）
+额外包含：大模型配置、拖拽编排智能体、知识库检索、流式对话。需自备 API Key（DeepSeek / Ollama）。
 
 ```bash
-cd src/skills/thesis-writer/reference/examples
-node verify.js && node verify-editor.js && node audit.js
+npx graduation-kit create rent-agent --template agent --db agent_db
 ```
 
-注意 `scripts/` 不在 `package.json` 的 `files` 里，不随 npm 包发布，只在 clone 下来的仓库里能跑。
+## Agent Skills（可选）
+
+生成项目后可安装 AI 辅助工具（需支持 `.agents/skills/` 的编辑器，如 Zed、Cursor）：
+
+**Windows**：双击 `install-skills.bat`  
+**Mac/Linux**：运行 `bash install-skills.sh`
+
+包含 6 个 Skills：
+
+- `graduation-project` - 五阶段全流程编排
+- `thesis-writer` - 论文写作、插图绘制、Markdown 转 Word
+- `feature-forge` - 需求访谈、功能边界划分
+- `database-designer` - 建表设计、ER 图、索引优化
+- `api-designer` - RESTful 接口设计、错误码规范
+- `code-reviewer` - 代码审查、安全检查
+
+安装后新建 Agent 会话，直接说需求即可（如"我毕设题目是图书馆管理系统，帮我开工"）。
 
 ## 常见问题
 
-**装完了 agent 没反应** —— 新开一个会话。已经开着的会话不会重新扫 skill 目录。
+**Q: 启动后端报数据库连接失败？**  
+A: 确保已导入 SQL 文件，并检查 `backend/.env` 或 `application.yml` 中的数据库密码是否正确。
 
-**升级后还是旧版** —— 重装要加 `-f`。不加的话已存在的目录会被整个跳过，只打一行警告。
+**Q: 前端头像图片 404？**  
+A: 头像路径通过 Vite 代理转发到后端，确保后端已启动。
 
-**`--only` 为什么没装上游** —— 这是有意的：指定了 `--only` 就只装你点名的，不会再问上游。想要 `impeccable` 就把它一并写进 `--only`。
+**Q: 小程序真机调试请求失败？**  
+A: 手机访问不了 `localhost`，需修改 `config/index.js` 中的 `LAN_HOST` 为电脑局域网 IP。
 
-**数据库连不上** —— `create` 时密码留空的话需要自己到 `backend` 配置里补。另外记得先导入 `docs/` 下的 SQL。
+**Q: 端口被占用？**  
+A: 修改后端配置文件（`.env` 或 `application.yml`）和前端 `.env.development` 中的端口号。
 
-**SQL 文件叫什么名** —— 跟随 `--db`，例如 `--db library_db` 得到 `docs/library_db.sql`，文件内的建库语句也一并改好。不传 `--db` 就是默认的 `scaffold_db.sql`。
+**Q: 升级后还是旧版本？**  
+A: 重装时加 `-f` 参数：`npx graduation-kit install -f`
 
-**导入 SQL 中文变乱码** —— 命令要带 `--default-character-set=utf8mb4`，项目 README 里给的那条已经带了。
-
-**前端头像图片 404** —— 头像路径用 `/uploads/xxx.jpg` 靠 vite 代理转到后端，这是既定设计。确保后端已启动，不要自己拼绝对地址。
-
-**小程序真机调试请求失败** —— 手机访问不了电脑的 `localhost`。把 `config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP，并在微信开发者工具里勾上不校验域名。
-
-**请求报 401 但刚刚还能用** —— token 过期。只有 token 无效或过期会返 HTTP 401，其余情况一律 HTTP 200 + 业务码，重新登录即可。前端已经帮你拦了这个状态，自己写请求时别绕过拦截器。
-
-**Go 后端跑不起来，报 missing go.sum entry** —— 首次要先 `go mod tidy` 拉依赖，再 `go run .`。仓库里没预置 `go.sum`。
-
-**dotnet 后端报框架版本不匹配** —— 项目目标 net10.0，需要 .NET 10 SDK。`dotnet --list-sdks` 确认一下，低版本 SDK 编不过。
-
-**端口被占** —— 后端端口写在 `backend/.env`（springboot 在 `application.yml`），前端在 `.env.development`。两边都改，前端的代理目标也要跟着改。
-
-**报 `toItem is not defined`** —— 这是旧版的 bug，早已修。报这个错说明跑的是一份旧代码，按你的用法对症处理：
-
-| 你敲的命令 | 代码来源 | 怎么拿到最新 |
-| --- | --- | --- |
-| `npx graduation-kit create` | npx 缓存的副本 | `npx --ignore-existing graduation-kit create` |
-| `npx github:Soulmte/graduation-kit create` | npx 缓存的副本 | `npx --ignore-existing github:Soulmte/graduation-kit create` |
-| `graduation-kit create` | 全局 `node_modules/graduation-kit/` | 见下条 |
-
-**注意 `graduation-kit create` 不会自动更新。** 它跑的是你机器上已装好的那份文件，仓库往远端推多少次都不影响它。想更新得看它是怎么装上去的：
+## 其他命令
 
 ```bash
-# 先看它指向哪里。realpath 落在你的 clone 目录 = npm link，落在 node_modules 里 = npm i -g 装的副本
-node -e "console.log(require('fs').realpathSync(require('path').join(require('child_process').execSync('npm root -g').toString().trim(),'graduation-kit')))"
+# 列出可选技术栈
+npx graduation-kit create --list
+
+# 只安装 Skills（不生成项目）
+npx graduation-kit install
+
+# 安装到全局（所有项目可用）
+npx graduation-kit install -g
+
+# 验证项目完整性
+npx graduation-kit verify
+
+# 诊断系统环境
+npx graduation-kit diagnose
 ```
 
-- **npm link 装的**（realpath 指向你的 clone 目录）：进那个目录 `git pull` 就完事，符号链接不存在缓存
-- **`npm i -g` 装的**（realpath 在 `node_modules` 里）：必须重装一次 `npm i -g github:Soulmte/graduation-kit`
+## 仓库地址
 
-向导启动时会打印自己的版本号，对不上就是没更新成功。
-
-**论文转 Word 后章节串位** —— 转换脚本按单独一行的 `---` 分割章节，所以正文里不能出现分割线。图片需要自己手动插，脚本不管图。
+- GitHub: https://github.com/Soulmte/graduation-kit
+- Gitee: https://gitee.com/rain-drops/graduation-kit
 
 ## 许可
 
-MIT。vendored 的第三方组件另有许可，见 [NOTICE.md](NOTICE.md)。
+MIT License
