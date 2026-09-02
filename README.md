@@ -18,11 +18,39 @@
 
 ## 快速开始
 
+### 方式 1：npx 命令行（推荐）
+
 在你打算放项目的父目录下：
 
 ```bash
 npx github:Soulmte/graduation-kit create
 ```
+
+### 方式 2：浏览器在线下载（适合跑不了 npx 的环境）
+
+打开网页：**[在线安装器](https://soulmte.github.io/graduation-kit/web-installer.html)**
+
+或用 Gitee 国内镜像：**[Gitee 在线安装器](https://rain-drops.gitee.io/graduation-kit/web-installer.html)**
+
+填表后点击生成，浏览器会下载一个 zip 包，解压后双击 `_run.bat`（Windows）或在终端运行 `bash _run.sh`（Mac/Linux）。
+
+### 方式 3：git clone 手动运行
+
+网络不稳或想本地修改时用这个：
+
+```bash
+# GitHub
+git clone https://github.com/Soulmte/graduation-kit.git
+cd graduation-kit
+node bin/cli.js create
+
+# 或 Gitee 国内镜像
+git clone https://gitee.com/rain-drops/graduation-kit.git
+cd graduation-kit
+node bin/cli.js create
+```
+
+---
 
 分步向导会依次问你项目名、模板、后端、前端、数据库名和 MySQL 密码，跑完得到一个可直接开发的项目：
 
@@ -205,6 +233,8 @@ npm link
 
 项目已经有了、只想要这套 skill：
 
+### 方式 1：命令行安装
+
 ```bash
 # 装到当前项目
 npx github:Soulmte/graduation-kit install
@@ -215,6 +245,22 @@ npx github:Soulmte/graduation-kit install -g
 # 只要论文那一个
 npx github:Soulmte/graduation-kit install --only thesis-writer
 ```
+
+### 方式 2：一键脚本安装（推荐 clone 后使用）
+
+如果你已经 clone 了仓库，可以直接运行一键安装脚本：
+
+**Windows：**
+```bash
+install-skills.bat
+```
+
+**Mac / Linux：**
+```bash
+bash install-skills.sh
+```
+
+脚本会自动把 `src/skills/` 下的 7 个核心 skill 复制到 `~/.agents/skills/`，支持覆盖已存在的 skill。
 
 安装时会询问是否一并装上三个上游增强包。它们已随包内置，无需联网。
 

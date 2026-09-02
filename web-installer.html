@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>毕业设计脚手架 — 在线安装</title>
+  <style>
+    :root {
+      --surface-0: #05070C;
+      --surface-1: #0A0D12;
+      --surface-2: #0F131C;
+      --surface-3: #161D2B;
+      --surface-4: #1E2636;
+      --accent: #38BDF8;
+      --accent-dim: #0EA5E9;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-tertiary: #64748B;
+      --border: rgba(148, 163, 184, 0.12);
+      --success: #6EE7B7;
+      --warning: #FCD34D;
+      --error: #F87171;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 999px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      background: var(--surface-0);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: min(90vw, 720px);
+      margin: 0 auto;
+      padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem);
+    }
+    
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: clamp(3rem, 6vw, 5rem);
+    }
+    
+    .logo {
+      width: clamp(48px, 10vw, 64px);
+      height: clamp(48px, 10vw, 64px);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border-radius: 50%;
+      margin: 0 auto clamp(1rem, 3vw, 1.5rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 700;
+      color: var(--surface-0);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    h1 {
+      font-size: clamp(1.75rem, 5vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      font-size: clamp(0.875rem, 2.5vw, 1rem);
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    /* Form */
+    .form-section {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.5rem, 4vw, 2rem);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .form-section-title {
+      font-size: clamp(1rem, 3vw, 1.125rem);
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .form-section-title::before {
+      content: '';
+      width: 4px;
+      height: 1.2em;
+      background: var(--accent);
+      border-radius: var(--radius-pill);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+    
+    input[type="text"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      font-family: var(--font-sans);
+      transition: all 0.2s ease;
+    }
+    
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+    }
+    
+    input::placeholder {
+      color: var(--text-tertiary);
+    }
+    
+    .input-hint {
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+      margin-top: 0.375rem;
+    }
+    
+    /* Checkbox Group */
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+    
+    .checkbox-item {
+      position: relative;
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .checkbox-item input:checked + .checkbox-label {
+      background: var(--surface-3);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    
+    .checkbox-indicator {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    
+    .checkbox-item input:checked + .checkbox-label .checkbox-indicator {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .checkbox-indicator::after {
+      content: '✓';
+      color: var(--surface-0);
+      font-size: 0.75rem;
+      font-weight: 700;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.15s ease;
+    }
+    
+    .checkbox-item input:checked + .checkbox-label .checkbox-indicator::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .checkbox-label:hover {
+      background: var(--surface-3);
+    }
+    
+    /* Radio Group */
+    .radio-group {
+      display: grid;
+      gap: 0.5rem;
+    }
+    
+    .radio-item {
+      position: relative;
+    }
+    
+    .radio-item input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .radio-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .radio-item input:checked + .radio-label {
+      background: var(--surface-3);
+      border-color: var(--accent);
+    }
+    
+    .radio-indicator {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+    
+    .radio-item input:checked + .radio-label .radio-indicator {
+      border-color: var(--accent);
+    }
+    
+    .radio-indicator::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(0);
+      transition: all 0.15s ease;
+    }
+    
+    .radio-item input:checked + .radio-label .radio-indicator::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .radio-content {
+      flex: 1;
+    }
+    
+    .radio-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 0.125rem;
+    }
+    
+    .radio-desc {
+      font-size: 0.8125rem;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+    
+    /* Button */
+    .btn {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border: none;
+      border-radius: var(--radius-pill);
+      color: var(--surface-0);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+    
+    /* Progress */
+    .progress-section {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.5rem, 4vw, 2rem);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: none;
+    }
+    
+    .progress-section.active {
+      display: block;
+    }
+    
+    .progress-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    
+    .progress-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--surface-3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .progress-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-3);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border-radius: var(--radius-pill);
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    
+    .progress-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+    
+    /* Success */
+    .success-section {
+      background: var(--surface-1);
+      border: 1px solid var(--success);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.5rem, 4vw, 2rem);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: none;
+      text-align: center;
+    }
+    
+    .success-section.active {
+      display: block;
+    }
+    
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--success);
+      border-radius: 50%;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    
+    .success-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .success-desc {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+    
+    .file-info {
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+    
+    .file-info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    
+    .file-info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .file-info-label {
+      color: var(--text-tertiary);
+    }
+    
+    .file-info-value {
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+    
+    /* Error */
+    .error-section {
+      background: var(--surface-1);
+      border: 1px solid var(--error);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.5rem, 4vw, 2rem);
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+    
+    .error-section.active {
+      display: block;
+    }
+    
+    .error-title {
+      color: var(--error);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .error-message {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+    
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem 0;
+      color: var(--text-tertiary);
+      font-size: 0.8125rem;
+    }
+    
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    
+    .footer a:hover {
+      color: var(--text-primary);
+    }
+    
+    /* Rate Limit Warning */
+    .rate-limit {
+      background: var(--surface-2);
+      border: 1px solid var(--warning);
+      border-radius: var(--radius-sm);
+      padding: 0.875rem 1rem;
+      margin-top: 1rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      display: none;
+    }
+    
+    .rate-limit.show {
+      display: block;
+    }
+    
+    .rate-limit-title {
+      color: var(--warning);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 640px) {
+      .checkbox-group {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">GK</div>
+      <h1>毕业设计脚手架</h1>
+      <p class="subtitle">无需命令行，在线生成并下载完整项目包</p>
+    </header>
+
+    <!-- Form -->
+    <form id="configForm">
+      <!-- 基本信息 -->
+      <section class="form-section">
+        <h2 class="form-section-title">基本信息</h2>
+        <div class="form-group">
+          <label for="projectName">项目目录名</label>
+          <input type="text" id="projectName" name="projectName" placeholder="my-graduation-project" required>
+          <div class="input-hint">支持英文、数字、连字符，不能有空格</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="template">项目模板</label>
+          <div class="radio-group">
+            <div class="radio-item">
+              <input type="radio" id="template-clean" name="template" value="clean" checked>
+              <label for="template-clean" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">干净脚手架</div>
+                  <div class="radio-desc">只有登录注册、用户、公告、日志基础功能</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="template-trade" name="template" value="trade">
+              <label for="template-trade" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">交易 Demo</div>
+                  <div class="radio-desc">商家、商品、购物车、订单、支付、退款完整流程</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="template-booking" name="template" value="booking">
+              <label for="template-booking" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">预约 Demo</div>
+                  <div class="radio-desc">服务机构、排班、预约单、到店核销、评价</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="template-agent" name="template" value="agent">
+              <label for="template-agent" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">AI Agent Demo</div>
+                  <div class="radio-desc">拖拽编排智能体、知识库检索、流式对话</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 技术栈选择 -->
+      <section class="form-section" id="techStack">
+        <h2 class="form-section-title">技术栈</h2>
+        
+        <div class="form-group">
+          <label>后端框架</label>
+          <div class="radio-group">
+            <div class="radio-item">
+              <input type="radio" id="be-springboot" name="backend" value="springboot" checked>
+              <label for="be-springboot" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">Spring Boot 3</div>
+                  <div class="radio-desc">Java 17 + MyBatis-Plus，端口 8080</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="be-express" name="backend" value="express">
+              <label for="be-express" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">Express 4</div>
+                  <div class="radio-desc">Node.js + mysql2，端口 8081</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="be-flask" name="backend" value="flask">
+              <label for="be-flask" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">Flask 3</div>
+                  <div class="radio-desc">Python + PyMySQL，端口 8082</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="be-go" name="backend" value="go">
+              <label for="be-go" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">Gin</div>
+                  <div class="radio-desc">Go 1.21 + database/sql，端口 8084</div>
+                </div>
+              </label>
+            </div>
+            <div class="radio-item">
+              <input type="radio" id="be-dotnet" name="backend" value="dotnet">
+              <label for="be-dotnet" class="radio-label">
+                <span class="radio-indicator"></span>
+                <div class="radio-content">
+                  <div class="radio-title">ASP.NET Core</div>
+                  <div class="radio-desc">C# / .NET 8 + MySql.Data，端口 8085</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>前端框架（可多选）</label>
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-react" name="frontend" value="react" checked>
+              <label for="fe-react" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>React 18</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-vue-elementplus" name="frontend" value="vue-elementplus">
+              <label for="fe-vue-elementplus" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>Vue + Element Plus</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-vue-antd" name="frontend" value="vue-antd">
+              <label for="fe-vue-antd" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>Vue + Ant Design</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-vue-naive" name="frontend" value="vue-naive">
+              <label for="fe-vue-naive" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>Vue + Naive UI</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-uniapp" name="frontend" value="uniapp">
+              <label for="fe-uniapp" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>uni-app 跨端</span>
+              </label>
+            </div>
+            <div class="checkbox-item">
+              <input type="checkbox" id="fe-wxapp" name="frontend" value="wxapp">
+              <label for="fe-wxapp" class="checkbox-label">
+                <span class="checkbox-indicator"></span>
+                <span>微信小程序</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 数据库配置 -->
+      <section class="form-section">
+        <h2 class="form-section-title">数据库</h2>
+        <div class="form-group">
+          <label for="dbName">数据库名</label>
+          <input type="text" id="dbName" name="dbName" placeholder="scaffold_db" value="scaffold_db" required>
+          <div class="input-hint">生成的 SQL 文件将使用此名称</div>
+        </div>
+        <div class="form-group">
+          <label for="dbPass">MySQL root 密码（可选）</label>
+          <input type="password" id="dbPass" name="dbPass" placeholder="留空表示无密码">
+          <div class="input-hint">将写入后端配置文件，本地开发用</div>
+        </div>
+      </section>
+
+      <!-- Agent Skills -->
+      <section class="form-section">
+        <h2 class="form-section-title">Agent Skills</h2>
+        <div class="form-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="installSkills" name="installSkills" checked>
+            <label for="installSkills" class="checkbox-label">
+              <span class="checkbox-indicator"></span>
+              <span>包含 6 个核心 skill（需求定义、代码审查、论文写作等）</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- GitHub Token (Optional) -->
+      <section class="form-section">
+        <h2 class="form-section-title">高级选项</h2>
+        <div class="form-group">
+          <label for="githubToken">GitHub Personal Token（可选）</label>
+          <input type="password" id="githubToken" name="githubToken" placeholder="ghp_...">
+          <div class="input-hint">提供 token 可提升 API 限额从 60次/小时 到 5000次/小时</div>
+        </div>
+        <div class="rate-limit" id="rateLimit">
+          <div class="rate-limit-title">⚠ API 限流提示</div>
+          <div id="rateLimitText">当前剩余请求次数：检测中...</div>
+        </div>
+      </section>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn" id="submitBtn">
+        <span>生成并下载项目包</span>
+      </button>
+    </form>
+
+    <!-- Progress -->
+    <section class="progress-section" id="progressSection">
+      <div class="progress-header">
+        <div class="progress-spinner"></div>
+        <div class="progress-title" id="progressTitle">正在准备...</div>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text" id="progressText">初始化...</div>
+    </section>
+
+    <!-- Success -->
+    <section class="success-section" id="successSection">
+      <div class="success-icon">✓</div>
+      <h3 class="success-title">打包完成</h3>
+      <p class="success-desc">项目包已生成，浏览器将自动下载</p>
+      <div class="file-info" id="fileInfo"></div>
+      <button type="button" class="btn" id="downloadAgain">重新下载</button>
+      <button type="button" class="btn btn-secondary" id="startOver" style="margin-top: 0.75rem;">创建新项目</button>
+    </section>
+
+    <!-- Error -->
+    <section class="error-section" id="errorSection">
+      <div class="error-title">
+        <span>✕</span>
+        <span>生成失败</span>
+      </div>
+      <div class="error-message" id="errorMessage"></div>
+      <button type="button" class="btn btn-secondary" id="retryBtn" style="margin-top: 1rem;">返回重试</button>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        开源项目 · 
+        <a href="https://github.com/Soulmte/graduation-kit" target="_blank">GitHub</a> · 
+        <a href="https://gitee.com/rain-drops/graduation-kit" target="_blank">Gitee</a>
+      </p>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    // Configuration
+    const GITHUB_REPO = 'Soulmte/graduation-kit';
+    const GITHUB_BRANCH = 'main';
+    const API_BASE = 'https://api.github.com';
+    
+    // State
+    let filesCache = null;
+    let generatedBlob = null;
+    let formData = null;
+    
+    // DOM Elements
+    const form = document.getElementById('configForm');
+    const progressSection = document.getElementById('progressSection');
+    const successSection = document.getElementById('successSection');
+    const errorSection = document.getElementById('errorSection');
+    const progressBar = document.getElementById('progressBar');
+    const progressTitle = document.getElementById('progressTitle');
+    const progressText = document.getElementById('progressText');
+    const submitBtn = document.getElementById('submitBtn');
+    const rateLimitEl = document.getElementById('rateLimit');
+    const rateLimitText = document.getElementById('rateLimitText');
+    
+    // Template selection handler
+    document.querySelectorAll('input[name="template"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const techStack = document.getElementById('techStack');
+        if (['trade', 'booking', 'agent'].includes(e.target.value)) {
+          techStack.style.opacity = '0.5';
+          techStack.style.pointerEvents = 'none';
+        } else {
+          techStack.style.opacity = '1';
+          techStack.style.pointerEvents = 'auto';
+        }
+      });
+    });
+    
+    // Form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Collect form data
+      formData = {
+        projectName: document.getElementById('projectName').value.trim(),
+        template: document.querySelector('input[name="template"]:checked').value,
+        backend: document.querySelector('input[name="backend"]:checked').value,
+        frontend: Array.from(document.querySelectorAll('input[name="frontend"]:checked')).map(el => el.value),
+        dbName: document.getElementById('dbName').value.trim(),
+        dbPass: document.getElementById('dbPass').value,
+        installSkills: document.getElementById('installSkills').checked,
+        githubToken: document.getElementById('githubToken').value.trim()
+      };
+      
+      // Validate
+      if (!formData.projectName.match(/^[a-zA-Z0-9_-]+$/)) {
+        alert('项目名只能包含英文、数字、下划线和连字符');
+        return;
+      }
+      
+      if (formData.template === 'clean' && formData.frontend.length === 0) {
+        alert('请至少选择一个前端框架');
+        return;
+      }
+      
+      // Hide form, show progress
+      form.style.display = 'none';
+      errorSection.classList.remove('active');
+      progressSection.classList.add('active');
+      
+      try {
+        await generateProject();
+      } catch (error) {
+        showError(error.message);
+      }
+    });
+    
+    // Retry button
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      errorSection.classList.remove('active');
+      form.style.display = 'block';
+    });
+    
+    // Start over button
+    document.getElementById('startOver').addEventListener('click', () => {
+      successSection.classList.remove('active');
+      form.style.display = 'block';
+      form.reset();
+      document.getElementById('fe-react').checked = true;
+      generatedBlob = null;
+    });
+    
+    // Download again button
+    document.getElementById('downloadAgain').addEventListener('click', () => {
+      if (generatedBlob) {
+        downloadBlob(generatedBlob, `${formData.projectName}.zip`);
+      }
+    });
+    
+    // Main generation logic
+    async function generateProject() {
+      const token = formData.githubToken;
+      const headers = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      if (token) {
+        headers['Authorization'] = `token ${token}`;
+      }
+      
+      // Step 1: Get file tree
+      updateProgress(10, '获取文件列表', '正在从 GitHub 拉取仓库结构...');
+      
+      const treeRes = await fetch(
+        `${API_BASE}/repos/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`,
+        { headers }
+      );
+      
+      if (!treeRes.ok) {
+        throw new Error(`GitHub API 错误: ${treeRes.status} ${treeRes.statusText}`);
+      }
+      
+      checkRateLimit(treeRes.headers);
+      
+      const treeData = await treeRes.json();
+      const allFiles = treeData.tree.filter(item => item.type === 'blob');
+      
+      // Step 2: Filter files
+      updateProgress(20, '筛选所需文件', '根据您的配置过滤文件...');
+      
+      const neededFiles = filterFiles(allFiles);
+      
+      if (neededFiles.length === 0) {
+        throw new Error('没有找到需要的文件，请检查配置');
+      }
+      
+      // Step 3: Download files
+      updateProgress(30, '下载文件', `准备下载 ${neededFiles.length} 个文件...`);
+      
+      const zip = new JSZip();
+      const total = neededFiles.length;
+      
+      for (let i = 0; i < total; i++) {
+        const file = neededFiles[i];
+        const progress = 30 + (i / total) * 60;
+        updateProgress(
+          progress,
+          '下载文件',
+          `正在下载: ${file.path} (${i + 1}/${total})`
+        );
+        
+        const content = await downloadFile(file, headers);
+        zip.file(file.targetPath, content);
+      }
+      
+      // Step 4: Generate run scripts
+      updateProgress(92, '生成启动脚本', '创建 Windows 和 Unix 启动脚本...');
+      
+      const runScripts = generateRunScripts();
+      zip.file('_run.bat', runScripts.windows);
+      zip.file('_run.sh', runScripts.unix);
+      
+      // Step 5: Generate README
+      updateProgress(95, '生成说明文档', '创建使用指南...');
+      
+      const readme = generateReadme();
+      zip.file('使用说明.txt', readme);
+      
+      // Step 6: Package zip
+      updateProgress(97, '打包 ZIP', '正在压缩文件...');
+      
+      generatedBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+      
+      updateProgress(100, '完成', '项目包已生成');
+      
+      // Show success
+      setTimeout(() => {
+        progressSection.classList.remove('active');
+        successSection.classList.add('active');
+        
+        const sizeKB = (generatedBlob.size / 1024).toFixed(1);
+        document.getElementById('fileInfo').innerHTML = `
+          <div class="file-info-row">
+            <span class="file-info-label">文件名</span>
+            <span class="file-info-value">${formData.projectName}.zip</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">大小</span>
+            <span class="file-info-value">${sizeKB} KB</span>
+          </div>
+          <div class="file-info-row">
+            <span class="file-info-label">文件数</span>
+            <span class="file-info-value">${neededFiles.length + 3} 个</span>
+          </div>
+        `;
+        
+        // Auto download
+        downloadBlob(generatedBlob, `${formData.projectName}.zip`);
+      }, 500);
+    }
+    
+    // Filter files based on user selection
+    function filterFiles(allFiles) {
+      const needed = [];
+      
+      // Always include bin/ and package.json
+      for (const file of allFiles) {
+        if (file.path.startsWith('bin/') || file.path === 'package.json') {
+          needed.push({ ...file, targetPath: file.path });
+        }
+      }
+      
+      // Template-specific logic
+      if (formData.template === 'clean') {
+        // Backend (注意是复数 backends)
+        const backendPath = `src/scaffolds/backends/${formData.backend}/`;
+        for (const file of allFiles) {
+          if (file.path.startsWith(backendPath)) {
+            needed.push({ ...file, targetPath: file.path });
+          }
+        }
+        
+        // Frontend (注意是复数 frontends)
+        for (const fe of formData.frontend) {
+          const fePath = `src/scaffolds/frontends/${fe}/`;
+          for (const file of allFiles) {
+            if (file.path.startsWith(fePath)) {
+              needed.push({ ...file, targetPath: file.path });
+            }
+          }
+        }
+        
+        // docs/ 和 uploads/
+        for (const file of allFiles) {
+          if (file.path.startsWith('src/scaffolds/docs/') || 
+              file.path.startsWith('src/scaffolds/uploads/')) {
+            needed.push({ ...file, targetPath: file.path });
+          }
+        }
+      } else {
+        // Demo 模板在 demos/<name>/
+        const demoPath = `src/scaffolds/demos/${formData.template}/`;
+        for (const file of allFiles) {
+          if (file.path.startsWith(demoPath)) {
+            needed.push({ ...file, targetPath: file.path });
+          }
+        }
+      }
+      
+      // Skills（注意在 src/skills/ 不是 src/scaffolds/skills/）
+      if (formData.installSkills) {
+        for (const file of allFiles) {
+          if (file.path.startsWith('src/skills/')) {
+            needed.push({ ...file, targetPath: file.path });
+          }
+        }
+      }
+      
+      return needed;
+    }
+    
+    // Download a single file
+    async function downloadFile(file, headers) {
+      const res = await fetch(
+        `${API_BASE}/repos/${GITHUB_REPO}/contents/${file.path}?ref=${GITHUB_BRANCH}`,
+        { headers }
+      );
+      
+      if (!res.ok) {
+        throw new Error(`下载失败: ${file.path}`);
+      }
+      
+      const data = await res.json();
+      
+      // Decode base64
+      const binary = atob(data.content.replace(/\s/g, ''));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      
+      return bytes;
+    }
+    
+    // Generate run scripts
+    function generateRunScripts() {
+      const args = [
+        formData.projectName,
+        `--template ${formData.template}`,
+        formData.template === 'clean' ? `--be ${formData.backend}` : '',
+        formData.template === 'clean' && formData.frontend.length > 0 ? `--fe ${formData.frontend.join(',')}` : '',
+        `--db ${formData.dbName}`,
+        formData.dbPass ? `--db-pass "${formData.dbPass}"` : '',
+        !formData.installSkills ? '--no-skills' : ''
+      ].filter(Boolean).join(' ');
+      
+      const windows = `@echo off
+chcp 65001 >nul
+echo 正在创建项目...
+node bin/cli.js create ${args}
+echo.
+echo 完成！按任意键退出...
+pause >nul
+`;
+      
+      const unix = `#!/bin/bash
+echo "正在创建项目..."
+node bin/cli.js create ${args}
+echo ""
+echo "完成！"
+`;
+      
+      return { windows, unix };
+    }
+    
+    // Generate README
+    function generateReadme() {
+      return `毕业设计脚手架 - 使用说明
+
+项目名称: ${formData.projectName}
+模板: ${formData.template}
+后端: ${formData.backend || '(由模板决定)'}
+前端: ${formData.frontend.join(', ') || '(由模板决定)'}
+数据库: ${formData.dbName}
+Skills: ${formData.installSkills ? '已包含' : '不包含'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+快速开始：
+
+1. 确保已安装 Node.js 18+ (https://nodejs.org)
+
+2. 双击运行：
+   - Windows 用户: 双击 _run.bat
+   - Mac/Linux 用户: 在终端运行 bash _run.sh
+
+3. 或手动执行命令：
+   node bin/cli.js create ${formData.projectName} \\
+     --template ${formData.template} \\
+     ${formData.template === 'clean' ? `--be ${formData.backend} \\` : ''}
+     ${formData.template === 'clean' && formData.frontend.length > 0 ? `--fe ${formData.frontend.join(',')} \\` : ''}
+     --db ${formData.dbName}${formData.dbPass ? ` \\
+     --db-pass "${formData.dbPass}"` : ''}${!formData.installSkills ? ` \\
+     --no-skills` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+生成后的项目结构：
+
+${formData.projectName}/
+  ├── backend/          后端代码
+  ├── frontend/         前端代码（可能有多个）
+  ├── docs/            数据库 SQL 脚本
+  ├── uploads/         上传文件目录
+  ${formData.installSkills ? '├── .agents/skills/  Agent Skills' : ''}
+  └── README.md        项目说明
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+需要帮助？
+
+GitHub: https://github.com/Soulmte/graduation-kit
+Gitee:  https://gitee.com/rain-drops/graduation-kit
+`;
+    }
+    
+    // Update progress UI
+    function updateProgress(percent, title, text) {
+      progressBar.style.width = `${percent}%`;
+      progressTitle.textContent = title;
+      progressText.textContent = text;
+    }
+    
+    // Show error
+    function showError(message) {
+      progressSection.classList.remove('active');
+      errorSection.classList.add('active');
+      document.getElementById('errorMessage').textContent = message;
+    }
+    
+    // Check rate limit
+    function checkRateLimit(headers) {
+      const remaining = headers.get('X-RateLimit-Remaining');
+      const limit = headers.get('X-RateLimit-Limit');
+      
+      if (remaining !== null) {
+        rateLimitText.textContent = `当前剩余请求次数：${remaining} / ${limit}`;
+        
+        if (parseInt(remaining) < 20) {
+          rateLimitEl.classList.add('show');
+        }
+      }
+    }
+    
+    // Download blob as file
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
