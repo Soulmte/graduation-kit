@@ -30,6 +30,11 @@
   "files": [
     "bin",
     "src",
+    "!**/node_modules/**",
+    "!**/unpackage/**",
+    "!**/target/**",
+    "!**/dist/**",
+    "!**/__pycache__/**",
     "install-skills.bat",
     "install-skills.sh",
     "NOTICE.md"

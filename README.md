@@ -132,8 +132,8 @@ A: 手机访问不了 `localhost`，需修改 `config/index.js` 中的 `LAN_HOST
 **Q: 端口被占用？**  
 A: 修改后端配置文件（`.env` 或 `application.yml`）和前端 `.env.development` 中的端口号。
 
-**Q: 升级后还是旧版本？**  
-A: 重装时加 `-f` 参数：`npx graduation-kit install -f`
+**Q: 升级后还是旧版本？**
+A: 重装时加 `-f`：`npx graduation-kit install -f`。内容与包内一致的 skill 会提示“已是同一份，跳过”，想不比对直接强制重拷就用 `--reinstall`。若拉到的仍是旧版，先清 npx 缓存：`npx clear-npx-cache` 或 `npx graduation-kit@latest`。
 
 ## 其他命令
 
@@ -146,6 +146,9 @@ npx graduation-kit install
 
 # 安装到全局（所有项目可用）
 npx graduation-kit install -g
+
+# 忽略内容比对，强制重拷一遍
+npx graduation-kit install -g --reinstall
 
 # 验证项目完整性
 npx graduation-kit verify
