@@ -607,7 +607,7 @@ export async function create(opts, ctx) {
   }
   line(`    docs/${sqlFile}`.padEnd(26) + paint('dim', `库名 ${db.name}`));
   line(`    uploads/`);
-  if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '6 个核心 skill'));
+  if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '6 个核心 skill + 上游增强'));
   line('');
 
   if (interactive && !(await confirm('确认创建', true))) {
@@ -663,7 +663,15 @@ export async function create(opts, ctx) {
 
     if (withSkills) {
       line('');
-      await installSkills({ ...opts, dir: root, global: false, force: true });
+      // withUpstream 必须显式给出：上面已经 closePrompt() 关掉了 readline，
+      // 否则 install() 会再开一个新的去问上游增强，卡在那儿等一个永远不来的输入。
+      await installSkills({
+        ...opts,
+        dir: root,
+        global: false,
+        force: true,
+        withUpstream: true,
+      });
     }
   } catch (err) {
     line('');

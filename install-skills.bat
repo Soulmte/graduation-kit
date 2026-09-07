@@ -34,6 +34,8 @@ set /p "ANSWER=Overwrite existing skills? [Y/n] "
 if /i "!ANSWER!"=="y" set "FORCE=--force"
 if /i "!ANSWER!"=="" set "FORCE=--force"
 echo.
+echo  Skills already identical to the packaged copy are skipped automatically.
+echo.
 
 REM Install with --with-upstream to skip interactive prompt
 if exist "%~dp0bin\cli.js" (

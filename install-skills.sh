@@ -33,18 +33,21 @@ case "${ANSWER:-}" in
   n | N) FORCE="" ;;
 esac
 echo
+echo " 内容与包内一致的 skill 会自动跳过，不会白拷一遍。"
+echo
 
 if [ -f "$HERE/bin/cli.js" ]; then
   echo " 使用本地包安装..."
   echo
   node "$HERE/bin/cli.js" install -g $FORCE --with-upstream
+  STATUS=$?
 else
   echo " 从 npm 安装..."
   echo
   npx -y graduation-kit@latest install -g $FORCE --with-upstream
+  STATUS=$?
 fi
 
-STATUS=$?
 if [ $STATUS -ne 0 ]; then
   echo
   echo " [失败] 安装未完成，请看上面的错误信息。"
