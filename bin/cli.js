@@ -465,7 +465,17 @@ async function install(opts) {
 
   // 版本标记：下次运行 CLI 或 agent 加载 skill 时靠它判断本地是否过期
   if (!counters.failed) {
-    writeManifest(dest, { skills: installedSkills(dest), upstream });
+    // 只记本工具装的 skill；目标目录里可能有别的来源（chakra、find-skills 等）
+    // 全量安装时以本次清单为准，--only 时在已有清单上追加
+    const previous = explicit ? readManifest(dest)?.skills || [] : [];
+    const managed = [
+      ...new Set([
+        ...previous,
+        ...core,
+        ...upstream.filter((id) => UPSTREAM.find((u) => u.id === id)?.kind === 'skill'),
+      ]),
+    ].filter((id) => existsSync(join(dest, id, 'SKILL.md')));
+    writeManifest(dest, { skills: managed, upstream });
   }
 
   // 收尾再数一遍目录，确认确实落在盘上，而不是只打印了一堆钩
