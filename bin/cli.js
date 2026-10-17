@@ -10,7 +10,7 @@ if (major < 18) {
   process.exit(1);
 }
 
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, cpSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, cpSync, readFileSync, copyFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join, dirname, resolve, relative, sep } from 'node:path';
@@ -289,6 +289,17 @@ async function install(opts) {
     warn('未安装 graduation-project，vendor 资源无处存放，已跳过');
   }
 
+  // 触发路由表：agent 先读它再决定加载哪个 skill，随核心 skill 一起落到目标根目录
+  const triggerFiles = ['triggers.yaml', 'triggers.scenes.yaml'];
+  if (core.length || upstream.length) {
+    for (const name of triggerFiles) {
+      const from = join(SRC_SKILLS, name);
+      if (!existsSync(from)) continue;
+      copyFileSync(from, join(dest, name));
+    }
+    info(`${paint('dim', '=')} triggers.yaml ${paint('dim', '触发路由表已就位')}`);
+  }
+
   // 收尾再数一遍目录，确认确实落在盘上，而不是只打印了一堆钩
   const landed = existsSync(dest)
     ? readdirSync(dest).filter(
@@ -356,6 +367,18 @@ function uninstall(opts) {
     }
   }
   info(`移除 ${n} 个。`);
+  // 一个 skill 都不剩时，触发路由表也没用了，别留个悬空的 yaml
+  const left = existsSync(dest)
+    ? readdirSync(dest).filter((x) => statSync(join(dest, x)).isDirectory())
+    : [];
+  if (!left.length) {
+    for (const name of ['triggers.yaml', 'triggers.scenes.yaml']) {
+      const table = join(dest, name);
+      if (!existsSync(table)) continue;
+      rmSync(table, { force: true });
+      info(paint('dim', `${name} 一并移除。`));
+    }
+  }
 }
 
 /** 校验每个 skill 的 frontmatter 是否符合规范 */
@@ -364,12 +387,14 @@ function doctor() {
   let bad = 0;
   for (const dir of listSkills()) {
     const file = join(SRC_SKILLS, dir, 'SKILL.md');
+    const text = readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
     const fm = readFrontmatter(file);
     if (!fm) {
       fail(`${dir}：缺 frontmatter`);
       bad++;
       continue;
     }
+    const fmBlock = (text.match(/^---\n([\s\S]*?)\n---/) || [, ''])[1];
     const errs = [];
     if (!fm.name) errs.push('缺 name');
     else if (fm.name !== dir) errs.push(`name “${fm.name}” 与目录名不一致`);
@@ -377,6 +402,8 @@ function doctor() {
     if (!fm.description) errs.push('缺 description');
     else if (fm.description.length > 1024) errs.push('description 超 1024 字符');
     else if (fm.description.length < 40) errs.push(`description 仅 ${fm.description.length} 字符，触发信号太弱`);
+    if (!/^triggers:\s*triggers\.yaml\s*$/m.test(fmBlock)) errs.push('缺 triggers 指针');
+    if (!/^priority:\s*\d+\s*$/m.test(fmBlock)) errs.push('缺 priority');
 
     if (errs.length) {
       fail(`${dir}：${errs.join('；')}`);
@@ -385,6 +412,35 @@ function doctor() {
       ok(`${dir}（description ${fm.description.length} 字符）`);
     }
   }
+
+  // 触发路由表必须覆盖所有 skill，否则新加的 skill 不会被关键词唤起
+  const table = join(SRC_SKILLS, 'triggers.yaml');
+  const scenes = join(SRC_SKILLS, 'triggers.scenes.yaml');
+  if (!existsSync(table)) {
+    fail('triggers.yaml：缺触发路由表');
+    bad++;
+  } else {
+    const ids = [...readFileSync(table, 'utf8').matchAll(/^  - id: ([a-z0-9-]+)\s*$/gm)].map((m) => m[1]);
+    const dirs = listSkills();
+    const missing = dirs.filter((d) => !ids.includes(d));
+    const extra = ids.filter((i) => !dirs.includes(i));
+    if (missing.length) {
+      fail(`triggers.yaml 未登记：${missing.join('、')}`);
+      bad += missing.length;
+    }
+    if (extra.length) {
+      fail(`triggers.yaml 引用了不存在的 skill：${extra.join('、')}`);
+      bad += extra.length;
+    }
+    if (!missing.length && !extra.length) ok(`triggers.yaml（覆盖 ${ids.length} 个 skill）`);
+  }
+  if (!existsSync(scenes)) {
+    fail('triggers.scenes.yaml：缺详细场景文件');
+    bad++;
+  } else {
+    ok('triggers.scenes.yaml（按需加载）');
+  }
+
   info('');
   if (bad) {
     fail(`${bad} 个问题。`);

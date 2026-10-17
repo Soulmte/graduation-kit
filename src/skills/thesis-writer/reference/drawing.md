@@ -1,8 +1,42 @@
 # 绘图系统说明
 
-论文插图统一由 `reference/examples/` 下的绘图系统产出。三层结构，**改图只动数据层**。
+论文插图统一由本 skill 自带的绘图模板产出。三层结构，**改图只动数据层**。
 
-## 目录结构
+---
+
+## 0. 工作目录（第一步，硬性规则）
+
+**禁止直接编辑 skill 目录里的文件。** `.agents/skills/thesis-writer/reference/examples/`
+是只读模板，升级 skill 时会被整目录覆盖，改在那里等于白改。
+
+第一次画图前，先把模板复制到项目工作目录：
+
+```bash
+node .agents/skills/thesis-writer/reference/copy-template.mjs
+# 默认复制到 <项目根>/docs/thesis/figure-kit/
+```
+
+也可以指定目录：`node .agents/skills/thesis-writer/reference/copy-template.mjs docs/figs`。
+
+之后所有操作都在工作副本里：
+
+```bash
+cd docs/thesis/figure-kit
+node verify.js && node verify-editor.js && node audit.js
+```
+
+| 目录 | 性质 | 能不能改 |
+|---|---|---|
+| `.agents/skills/thesis-writer/reference/examples/` | 模板源 | **只读，永远不改** |
+| `docs/thesis/figure-kit/` | 工作副本 | **所有编辑都在这里** |
+| `docs/thesis/images/` | 导出成品 | 只放导出的 PNG / SVG |
+
+**升级 skill 后同步引擎**：重跑 `copy-template.mjs --force`，会刷新引擎、编辑器与校验脚本，
+并保留你已经改过的 `data/`。只有想推倒重画时才加 `--reset-data`。
+
+---
+
+## 目录结构（模板长什么样）
 
 ```
 reference/examples/
@@ -30,6 +64,8 @@ reference/examples/
 - 画布内无图标题、无图注，标题交给正文
 
 ## 新增或修改一张图
+
+以下路径都指**工作副本** `docs/thesis/figure-kit/`：
 
 1. 在 `data/` 新建或编辑数据文件，写 `nodes` 与 `links`
 2. 在 `editor.html` 的 script 列表里注册新文件
@@ -174,7 +210,7 @@ DIAGRAMS['图id'] = {
 | `verify-editor.js` | 编辑器交互（拖拽、对齐分布、撤销重做、增删复制、拖箭头端点）是否真的写回 `spec` | 改 `editor.js` 或 `engine/` |
 | `audit.js` | 声明式覆盖率，列出每张图的节点数/连线数，检出 `custom()` 钩子 | 新增图后 |
 
-在 `reference/examples/` 目录下执行：
+在工作副本 `docs/thesis/figure-kit/` 目录下执行：
 
 ```bash
 node verify.js && node verify-editor.js && node audit.js
@@ -201,6 +237,13 @@ node verify.js && node verify-editor.js && node audit.js
 - [ ] 导出文件名与正文引用一致
 
 ## 常见问题
+
+**可以图省事直接改 `.agents/skills/thesis-writer/reference/examples/data/` 吗？**
+→ 不行。那是只读模板，下次升级 skill 会被覆盖。先跑 `copy-template.mjs` 复制到
+`docs/thesis/figure-kit/`，在那里改。
+
+**工作副本里的引擎更新了，我的图会丢吗？**
+→ 不会。`copy-template.mjs --force` 只刷新引擎与校验脚本，`data/` 里已有的文件一律不覆盖。
 
 **新建的图在编辑器里看不到？**
 → 忘了在 `editor.html` 的 script 列表里注册。`data/` 里放了文件不等于会被加载。

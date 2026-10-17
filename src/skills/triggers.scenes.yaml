@@ -1,0 +1,153 @@
+# graduation-kit 详细触发场景（按需读取）
+#
+# 只在以下情况读本文件：
+#   - 用户的话同时命中两个 skill，triggers.yaml 的 conflicts 不足以裁决
+#   - 命中 graduation-project 后需要知道当前阶段该调哪个子 skill
+#   - 用户描述很模糊，需要借场景举例反过来追问
+# 其余情况只读 triggers.yaml 即可，不要预读本文件。
+
+version: 2
+parent: triggers.yaml
+
+scenes:
+  - id: graduation-project
+    scenes:
+      - id: bootstrap
+        name: 从零开工
+        when: 用户给了题目或功能描述，没有现成代码，或刚用 create 生成完项目
+        then: 读 SKILL.md §2，进入阶段 1 需求确认；先调 feature-forge，不要直接写代码
+      - id: resume
+        name: 已有代码继续开发
+        when: 用户说“继续做”“加个 XX 模块”“后端写完了该前端了”
+        then: 定位当前阶段，只补缺的产物，不重跑已完成阶段
+      - id: scaffold
+        name: 脚手架改造
+        when: 用户要换技术栈、改目录结构、改统一返回格式、加全局能力
+        then: 读 SKILL.md §1.5 与 code-standards.md；改动前先确认影响范围
+      - id: defense
+        name: 答辩前总检
+        when: 用户说“答辩前看看”“导师要检查”“代码有没有硬伤”
+        then: 调 code-reviewer 全量审查 + self-check.md 九项自检
+    handoff:
+      - 阶段 1 需求访谈 → feature-forge
+      - 阶段 1 建表 → database-designer
+      - 阶段 1 接口清单 → api-designer
+      - 阶段 1.5 前端风格 → impeccable / vendor/style-integration.md
+      - 阶段 2 每模块完成 → code-reviewer
+      - 代码完成写论文 → thesis-writer
+
+  - id: thesis-writer
+    scenes:
+      - id: full-thesis
+        name: 整篇论文
+        when: 代码已完成，用户说“帮我写论文”但没给章节清单
+        then: 按默认 8 章 + 致谢推进；先建 docs/thesis/ 再动笔
+      - id: single-section
+        name: 单章或单节
+        when: 用户说“写第四章”“补一下需求分析”“摘要重写”
+        then: 只读目标章节需要的代码与表结构；写完自查该章再交付
+      - id: rewrite
+        name: 润色降重
+        when: 用户说“这段太 AI 了”“查重率高”“改得学术一点”
+        then: 按写作风格约束改写，不新增事实、不改技术栈
+      - id: drawing
+        name: 论文配图
+        when: 用户要架构图、ER 图、用例图、流程图、时序图、模块图、技术栈图、性能图
+        then: 先跑 copy-template.mjs 复制模板；所有编辑只在 docs/thesis/figure-kit/ 内进行
+      - id: convert
+        name: 转 Word
+        when: 用户说“生成 Word”“导出 docx”“排版”
+        then: 读 SKILL.md Step 3/4；只排图注，不自动嵌图
+    handoff:
+      - 需要新表 DDL 或数据字典 → database-designer
+      - 需要接口清单 → api-designer
+
+  - id: feature-forge
+    scenes:
+      - id: vague-topic
+        name: 题目宽泛
+        when: 只有一句题目，没有角色、没有功能边界
+        then: 按 §2 需求访谈逐项提问；一次只问一组，不要一口气列 20 个问题
+      - id: scope-cut
+        name: 砍到可交付
+        when: 功能列了一堆，用户担心做不完或答辩被问
+        then: 按 §4 优先级排序，标出必做/加分/砍掉，并给工作量估算
+      - id: confirm
+        name: 产出确认单
+        when: 需求聊清楚了，准备进建表
+        then: 输出《需求确认单》，等用户确认后再交给 database-designer
+
+  - id: database-designer
+    scenes:
+      - id: new-module
+        name: 新模块建表
+        when: 需求确认单里出现了新实体
+        then: 按 §1 模板出 DDL，追加到 docs/scaffold_db.sql；字段命名对齐现有三表
+      - id: migrate
+        name: 改表
+        when: 用户要加字段、改类型、加索引
+        then: 先判断是否影响存量数据与接口，给出 ALTER 和回滚方案
+      - id: thesis-chapter
+        name: 论文数据库章节
+        when: 用户要数据字典或数据库设计说明
+        then: 按 §6 输出可搬进论文的表格；ER 图交给 thesis-writer
+
+  - id: api-designer
+    scenes:
+      - id: new-api
+        name: 新模块接口
+        when: 表已定，准备写后端
+        then: 按 §4 输出接口清单：方法、路径、入参、出参、权限；路径与前端 API 文件逐字对齐
+      - id: contract
+        name: 统一协议
+        when: 用户问返回结构、分页、错误码怎么统一
+        then: 按 §1 协议说明，以脚手架现有实现为准，不要另起一套
+      - id: debug
+        name: 联调报错
+        when: 前端拿不到数据、字段名不一致、401/403
+        then: 先比对路径与字段，再看鉴权；只改不一致处
+
+  - id: code-reviewer
+    scenes:
+      - id: after-module
+        name: 模块完成后
+        when: graduation-project 刚生成完一个模块
+        then: 自动审查并按严重程度分级；有高危问题先修再进下一模块
+      - id: user-paste
+        name: 用户贴代码
+        when: 用户直接贴一段代码问“这样写行吗”
+        then: 只审贴出的范围，不扩大到整个项目
+      - id: pre-defense
+        name: 答辩前
+        when: 用户说答辩前过一遍
+        then: 全量审查安全、事务、越权、边界、日志，输出可逐条勾选的清单
+
+  - id: impeccable
+    scenes:
+      - id: style-pick
+        name: 风格选型
+        when: 阶段 1.5，项目还没有统一设计语言
+        then: 先定色板、字号、间距、圆角四组令牌，再落到页面
+      - id: polish
+        name: 页面打磨
+        when: 功能已通，但页面像脚手架默认样式
+        then: 按信息层级重排，不改变业务逻辑与接口
+      - id: complaint
+        name: 用户抱怨难看
+        when: 用户说“太乱”“没样式”“有色差”
+        then: 先确认是单个页面还是全局；全局问题优先改令牌，避免逐页打补丁
+
+conflicts:
+  - pair: [graduation-project, thesis-writer]
+    rule: 看宾语。写代码/做系统/加模块 → graduation-project；写章节/摘要/画图/转 Word → thesis-writer。
+  - pair: [feature-forge, database-designer]
+    rule: 需求没定只走 feature-forge，不要提前建表；确认单产出后才进建表。
+  - pair: [database-designer, api-designer]
+    rule: 表结构先定，接口后定；同时命中时按 database → api 串行。
+  - pair: [impeccable, graduation-project]
+    rule: 页面还不存在先走 graduation-project；页面能跑但难看才走 impeccable。
+  - pair: [code-reviewer, graduation-project]
+    rule: 审查不替代开发；审查出问题后回当前阶段修，不另起流程。
+
+notes:
+  - thesis-writer 有两条子路径：写作走 SKILL.md 工作流；绘图必须先复制模板到 docs/thesis/figure-kit/，再在工作副本里改。

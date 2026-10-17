@@ -1,11 +1,20 @@
 ---
 name: thesis-writer
-description: 本科毕业论文全流程自动化：写章节正文、生成摘要、绘制论文插图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、禁写参考文献与目录）、写作风格约束（禁用词黑名单、句长上限、被动率上限）和一套带校验的 Canvas 绘图系统。
+description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、生成摘要、绘制论文插图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、禁写参考文献与目录）、写作风格约束（禁用词黑名单、句长上限、被动率上限）和一套带校验的 Canvas 绘图系统。
+priority: 90
+triggers: triggers.yaml
 ---
 
 # thesis-writer v2.0
 
 本科毕业论文写作专用 skill，配套本项目（6 后端 + 6 前端多技术栈脚手架）。
+
+> **适用范围**：仅用于本科毕业论文或毕设项目。其他项目不要使用本 skill。
+> 触发：写论文 / 写第X章 / 写摘要 / 改措辞降 AI 味 / 画论文配图 / 转 Word。
+> 不触发：写业务代码、改数据库表、设计接口、前端样式调整。
+> 关键词与冲突裁决见 `../triggers.yaml`。
+>
+> **绘图前必须先把模板复制到工作目录**，不要直接改 skill 目录里的文件，见下方「绘图规范」与 `reference/drawing.md`。
 
 ---
 
@@ -32,11 +41,18 @@ description: 本科毕业论文全流程自动化：写章节正文、生成摘�
 
 ```
 docs/thesis/
-└── images/    ← 导出的 PNG / SVG 插图
+├── images/        ← 导出的 PNG / SVG 插图
+└── figure-kit/    ← 绘图工作副本（从 skill 模板复制，所有改图都在这里）
 ```
 
-绘图的数据源文件不放在这里，它们住在 skill 自己的
-`reference/examples/data/` 里，`docs/thesis/` 下只收最终导出的图片。
+**绘图工作副本必须先复制，不能直接改 skill 目录：**
+
+```bash
+node .agents/skills/thesis-writer/reference/copy-template.mjs
+```
+
+复制一次就够。之后重跑加 `--force` 只刷新引擎与校验脚本，已改的 `data/` 不会丢。
+`docs/thesis/` 下只收最终导出的图片，数据源文件住在 `figure-kit/data/`。
 
 ### Step 2：按章节生成（每章一个文件）
 
@@ -106,7 +122,7 @@ python .agents/skills/thesis-writer/convert/convert_to_docx.py docs/thesis/full.
 
 ### 插图配额
 
-`reference/examples/data/` 下有 **14 个现成数据文件**，覆盖 9 种图型。按你论文实际需要挑，不是全都要画。
+工作副本 `docs/thesis/figure-kit/data/` 下有 **14 个现成数据文件**，覆盖 9 种图型。按你论文实际需要挑，不是全都要画。
 
 | 数据文件 | 图型 | 建议章节 | 是否必画 |
 |---|---|---|---|
@@ -289,11 +305,20 @@ keywords: keyword1; keyword2; keyword3; keyword4; keyword5
 
 ## 绘图规范（速查）
 
-插图由 `reference/examples/` 下的绘图系统产出。**动任何绘图文件前先读 `reference/drawing.md`**，那里有完整的字段契约、形状表与已知局限。
+**硬性第一步：先把模板复制到工作目录，不要直接改 skill 目录。**
+
+```bash
+node .agents/skills/thesis-writer/reference/copy-template.mjs
+cd docs/thesis/figure-kit
+```
+
+`.agents/skills/thesis-writer/reference/examples/` 是只读模板，升级 skill 时会被覆盖。
+所有改图、跑校验、导出都在 `docs/thesis/figure-kit/` 里做。
+完整字段契约、形状表与已知局限见 `reference/drawing.md`。
 
 ### 三层结构，改图只动数据层
 
-| 层 | 文件 | 能不能改 |
+| 层 | 文件（工作副本内） | 能不能改 |
 |---|---|---|
 | 编辑器 | `editor.html` / `editor.js` | 不改，浏览器打开即用 |
 | 引擎 | `engine/` 六个文件 | **不要改** |
@@ -308,6 +333,8 @@ keywords: keyword1; keyword2; keyword3; keyword4; keyword5
 4. **画布内不写图标题、不写图注**，标题交给正文的图注段落
 
 ### 新增或修改一张图
+
+以下路径都指工作副本 `docs/thesis/figure-kit/`：
 
 1. 在 `data/` 新建或编辑数据文件，写 `nodes` 与 `links`
 2. 在 `editor.html` 的 script 列表里注册新文件（**漏了这步图不会出现在编辑器里**）
@@ -334,7 +361,7 @@ keywords: keyword1; keyword2; keyword3; keyword4; keyword5
 → 逐项走一遍 §写作风格 的自检表，≥ 2 项不合格就重写。
 
 **Q: 关键流程图具体怎么画？**
-→ 照着 `reference/examples/data/08-flowchart.js` 改，它是三列布局（主流程前半、后半、异常通道）的现成范例。
+→ 照着工作副本 `docs/thesis/figure-kit/data/08-flowchart.js` 改，它是三列布局（主流程前半、后半、异常通道）的现成范例。
 
 **Q: 转换出来的 Word 里没有图片？**
 → 这是预期行为。脚本只排图注文字，图片由用户在 Word 里手动插到图注上方（见 Step 4）。不要改脚本。
@@ -429,21 +456,24 @@ keywords: keyword1; keyword2; keyword3; keyword4; keyword5
 │   └── requirements.txt        ← Python 依赖
 └── reference/
     ├── drawing.md              ← 绘图字段契约与已知局限
-    └── examples/               ← 绘图系统（引擎 + 14 张图的数据文件 + 校验）
+    ├── copy-template.mjs       ← 把绘图模板复制到工作目录
+    └── examples/               ← 只读模板（引擎 + 14 张图数据 + 校验）
 ```
 
-写论文只需读 SKILL.md。**动绘图代码前先读 `reference/drawing.md`。**
+工作副本在项目里：`docs/thesis/figure-kit/`，结构与 `examples/` 一致。
+
+写论文只需读 SKILL.md。**动手画图前先读 `reference/drawing.md`，并先把模板复制到工作目录。**
 
 ---
 ## 给 AI 的最后叮嘱
 
-1. **写正文只需读本文件**。所有格式与风格规则已嵌入；但**动绘图代码前必须先读 `reference/drawing.md`**
+1. **写正文只需读本文件**。所有格式与风格规则已嵌入；但**画图前必须先读 `reference/drawing.md`，并先复制模板到工作目录**
 2. **先确认目录再动笔**。`docs/thesis/` 和 `docs/thesis/images/` 不存在就先创建
 3. **按顺序写**。从摘要开始，到致谢结束，别跳章
 4. **写完一章自查一章**。走完自检表再进入下一章
 5. **摘要必须带 frontmatter**（`type: abstract_cn` / `abstract_en` + `keywords`），否则排版不对
 6. **正文里不能出现单独一行的 `---`**，转换脚本拿它当章节分隔符
-7. **画图只改 `reference/examples/data/` 下的数据文件**，改完跑 `node verify.js`，必须全绿
+7. **画图前先复制模板**：`node .agents/skills/thesis-writer/reference/copy-template.mjs`，之后只改工作副本 `docs/thesis/figure-kit/data/` 下的文件，改完跑 `node verify.js`，必须全绿。**不要改 skill 目录里的模板**
 8. **不要改转换脚本去自动插图**。图片由用户在 Word 里手动插到图注上方，你只负责保证图注文字与 `images/` 下文件名逐字一致
 9. **字数不是越多越好**。本科论文 12000-20000，超了就压缩
 10. **所有章节完成后自动运行转换脚本**，并告知用户共有多少张图待插

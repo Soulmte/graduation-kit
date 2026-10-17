@@ -118,6 +118,61 @@ npx graduation-kit create rent-agent --template agent --db agent_db
 
 安装后新建 Agent 会话，直接说需求即可（如"我毕设题目是图书馆管理系统，帮我开工"）。
 
+### 关键词触发（按需加载）
+
+技能不会一上来就全加载。安装时会在 `.agents/skills/` 下落两张表：
+
+| 文件 | 体积 | 什么时候读 |
+|---|---|---|
+| `triggers.yaml` | 约 1.4k tokens | 进入毕设流程时读一次，决定加载哪个 skill |
+| `triggers.scenes.yaml` | 约 2.1k tokens | 只在两个 skill 拿不准时才读 |
+
+常驻开销不变：编辑器只把每个 skill 的 `name` + `description` 放进上下文，
+触发词不堆在 frontmatter 里，避免重复占 token。
+
+- 强关键词命中 1 个即激活；弱关键词需命中 2 个，或配合“毕设/论文”等领域词
+- `not_for` 命中时一律不激活，比如“写论文”不会拉起 `graduation-project`
+- 多个 skill 同时命中时按 `priority` 串行，不一次性读完整套
+
+比如同是“毕设”两个字：说“帮我开工/加个模块”走 `graduation-project`；
+说“写第三章/画 ER 图”走 `thesis-writer`；说“界面太乱”走 `impeccable`。
+
+### 会影响其他项目吗？
+
+**全局安装（`-g`）会影响。** 装到 `~/.agents/skills/` 后，所有项目都能看到这几个 skill 的
+`description`，agent 可能误选。目前做了两层**软隔离**：
+
+- 6 个毕设专用 skill 的 `description` 开头声明“仅用于毕业设计项目，非毕设项目不要加载”
+- `triggers.yaml` 的 `scope` 门禁要求先判断项目类型，判断不了先问
+
+但这是提示，不是强制。**要硬隔离，二选一：**
+
+```bash
+# 方式一（推荐）：从全局移除，只装进毕设项目
+npx graduation-kit uninstall -g
+npx graduation-kit install -d D:/my-graduation-project
+
+# 方式二：只装不会误触发的通用能力
+npx graduation-kit install -g --only impeccable
+```
+
+默认的 `install`（不带 `-g`）就是**项目级**，装进 `<项目>/.agents/skills/`，
+其他项目看不到。`install-skills.bat` / `install-skills.sh` 带的是 `-g`，
+图省事方便，代价就是全局可见。
+
+`impeccable` 是通用前端设计 skill，不属于毕设专用，装全局不会影响其他项目。
+
+### 绘图模板先复制再用
+
+`thesis-writer` 里的绘图模板是只读的。画图前先复制到项目工作目录：
+
+```bash
+node .agents/skills/thesis-writer/reference/copy-template.mjs
+# → docs/thesis/figure-kit/
+```
+
+所有改图、跑校验、导出都在 `figure-kit/` 里做，升级 skill 不会冲掉你的图。
+
 ## 常见问题
 
 **Q: 启动后端报数据库连接失败？**  

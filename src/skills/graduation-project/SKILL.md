@@ -1,6 +1,9 @@
 ---
 name: graduation-project
-description: 毕业设计全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 6 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。
+description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 6 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。
+priority: 100
+auto_invoke: true
+triggers: triggers.yaml
 ---
 
 # graduation-project
@@ -11,12 +14,33 @@ description: 毕业设计全流程开发编排 skill。用户说做毕设、开�
 
 ## 0. 什么时候激活本 skill
 
-以下任一信号出现时自动加载：
+触发规则以 `.agents/skills/triggers.yaml` 为准，本 skill 只负责编排，不负责抢活。
 
-- 用户明确说"做毕设"、"开发毕业设计"、"写毕业设计代码"
+**范围校验（先于关键词）**：满足以下任一条件才激活，两个都不满足时先问一句：
+
+- 用户明确提到毕设、毕业设计、开题、答辩、论文
+- 项目根目录存在 `docs/scaffold_db.sql` 或 `需求确认单.md`
+
+**命中即激活（strong 关键词，命中一个就够）**：
+
+- 用户明确说"做毕设"、"开发毕业设计"、"写毕设代码"、"帮我开工"
 - 用户提供了毕设题目，要求基于脚手架开发
-- 用户提到脚手架改造、答辩前代码检查、毕设进度规划
-- 用户提到"毕业设计/毕设/毕业论文+代码"等上下文词
+- 用户提到脚手架改造、毕设进度规划、答辩前总检
+
+**不激活，转给更专的 skill**：
+
+| 用户说的 | 转给 |
+|---|---|
+| 只讨论题目、功能边界、工作量 | `feature-forge` |
+| 只要一张建表 SQL / 加字段 / 加索引 | `database-designer` |
+| 只问一个接口的路径与返回结构 | `api-designer` |
+| 只让审查一段代码 | `code-reviewer` |
+| 写章节、摘要、论文配图、转 Word | `thesis-writer` |
+
+**加载节奏**：先读本文件，按 §2 定位阶段，再按 `triggers.yaml` 的 `phase_map` 调对应子 skill。**不要一次把 7 个 SKILL.md 全读进来。**
+
+**成本约定**：`triggers.yaml` 约 1.4k tokens，是每次进入毕设流程都会读的唯一触发文件；
+详细场景在 `triggers.scenes.yaml`，**只在两个 skill 拿不准时**才读，不要预读。
 
 ---
 

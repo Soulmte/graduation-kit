@@ -48,11 +48,12 @@ npx github:Soulmte/graduation-kit install --only thesis-writer  # 只装写论�
 │   └── requirements.txt        ← Python 依赖
 └── reference/
     ├── drawing.md              ← 绘图字段契约与已知局限
-    └── examples/               ← 绘图系统
+    ├── copy-template.mjs       ← 把绘图模板复制到工作目录
+    └── examples/               ← 只读模板（不要直接改）
         ├── editor.html         ← 可视化编辑器（浏览器打开即用）
         ├── editor.js
         ├── engine/             ← 绘图引擎（6 个模块，不要改）
-        ├── data/               ← 14 张图的纯数据文件（改图只动这里）
+        ├── data/               ← 14 张图的纯数据文件模板
         ├── package.json        ← 只有一行 type: commonjs，**不要删**
         ├── verify.js           ← 渲染 + 贴边 + 穿插 + 字号字距 + 遮罩校验
         ├── verify-editor.js    ← 编辑器交互无头测试
@@ -71,6 +72,7 @@ docs/thesis/
 ├── 致谢.md
 ├── full.md                    ← 合并后的完整论文，转换脚本的输入
 ├── 毕业论文.docx              ← 转换输出，图位置留空待手动插图
+├── figure-kit/                ← 绘图工作副本（从模板复制）
 └── images/                    ← 从编辑器导出的 PNG / SVG
 ```
 
@@ -79,16 +81,27 @@ docs/thesis/
 
 ## 绘图系统
 
-三层架构：**引擎**负责画，**数据文件**负责定点和内容，**编辑器**负责微调。
-
-改图只需编辑 `reference/examples/data/` 下的数据文件，然后跑校验：
+**第一步永远是复制模板到工作目录，不要改 skill 目录。** skill 里的 `reference/examples/`
+是只读模板，升级 skill 时会被整目录覆盖。
 
 ```bash
-cd .agents/skills/thesis-writer/reference/examples
+node .agents/skills/thesis-writer/reference/copy-template.mjs
+# → docs/thesis/figure-kit/
+```
+
+三层架构：**引擎**负责画，**数据文件**负责定点和内容，**编辑器**负责微调。
+
+改图只需编辑工作副本 `docs/thesis/figure-kit/data/` 下的数据文件，然后跑校验：
+
+```bash
+cd docs/thesis/figure-kit
 node verify.js          # 必须全绿
 node verify-editor.js
 node audit.js
 ```
+
+升级 skill 后同步引擎：重跑 `copy-template.mjs --force`，会刷新引擎与校验脚本，
+但保留你改过的 `data/`；想推倒重画才加 `--reset-data`。
 
 `verify.js` 把关五类问题：连线端点是否紧贴元素边界、带 `offset` 和各种 `side`
 组合时是否仍贴边、连线是否穿过无关节点、改字号时行距与字距是否跟着缩放、

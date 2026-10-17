@@ -70,6 +70,10 @@ echo  ==========================================
 echo.
 echo  Location: %USERPROFILE%\.agents\skills\
 echo.
+echo  Note: a global install is visible to EVERY project.
+echo  To use these skills in one graduation project only:
+echo    npx graduation-kit install -d ^<project-dir^>
+echo.
 echo  Please restart your editor (Zed / Cursor / VS Code)
 echo  and start a new session to load the skills.
 echo.

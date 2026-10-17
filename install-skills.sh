@@ -69,5 +69,8 @@ echo " =========================================="
 echo
 echo " 安装位置：$HOME/.agents/skills/"
 echo
+echo " 提示：全局安装对所有项目可见。只想给当前毕设项目用："
+echo "   npx graduation-kit install -d <毕设项目目录>"
+echo
 echo " 新开一个 agent 会话即可加载这些 skills（不需要重启编辑器）。"
 echo
