@@ -49,6 +49,10 @@ npx github:Soulmte/graduation-kit install --only thesis-writer  # 只装写论�
 └── reference/
     ├── drawing.md              ← 绘图字段契约与已知局限
     ├── copy-template.mjs       ← 把绘图模板复制到工作目录
+    ├── screenshot.mjs          ← 系统页面自动截图
+    ├── screenshots.example.json← 截图配置模板
+    ├── citation-policy.md      ← 引用与参考文献规范
+    ├── check-refs.mjs          ← 引用校验
     └── examples/               ← 只读模板（不要直接改）
         ├── editor.html         ← 可视化编辑器（浏览器打开即用）
         ├── editor.js
@@ -69,15 +73,18 @@ docs/thesis/
 ├── 00-摘要.md                 ← 必须用 frontmatter，见 SKILL.md
 ├── 01-绪论.md
 ├── ...
+├── 08-参考文献.md             ← 由 refs-source.json 生成
 ├── 致谢.md
 ├── full.md                    ← 合并后的完整论文，转换脚本的输入
-├── 毕业论文.docx              ← 转换输出，图位置留空待手动插图
+├── 毕业论文.docx              ← 转换输出，图片已自动嵌入
+├── refs-source.json           ← 文献证据（原文摘录、链接、译名）
+├── screenshots.json           ← 系统截图配置
 ├── figure-kit/                ← 绘图工作副本（从模板复制）
-└── images/                    ← 从编辑器导出的 PNG / SVG
+└── images/                    ← 插图与截图
 ```
 
-图片不会被脚本嵌进 docx。脚本只把 `![图4-1 xxx](images/...)` 排成一行合规图注，
-图由你在 Word 里插到图注上方。这是故意的设计，不要让 AI 去改脚本。
+图片会被自动嵌入 docx：转换器按版心宽度 14.5cm 等比缩放并居中，
+图注排在图片下方。找不到图片时会在原位留下红色 `[图片缺失: 路径]`。
 
 ## 绘图系统
 
@@ -123,6 +130,31 @@ node audit.js
 
 字段契约、形状表、位置绑定语义与已知局限见 `reference/drawing.md`。
 
+## 参考文献
+
+先建 `docs/thesis/refs-source.json`，每条文献记录：编号、语种、作者、标题、期刊/会议、
+年份、链接或 DOI、原文摘录 `quote`；英文文献还要有中文译名 `titleZh`。
+然后按 `reference/citation-policy.md` 写正文与 `08-参考文献.md`，最后校验：
+
+```bash
+node .agents/skills/thesis-writer/reference/check-refs.mjs docs/thesis
+```
+
+规则要点：近五年、英文必选、每条只引一次、一句话只引一条、编号默认从小到大。
+
+## 系统截图
+
+启动前端后：
+
+```bash
+npm i -D puppeteer-core
+cp .agents/skills/thesis-writer/reference/screenshots.example.json docs/thesis/screenshots.json
+node .agents/skills/thesis-writer/reference/screenshot.mjs --config docs/thesis/screenshots.json
+```
+
+复用本机 Chrome/Edge，不下载浏览器；默认 2 倍像素密度，插入 Word 后仍然清晰。
+本脚手架登录页有客户端验证码，配置里用 `login.mode: "api"` 直接调登录接口注入 token。
+
 ## 转换脚本
 
 ```bash
@@ -134,7 +166,8 @@ python .agents/skills/thesis-writer/convert/convert_to_docx.py \
 
 ## 核心规则摘要
 
-- **不写参考文献**：没有 [1][2] 引用标记，没有参考文献章节
+- **参考文献可追溯**：近五年；英文必选并附中文译名；每条有原文摘录与链接；正文 `[n]` 标注
+- **每条文献只引一次**，一句话只引一条，编号默认从小到大（可改 `desc`）
 - **不写目录**：Word 自动生成
 - **摘要必须用 frontmatter**：`type: abstract_cn` / `abstract_en` + `keywords`，
   写成普通的 `## 摘要` 会走错流程导致排版不对

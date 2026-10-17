@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "触发路由的回归用例。改 triggers.yaml 或 description 后必须重跑 npm run eval。",
+  "cases": [
+    { "prompt": "我毕设题目是图书馆管理系统，帮我开工", "expect": "graduation-project" },
+    { "prompt": "继续做这个模块，后端写完了", "expect": "graduation-project" },
+    { "prompt": "不知道毕设做什么，题目太宽泛", "expect": "feature-forge" },
+    { "prompt": "帮我做需求分析，列一下功能清单", "expect": "feature-forge" },
+    { "prompt": "工作量够不够，功能太多了要不要砍", "expect": "feature-forge" },
+    { "prompt": "帮我设计一下数据库，要建表", "expect": "database-designer" },
+    { "prompt": "给订单表加个索引", "expect": "database-designer" },
+    { "prompt": "这个模块加个接口，返回结构怎么统一", "expect": "api-designer" },
+    { "prompt": "接口文档写一下，分页怎么写", "expect": "api-designer" },
+    { "prompt": "帮我审查一下这段代码", "expect": "code-reviewer" },
+    { "prompt": "代码质量怎么样，导师会不会挑刺", "expect": "code-reviewer" },
+    { "prompt": "答辩前帮我检查代码", "expect": "code-reviewer" },
+    { "prompt": "写第三章需求分析", "expect": "thesis-writer" },
+    { "prompt": "写摘要", "expect": "thesis-writer" },
+    { "prompt": "画 ER 图", "expect": "thesis-writer" },
+    { "prompt": "把论文转成 Word", "expect": "thesis-writer" },
+    { "prompt": "界面太乱了，样式优化一下", "expect": "impeccable" },
+    { "prompt": "配色不好看，重新设计一下", "expect": "impeccable" },
+
+    { "prompt": "help me start my graduation project", "expect": "graduation-project" },
+    { "prompt": "define requirements for my project", "expect": "feature-forge" },
+    { "prompt": "create table for orders", "expect": "database-designer" },
+    { "prompt": "database schema design", "expect": "database-designer" },
+    { "prompt": "design api for user module", "expect": "api-designer" },
+    { "prompt": "add endpoint for login", "expect": "api-designer" },
+    { "prompt": "review code please", "expect": "code-reviewer" },
+    { "prompt": "find bugs in this module", "expect": "code-reviewer" },
+    { "prompt": "write thesis chapter 3", "expect": "thesis-writer" },
+    { "prompt": "convert to word", "expect": "thesis-writer" },
+    { "prompt": "improve layout of the dashboard", "expect": "impeccable" },
+    { "prompt": "redesign the ui, it looks bad", "expect": "impeccable" },
+    { "prompt": "mvp scope for my project", "expect": "feature-forge" },
+
+    { "prompt": "重构一下这个函数", "expect": null },
+    { "prompt": "今天天气不错", "expect": null },
+    { "prompt": "项目部署到服务器", "expect": null }
+  ]
+}

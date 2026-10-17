@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  node:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Validate skill metadata
+        run: node bin/cli.js doctor
+      - name: Trigger routing regressions
+        run: node scripts/eval-triggers.mjs
+      - name: Citation checker regressions
+        run: node scripts/test-check-refs.mjs
+      - name: Scaffold smoke test
+        run: node scripts/smoke.js
+
+  python:
+    name: Thesis converter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install converter dependencies
+        run: python -m pip install -r src/skills/thesis-writer/convert/requirements.txt
+      - name: Compile converter
+        run: python -m py_compile src/skills/thesis-writer/convert/convert_to_docx.py
+      - name: Convert fixture with embedded images
+        run: python src/skills/thesis-writer/convert/convert_to_docx.py scripts/fixtures/thesis-sample.md /tmp/thesis-sample.docx
+      - name: Assert docx contains images
+        run: |
+          python - <<'PY'
+          from docx import Document
+          d = Document('/tmp/thesis-sample.docx')
+          pics = len(d.inline_shapes)
+          print('inline shapes:', pics)
+          assert pics >= 1, 'converter did not embed any image'
+          PY

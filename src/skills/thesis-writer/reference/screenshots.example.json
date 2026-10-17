@@ -1,0 +1,23 @@
+{
+  "baseUrl": "http://127.0.0.1:5175",
+  "outDir": "images",
+  "viewport": { "width": 1440, "height": 900 },
+  "deviceScaleFactor": 2,
+  "hide": [".vite-error-overlay", "[class*='dev-overlay']"],
+  "login": {
+    "mode": "api",
+    "apiUrl": "/api/user/login",
+    "username": "admin",
+    "password": "123456",
+    "tokenPath": "data.token",
+    "userPath": "data.userInfo",
+    "tokenKey": "token",
+    "userKey": "userInfo"
+  },
+  "screens": [
+    { "name": "图5-1 用户管理页面", "url": "/admin/user", "wait": 1500 },
+    { "name": "图5-2 公告管理页面", "url": "/admin/notice", "wait": 1500 },
+    { "name": "图5-3 操作日志页面", "url": "/admin/log", "wait": 1500 },
+    { "name": "图5-4 登录页面", "url": "/login", "wait": 1000 }
+  ]
+}

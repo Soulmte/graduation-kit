@@ -19,7 +19,15 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 from docx.oxml.ns import qn, nsdecls
 from docx.oxml import parse_xml
+from docx.image.image import Image as DocxImage
 from copy import deepcopy
+
+# Windows 控制台默认 GBK，打印 ✅ 等符号会抛 UnicodeEncodeError，
+# 这里统一改成 UTF-8，保证转换成功后不会因为输出而崩掉。
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 
 # ============================================================
@@ -42,6 +50,10 @@ PAGE_CONFIG = {
 }
 
 HEADER_TEXT = ''  # 页眉文字，为空则不添加页眉
+
+# 图片插入尺寸：A4 减去左右页边距与装订线后的版心宽度约 15.5cm
+MAX_IMAGE_WIDTH_CM = 14.5
+MAX_IMAGE_HEIGHT_CM = 11.0
 
 
 # ============================================================
@@ -173,6 +185,27 @@ def add_empty_line(doc, count=1):
     for _ in range(count):
         p = doc.add_paragraph()
         set_paragraph_spacing(p, 1.5, 0, 0)
+
+
+def add_picture(doc, path, max_width_cm=MAX_IMAGE_WIDTH_CM,
+                max_height_cm=MAX_IMAGE_HEIGHT_CM):
+    """插入图片，按版心宽度等比缩放，居中排列"""
+    try:
+        info = DocxImage.from_file(path)
+        dpi_x = info.horz_dpi or 96
+        dpi_y = info.vert_dpi or 96
+        natural_w = info.px_width / dpi_x * 2.54
+        natural_h = info.px_height / dpi_y * 2.54
+    except Exception:
+        natural_w, natural_h = max_width_cm, max_width_cm * 0.6
+
+    scale = min(1.0, max_width_cm / natural_w if natural_w else 1.0,
+                max_height_cm / natural_h if natural_h else 1.0)
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    set_paragraph_spacing(p, 1.0, 6, 3)
+    p.add_run().add_picture(path, width=Cm(natural_w * scale))
+    return p
 
 
 def set_table_style(table):
@@ -382,13 +415,35 @@ class ThesisConverter:
         soup = parse_markdown(content)
         self._process_elements(soup)
 
+    def _resolve_image(self, src):
+        """把 Markdown 里的相对路径解析成磁盘文件；SVG 自动回退到同名 PNG"""
+        if not src:
+            return None
+        src = src.split('?')[0].split('#')[0]
+        if re.match(r'^(https?:)?//', src):
+            return None  # 不下载网络图片，避免转换依赖外网
+        path = os.path.normpath(os.path.join(self.md_dir, src))
+        if os.path.isfile(path):
+            return path
+        if path.lower().endswith('.svg'):
+            png = path[:-4] + '.png'
+            if os.path.isfile(png):
+                return png
+        return None
+
     def _handle_image(self, img_elem):
         alt = img_elem.get('alt', '')
+        src = img_elem.get('src', '')
+        path = self._resolve_image(src)
+        if path:
+            add_picture(self.doc, path)
+        else:
+            p = create_paragraph(self.doc, f'[图片缺失: {src or "未命名"}]',
+                                 alignment=WD_ALIGN_PARAGRAPH.CENTER,
+                                 space_before=6, space_after=3)
+            p.runs[0].font.color.rgb = RGBColor(0xFF, 0x00, 0x00)
         if alt:
             add_figure_caption(self.doc, alt)
-        else:
-            p = create_paragraph(self.doc, '[图片]', alignment=WD_ALIGN_PARAGRAPH.CENTER)
-            set_paragraph_spacing(p, 1.5)
 
     def _process_elements(self, soup):
         """处理 HTML 元素"""
@@ -531,7 +586,7 @@ class ThesisConverter:
 
         # 保存
         self.doc.save(output_path)
-        print(f'✅ 转换完成: {output_path}')
+        print(f'[OK] 转换完成: {output_path}')
 
 
 # ============================================================

@@ -1,7 +1,7 @@
 ---
 name: thesis-writer
-description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、生成摘要、绘制论文插图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、禁写参考文献与目录）、写作风格约束（禁用词黑名单、句长上限、被动率上限）和一套带校验的 Canvas 绘图系统。
-version: 1.3.1
+description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English: write thesis, thesis chapter, abstract, thesis figure, convert to Word.
+version: 1.4.0
 priority: 90
 triggers: triggers.yaml
 ---
@@ -22,7 +22,7 @@ triggers: triggers.yaml
 
 ## ⚠️ 铁律（AI 执行前必读，违反即重写）
 
-1. **禁止写参考文献章节和任何文献引用标记**。正文中不得出现 [1]、[2] 或"XXX等[1]提出"
+1. **参考文献必须真实可追溯**。近五年、至少 1 篇英文并附中文译名；每条文献必须有原文摘录与链接，正文用 `[n]` 标注，写完跑 `reference/check-refs.mjs`
 2. **禁止写目录章节**。目录由 Word 自动生成
 3. **图表必须有编号和标题**。图下方标注"图X-Y 标题"，表上方标注"表X-Y 标题"
 4. **图片文件按编号命名**。`图X-Y 名称.png`，编号 X=章号, Y=章内序号。**图注文字必须与文件名逐字一致**
@@ -31,7 +31,7 @@ triggers: triggers.yaml
 7. **正文里不能出现单独一行的 `---`**。转换脚本拿它当章节分隔符，会把一章切成两截
 8. **按章节分文件**。每章一个独立 .md 文件，放在 `docs/thesis/` 目录下
 9. **生成完 MD 后必须自动运行** `convert/convert_to_docx.py` 生成 Word
-10. **不要往 docx 里插图**。脚本只排图注，图片由用户手动插入（见 Step 4）
+10. **截图必须由脚本自动完成**，不要让用户自己截；转换器会自动嵌图并按版心宽度等比缩放
 
 ---
 
@@ -43,8 +43,10 @@ triggers: triggers.yaml
 
 ```
 docs/thesis/
-├── images/        ← 导出的 PNG / SVG 插图
-└── figure-kit/    ← 绘图工作副本（从 skill 模板复制，所有改图都在这里）
+├── images/             ← 插图与截图（PNG / SVG）
+├── figure-kit/         ← 绘图工作副本（从 skill 模板复制，所有改图都在这里）
+├── refs-source.json    ← 文献证据：原文摘录、链接、译名（见 citation-policy.md）
+└── screenshots.json    ← 系统截图配置（从 screenshots.example.json 复制）
 ```
 
 **绘图工作副本必须先复制，不能直接改 skill 目录：**
@@ -70,6 +72,7 @@ node .agents/skills/thesis-writer/reference/copy-template.mjs
 | `docs/thesis/05-系统实现.md` | 五、系统实现 | ~3800字 | 开发环境、后端/前端实现、关键技术 |
 | `docs/thesis/06-系统测试.md` | 六、系统测试 | ~1500字 | 功能测试、性能测试、兼容性测试 |
 | `docs/thesis/07-总结与展望.md` | 七、总结与展望 | ~800字 | 工作总结、不足、展望 |
+| `docs/thesis/08-参考文献.md` | 八、参考文献 | 不计入正文字数 | 按 `reference/citation-policy.md` 生成 |
 | `docs/thesis/致谢.md` | 致谢 | ~300字 | 致谢 |
 
 **全文总字数：12,000 - 20,000 字（本科标准）**。超出上限就压缩，不凑字数。
@@ -79,24 +82,72 @@ node .agents/skills/thesis-writer/reference/copy-template.mjs
 所有章节写完并确认后，执行：
 
 ```bash
-cat docs/thesis/00-摘要.md docs/thesis/01-绪论.md docs/thesis/02-相关技术.md docs/thesis/03-需求分析.md docs/thesis/04-系统设计.md docs/thesis/05-系统实现.md docs/thesis/06-系统测试.md docs/thesis/07-总结与展望.md docs/thesis/致谢.md > docs/thesis/full.md
+cat docs/thesis/00-摘要.md docs/thesis/01-绪论.md docs/thesis/02-相关技术.md docs/thesis/03-需求分析.md docs/thesis/04-系统设计.md docs/thesis/05-系统实现.md docs/thesis/06-系统测试.md docs/thesis/07-总结与展望.md docs/thesis/08-参考文献.md docs/thesis/致谢.md > docs/thesis/full.md
 python .agents/skills/thesis-writer/convert/convert_to_docx.py docs/thesis/full.md docs/thesis/毕业论文.docx
 ```
 
 命令行参数固定为两个（输入 md、输出 docx），少一个会直接报用法退出。依赖先装：`pip install -r .agents/skills/thesis-writer/convert/requirements.txt`。
 
-### Step 4：手动插图（用户自己做，AI 不代办）
+### Step 4：截图、嵌图与验收（全自动，不要让用户手动操作）
 
-**转换脚本不往 docx 里嵌入图片文件。** 它把 `![图4-1 系统架构图](images/...)` 转成一行**居中加粗的宋体五号图注**，图位置留空。
+#### 4.1 系统截图
 
-这是故意的：图注排版已经合规，用户在 Word 里把 `docs/thesis/images/` 下对应的 PNG/SVG **插到图注上方**即可，图片缩放与对齐用户自己控制。
+先确认前端已启动、演示账号能登录，再准备 `docs/thesis/screenshots.json`：
 
-**AI 在此阶段的职责只有两件**：
+```bash
+cp .agents/skills/thesis-writer/reference/screenshots.example.json docs/thesis/screenshots.json
+```
 
-1. 确保每张图的图注文字与 `images/` 下的文件名**逐字一致**，否则用户对不上号
-2. 转换完告知用户共有多少张图待插，按章号列出清单
+配置要点：
 
-**不要**自作主张改脚本去自动插图，也不要把图片路径写成绝对路径。
+- `baseUrl`：已启动的前端地址，如 `http://localhost:8080`
+- `login.mode`：`"api"` 直接调登录接口拿 token 注入 localStorage，适用于登录页有**客户端验证码**、
+  单点登录或结构复杂的项目；不写就是表单登录
+- `login.tokenPath` / `userPath`：接口响应里的 token 与用户对象路径，默认 `data.token` / `data.userInfo`
+- `login.tokenKey` / `userKey`：前端 localStorage 的键名，脚手架默认 `token` / `userInfo`（与 `stores/user.js` 一致）
+- `screens`：每项写 `name`（**必须与正文图注逐字一致**）、`url`、`wait`（毫秒）
+
+> 本脚手架的登录页带客户端验证码，自动截图一律用 `mode: "api"`。
+> 验证码只在前端校验，登录接口本身不需要验证码。
+
+执行：
+
+```bash
+npm i -D puppeteer-core   # 首次
+node .agents/skills/thesis-writer/reference/screenshot.mjs --config docs/thesis/screenshots.json
+```
+
+- 复用本机 Chrome / Edge，不下载浏览器；找不到浏览器时设 `CHROME_PATH`
+- 默认 1440×900、2 倍像素密度，插入 Word 后按 14.5cm 宽输出仍然清晰
+- 单页重拍：`--only "图5-1 用户管理页面"`
+- 只检查配置不截图：`--check`
+
+**截不到就修环境，不要用占位图。** 图片缺失会让转换器在 Word 里留下红色标记。
+
+#### 4.2 转 Word（自动嵌图）
+
+```bash
+python .agents/skills/thesis-writer/convert/convert_to_docx.py docs/thesis/full.md docs/thesis/毕业论文.docx
+```
+
+转换器对 `![图X-Y 标题](images/xxx.png)` 的处理：
+
+1. 在图片位置插入 PNG，按版心宽度 14.5cm 等比缩放并居中
+2. 图片下方生成居中加粗的图注
+3. 找不到图片时插入红色 `[图片缺失: 路径]`，不静默跳过
+
+SVG 自动回退到同名 PNG；网络图片不下载，避免转换依赖外网。
+
+#### 4.3 验收
+
+```bash
+node .agents/skills/thesis-writer/reference/check-refs.mjs docs/thesis
+cd docs/thesis/figure-kit && node verify.js && node verify-editor.js && node audit.js
+```
+
+- 引用校验全绿
+- 绘图校验全绿
+- 打开 Word 抽查：图片与图注一一对应，无红色缺失标记，图片不超出版心
 
 ---
 
@@ -115,9 +166,9 @@ python .agents/skills/thesis-writer/convert/convert_to_docx.py docs/thesis/full.
 
 ### 图表规范
 
-- **图注**：`![图X-Y 标题](images/图X-Y 标题.png)` — 转换后只得到一行居中加粗的图注文字，**图片由用户在 Word 里手动插到图注上方**（见 Step 4）
+- **图注**：`![图X-Y 标题](images/图X-Y 标题.png)` — 转换后图片自动插入并按版心宽度等比缩放，图注居中加粗排在图片下方（见 Step 4）
 - **表注**：`表X-Y 标题` — 单独成段写在表格上方，转换后居中。脚本靠正则 `^(图|表)\d+[-.]?\d*` 识别，**开头必须是“图”或“表”字 + 数字**，写成“如表 4-1 所示”这种句子不会被误认
-- **截图标注**：与绘制图同格式 — `![图5-1 景点管理页面](images/图5-1 景点管理页面.png)`
+- **截图标注**：与绘制图同格式，由 `screenshot.mjs` 自动生成 — `![图5-1 景点管理页面](images/图5-1 景点管理页面.png)`。名字必须与 `screenshots.json` 里的 `name` 逐字一致
 - **编号**：X 为章号，Y 为章内序号，从 1 连续编号
 - **正文引用**：每张图/表前后必须有文字说明。禁止两张图/表之间无文字
 - **三线表**：markdown 表格自动渲染为三线表，不要手写分隔线
@@ -261,9 +312,19 @@ python .agents/skills/thesis-writer/convert/convert_to_docx.py docs/thesis/full.
 
 ## 引用规则
 
-- **不写任何文献引用**。不写参考文献章节，正文不出现 [1][2] 等标记
-- 如必须提及其他研究，用概括性描述（"现有的主流后台管理系统，如 RuoYi 和 SpringBlade..."）
-- 不写"XXX等[1]提出"这样的句式
+完整规则见 `reference/citation-policy.md`。写完必须跑：
+
+```bash
+node .agents/skills/thesis-writer/reference/check-refs.mjs docs/thesis
+```
+
+要点：
+
+- 文献近五年；至少 1 篇英文，英文必须附中文译名（`titleZh`）
+- 每条文献在 `docs/thesis/refs-source.json` 里记录原文摘录 `quote` 与链接 `url`／`doi`
+- 正文用 `[n]` 标注；每条文献只引一次，一句话只引一条
+- 默认编号从小到大（`numbering: "asc"`，按正文出现顺序）；学校要求从大到小就改成 `"desc"`
+- 禁止编造作者、期刊、年份、DOI；打不开的文献直接删掉
 
 ---
 
@@ -351,10 +412,11 @@ cd docs/thesis/figure-kit
 ## 常见问题速查
 
 **Q: 用户说"帮我写论文"但没给目录？**
-→ 按本文件 §工作流 Step 2 的默认 9 个文件推进（8 章 + 致谢）。
+→ 按本文件 §工作流 Step 2 的默认 10 个文件推进（8 章 + 参考文献 + 致谢）。
 
-**Q: 用户要求写参考文献？**
-→ 告知："本 skill 不生成参考文献，请您自行准备后插入。"
+**Q: 参考文献怎么处理？**
+→ 必须真实检索，不能编。先建 `docs/thesis/refs-source.json`（原文摘录 + 链接 + 译名），
+再在正文写 `[n]`，最后跑 `check-refs.mjs`。规则见 `reference/citation-policy.md`。
 
 **Q: 字数超出 20% 怎么办？**
 → 用短句化规则精简：找超长句拆短，去掉冗余修饰词。
@@ -366,7 +428,13 @@ cd docs/thesis/figure-kit
 → 照着工作副本 `docs/thesis/figure-kit/data/08-flowchart.js` 改，它是三列布局（主流程前半、后半、异常通道）的现成范例。
 
 **Q: 转换出来的 Word 里没有图片？**
-→ 这是预期行为。脚本只排图注文字，图片由用户在 Word 里手动插到图注上方（见 Step 4）。不要改脚本。
+→ 先看 `docs/thesis/images/` 下有没有与图注同名的 PNG。有图但没嵌入，检查转换器是否为新版；
+没图则跑 `screenshot.mjs` 或从 figure-kit 导出。Word 里的红色 `[图片缺失: 路径]` 会直接指出缺哪张。
+
+**Q: 系统截图怎么来？**
+→ 启动前端，复制 `screenshots.example.json` 到 `docs/thesis/screenshots.json`，
+跑 `node .agents/skills/thesis-writer/reference/screenshot.mjs --config docs/thesis/screenshots.json`。
+不要让用户自己截。
 
 **Q: 转换后摘要的关键词格式不对？**
 → 检查 `00-摘要.md` 有没有写 frontmatter（`type: abstract_cn` + `keywords`）。少了 frontmatter 摘要就会按普通章节排版。
@@ -459,6 +527,10 @@ cd docs/thesis/figure-kit
 └── reference/
     ├── drawing.md              ← 绘图字段契约与已知局限
     ├── copy-template.mjs       ← 把绘图模板复制到工作目录
+    ├── screenshot.mjs          ← 系统页面自动截图
+    ├── screenshots.example.json← 截图配置模板
+    ├── citation-policy.md      ← 引用与参考文献规范
+    ├── check-refs.mjs          ← 引用校验
     └── examples/               ← 只读模板（引擎 + 14 张图数据 + 校验）
 ```
 
@@ -476,8 +548,8 @@ cd docs/thesis/figure-kit
 5. **摘要必须带 frontmatter**（`type: abstract_cn` / `abstract_en` + `keywords`），否则排版不对
 6. **正文里不能出现单独一行的 `---`**，转换脚本拿它当章节分隔符
 7. **画图前先复制模板**：`node .agents/skills/thesis-writer/reference/copy-template.mjs`，之后只改工作副本 `docs/thesis/figure-kit/data/` 下的文件，改完跑 `node verify.js`，必须全绿。**不要改 skill 目录里的模板**
-8. **不要改转换脚本去自动插图**。图片由用户在 Word 里手动插到图注上方，你只负责保证图注文字与 `images/` 下文件名逐字一致
+8. **截图与嵌图全自动**：先跑 `screenshot.mjs`，再转换 Word；转换器会自动嵌图并缩放。不要让用户自己截图，也不要手改脚本
 9. **字数不是越多越好**。本科论文 12000-20000，超了就压缩
-10. **所有章节完成后自动运行转换脚本**，并告知用户共有多少张图待插
+10. **所有章节完成后自动运行转换脚本**，并跑 `check-refs.mjs`；报告图片数量与缺失项
 11. **只写项目真实用到的技术栈**。脚手架有 6 后端 6 前端，但你的毕设只用了一套，不要把没用的也写进论文
 12. **禁止在 skills 目录下生成任何论文内容**。输出目录永远是 `docs/thesis/`

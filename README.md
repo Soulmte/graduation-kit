@@ -110,7 +110,7 @@ npx graduation-kit create rent-agent --template agent --db agent_db
 包含 6 个 Skills：
 
 - `graduation-project` - 五阶段全流程编排
-- `thesis-writer` - 论文写作、插图绘制、Markdown 转 Word
+- `thesis-writer` - 论文写作、文献引用、插图绘制、自动截图、Markdown 转 Word
 - `feature-forge` - 需求访谈、功能边界划分
 - `database-designer` - 建表设计、ER 图、索引优化
 - `api-designer` - RESTful 接口设计、错误码规范
@@ -136,6 +136,9 @@ npx graduation-kit create rent-agent --template agent --db agent_db
 
 比如同是“毕设”两个字：说“帮我开工/加个模块”走 `graduation-project`；
 说“写第三章/画 ER 图”走 `thesis-writer`；说“界面太乱”走 `impeccable`。
+
+中英文都支持：`review code`、`design API`、`add endpoint`、`write thesis`、
+`create table` 同样能命中对应 skill。
 
 ### 更新门禁
 
@@ -224,6 +227,12 @@ npx graduation-kit install -g --reinstall
 
 # 验证项目完整性
 npx graduation-kit verify
+
+# 跑触发路由回归（开发者）
+npm run eval
+
+# 跑引用校验器自测（开发者）
+npm run refs
 
 # 诊断系统环境
 npx graduation-kit diagnose

@@ -1,7 +1,7 @@
 ---
 name: graduation-project
-description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 6 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。
-version: 1.3.1
+description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 6 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。English: graduation project, final year project, capstone project, build my project.
+version: 1.4.0
 priority: 100
 auto_invoke: true
 triggers: triggers.yaml

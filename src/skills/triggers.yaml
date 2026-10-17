@@ -22,61 +22,62 @@ scope:
 
 rules:
   - "strong 命中 1 个即激活；weak 需 2 个，或 1 个 weak + 1 个 context 词。"
+  - "中英文均可，匹配时忽略大小写与常见标点。"
   - "not_for 命中优先于 strong，除非用户点名了 skill。"
-  - "多命中按 priority 从高到低；graduation-project 先加载，再按 phase_map 调度子 skill。"
+  - "有 strong 命中的优先于只有 weak 的；同层再按 priority 从高到低。"
   - "只命中 context 词不激活，先问一句要做什么。"
   - "一次只加载命中的 skill，不要预读其余 SKILL.md。"
 
-context: [毕设, 毕业设计, 毕业论文, 开题, 答辩, 导师, 论文, 课程设计]
+context: [毕设, 毕业设计, 毕业论文, 开题, 答辩, 导师, 论文, 课程设计, graduation, thesis, dissertation, defense]
 
 skills:
   - id: graduation-project
     priority: 100
     when: 做毕设 / 开工 / 加模块 / 脚手架改造 / 答辩前总检
-    strong: [做毕设, 开发毕业设计, 毕设项目, 写毕设代码, 毕业设计系统, 帮我开工, 基于脚手架开发]
-    weak: [毕设, 毕业设计, 项目, 技术选型, 脚手架]
+    strong: [做毕设, 开发毕业设计, 毕设项目, 写毕设代码, 毕业设计系统, 帮我开工, 基于脚手架开发, 继续做, graduation project, final year project, capstone project, build my project]
+    weak: [毕设, 毕业设计, 项目, 技术选型, 脚手架, graduation, project]
     not_for: [纯写论文正文, 只要一张建表SQL, 只问一个接口, 只审一段代码]
 
   - id: thesis-writer
     priority: 90
     when: 写章节 / 摘要 / 改措辞 / 画论文配图 / 转 Word
-    strong: [写论文, 写毕业论文, 写第X章, 写摘要, 改论文措辞, 降AI味, 转Word, 转docx, 论文配图]
-    weak: [论文, 章节, 字数, 图注, 三线表, 开题报告]
+    strong: [写论文, 写毕业论文, 写第X章, 写摘要, 改论文措辞, 降AI味, 转Word, 转docx, 论文配图, 画ER图, 画架构图, 画流程图, 画用例图, 画时序图, 画功能模块图, 画技术栈图, write thesis, thesis chapter, write abstract, convert to word, thesis figure]
+    weak: [论文, 章节, 字数, 图注, 三线表, 开题报告, thesis, paper, chapter, abstract, docx]
     not_for: [写业务代码, 改数据库表, 设计接口, 前端样式调整]
 
   - id: feature-forge
     priority: 80
     when: 题目宽泛 / 定需求 / 列功能 / 砍范围 / 估工作量
-    strong: [不知道毕设做什么, 题目太宽泛, 写需求文档, 需求确认单, 列功能清单, 定MVP, 工作量够不够, 开题报告需求分析]
-    weak: [需求, 功能, 角色, 优先级, 范围]
+    strong: [不知道毕设做什么, 题目太宽泛, 写需求文档, 需求确认单, 列功能清单, 功能清单, 定MVP, 工作量够不够, 开题报告需求分析, define requirements, feature list, scope my project, mvp]
+    weak: [需求, 功能, 角色, 优先级, 范围, requirements, features, scope]
     not_for: [已给功能清单要直接写代码, 论文里的需求分析正文]
 
   - id: database-designer
     priority: 70
     when: 建表 / 改表 / 加索引 / ER 关系 / 数据字典
-    strong: [建表, 设计数据库, 写建表SQL, DDL, 加字段, 改表结构, 加索引, 设计ER, 数据字典]
-    weak: [数据库, 表, 字段, 外键, 索引, 范式]
+    strong: [建表, 设计数据库, 写建表SQL, DDL, 加字段, 改表结构, 加索引, 设计ER, 数据字典, create table, database schema, design database, add index, data dictionary]
+    weak: [数据库, 表, 字段, 外键, 索引, 范式, database, table, schema, index]
     not_for: [写查询或统计SQL, 慢查询优化, 设计接口, 论文里的ER插图]
 
   - id: api-designer
     priority: 70
     when: 加接口 / 统一返回 / 错误码 / 分页 / 联调对不上
-    strong: [加接口, 设计接口, 设计API, 接口文档, 请求响应格式, 统一返回, 错误码, 分页怎么写, 前后端联调]
-    weak: [接口, API, REST, DTO, 路由, 参数, 鉴权]
+    strong: [加接口, 加个接口, 设计接口, 设计API, 接口文档, 请求响应格式, 返回结构, 统一返回, 错误码, 分页怎么写, 前后端联调, design api, add endpoint, api documentation, response format, error code, pagination]
+    weak: [接口, API, REST, DTO, 路由, 参数, 鉴权, api, endpoint, rest, dto]
     not_for: [数据库表结构, 前端页面样式, 写后端实现代码]
 
   - id: code-reviewer
     priority: 60
     when: 审查代码 / 找 bug / 导师挑刺 / 答辩前检查
-    strong: [审查代码, review一下, 代码审查, 代码质量, 找bug, 导师会不会挑刺, 答辩前检查代码, 安全检查]
-    weak: [审查, 检查, 重构, 优化, 规范, 命名]
+    strong: [审查代码, review一下, 代码审查, 代码质量, 找bug, 导师会不会挑刺, 答辩前, 审查一下, 安全检查, review code, review this code, code review, find bugs, code quality, security review]
+    weak: [审查, 检查, 重构, 优化, 规范, 命名, review, refactor, lint]
     not_for: [需求讨论, 写新功能, 论文措辞]
 
   - id: impeccable
     priority: 50
     when: 界面难看 / 样式布局优化 / 配色 / 组件打磨
-    strong: [界面不好看, 样式优化, 布局优化, 太杂乱, 没有设计感, 重新设计界面, 配色, 视觉层次]
-    weak: [前端, 页面, 样式, 布局, 设计, 好看]
+    strong: [界面不好看, 样式优化, 布局优化, 太杂乱, 没有设计感, 重新设计界面, 配色, 视觉层次, redesign the ui, improve layout, bad ui, fix the styling, color scheme]
+    weak: [前端, 页面, 样式, 布局, 设计, 好看, ui, layout, styling, design]
     not_for: [后端代码, 数据库, 论文写作, 没有可运行的前端工程]
 
 conflicts:
