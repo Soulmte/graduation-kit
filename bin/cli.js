@@ -236,7 +236,7 @@ async function versionGate(opts, { dirs = [], command = '' } = {}) {
     for (const s of stale) info(`  · ${s.label}：${s.why}`);
     for (const s of stale) {
       const isGlobal = resolve(s.dir) === resolve(join(homedir(), '.agents', 'skills'));
-      info(paint('cyan', `    npx graduation-kit install${isGlobal ? ' -g' : ''} -f`));
+      info(paint('cyan', `    npx graduation-kit update${isGlobal ? ' -g' : ''}`));
     }
     info('');
   }
@@ -532,6 +532,27 @@ function list() {
   info('');
 }
 
+/**
+ * 更新已安装的 skills。
+ * 有安装记录时只更新当初装过的那批，不重新询问上游；没有记录时按默认清单更新。
+ */
+async function updateSkills(opts) {
+  const dest = targetDir(opts);
+  const manifest = readManifest(dest);
+  const ids = manifest
+    ? [...new Set([...(manifest.skills || []), ...(manifest.upstream || [])])]
+    : [];
+
+  if (!ids.length) {
+    info(paint('yellow', '没找到安装记录，按默认清单更新。'));
+    await install({ ...opts, force: true });
+    return;
+  }
+
+  info(`更新已安装的 ${ids.length} 项：${ids.join('、')}`);
+  await install({ ...opts, force: true, only: ids.join(',') });
+}
+
 function uninstall(opts) {
   const dest = targetDir(opts);
   const wanted = opts.only ? opts.only.split(',').map((s) => s.trim()) : listSkills();
@@ -635,7 +656,8 @@ graduation-kit — 毕业设计一件套 agent skills
 
 用法：
   npx github:Soulmte/graduation-kit create [名称]      分步向导：脚手架 + SQL + skills
-  npx github:Soulmte/graduation-kit install [选项]     只安装 skills 到 .agents/skills/
+  npx graduation-kit install [选项]     只安装 skills 到 .agents/skills/
+  npx graduation-kit update [选项]      更新已安装的 skills（保留原安装范围）
   npx github:Soulmte/graduation-kit verify [目录]      验证项目结构与配置完整性
   npx github:Soulmte/graduation-kit diagnose           诊断包完整性与系统兼容性
   npx github:Soulmte/graduation-kit list               列出包内 skill
@@ -651,8 +673,8 @@ graduation-kit — 毕业设计一件套 agent skills
   -v, --version         打印当前版本
       --skip-version-check  跳过更新门禁（本地 skills 过期或注册表有新版时）
 
-install 专属：
-  -g, --global          装到 ~/.agents/skills/（所有项目可用）
+install / update 专属：
+  -g, --global          操作 ~/.agents/skills/（所有项目可用）
   -o, --only <a,b>      只处理指定 skill（跳过上游询问）
 
 create 专属（全部给出则跳过向导，适合脚本）：
@@ -720,6 +742,10 @@ if (opts.version) {
   process.exit(1);
 } else if (cmd === 'install') {
   await install(opts);
+} else if (cmd === 'update') {
+  const ready = await versionGate(opts, { command: 'update' });
+  if (!ready) process.exit(1);
+  await updateSkills(opts);
 } else if (cmd === 'create' || cmd === 'new') {
   if (!opts.noSkills) {
     const ready = await versionGate(opts, {

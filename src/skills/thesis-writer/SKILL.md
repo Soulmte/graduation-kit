@@ -1,7 +1,7 @@
 ---
 name: thesis-writer
 description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English: write thesis, thesis chapter, abstract, thesis figure, convert to Word.
-version: 1.4.0
+version: 1.4.1
 priority: 90
 triggers: triggers.yaml
 ---
@@ -11,7 +11,7 @@ triggers: triggers.yaml
 本科毕业论文写作专用 skill，配套本项目（6 后端 + 6 前端多技术栈脚手架）。
 
 > **适用范围**：仅用于本科毕业论文或毕设项目。其他项目不要使用本 skill。
-> **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit install -f`。
+> **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit update`。
 > 触发：写论文 / 写第X章 / 写摘要 / 改措辞降 AI 味 / 画论文配图 / 转 Word。
 > 不触发：写业务代码、改数据库表、设计接口、前端样式调整。
 > 关键词与冲突裁决见 `../triggers.yaml`。

@@ -1,7 +1,7 @@
 ---
 name: feature-forge
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设需求定义与功能边界 skill。用户说不知道毕设做什么、题目太宽泛不知从哪下手、要写需求文档、列功能清单、画用例、定 MVP 范围、评估工作量是否够毕设体量、技术选型拿不定主意时使用。从毕设题目出发做需求访谈，输出角色划分、功能模块树、用户故事、EARS 格式需求描述、优先级排序与非功能需求。也用于开题报告的需求分析章节、砍掉超纲功能、判断某功能值不值得做。English: define requirements, feature list, MVP scope, cut features.
-version: 1.4.0
+version: 1.4.1
 priority: 80
 triggers: triggers.yaml
 ---
@@ -11,7 +11,7 @@ triggers: triggers.yaml
 针对毕业设计的需求定义 skill。**当 graduation-project 进入阶段 1（需求确认）时调用**。
 
 > **适用范围**：仅用于毕业设计项目。当前项目不是毕设时，立即停用本 skill 并说明原因。
-> **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit install -f`。
+> **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit update`。
 > 触发：不知道做什么 / 题目太宽泛 / 写需求文档 / 列功能清单 / 定 MVP / 评估工作量 / 砍功能。
 > 不触发：已经给了明确功能清单要直接写代码（→ `graduation-project`）、论文里的需求分析正文（→ `thesis-writer`）。
 > 关键词与冲突裁决见 `../triggers.yaml`。

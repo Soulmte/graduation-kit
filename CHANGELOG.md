@@ -2,6 +2,18 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.4.1
+
+### 新增
+
+- `graduation-kit update` / `update -g`：按 `.graduation-kit.json` 的安装记录更新
+  当初装过的那批 skill，不再需要记 `install -f`。
+- 版本门禁与升级提示统一改为 `npx graduation-kit update`。
+
+### 注意
+
+- `update` 会用包内版本覆盖本地改动，不做备份；改过 skill 需要保留时先自行复制。
+
 ## 1.4.0
 
 ### 新增
