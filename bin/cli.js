@@ -10,15 +10,17 @@ if (major < 18) {
   process.exit(1);
 }
 
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, cpSync, readFileSync, copyFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, cpSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { join, dirname, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
+import { get as httpsGet } from 'node:https';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(HERE, '..');
+const PKG = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'));
 const SRC_SKILLS = join(PKG_ROOT, 'src', 'skills');
 const SRC_VENDOR = join(PKG_ROOT, 'src', 'vendor');
 const SRC_SCAFFOLDS = join(PKG_ROOT, 'src', 'scaffolds');
@@ -89,6 +91,167 @@ function listSkills() {
   return readdirSync(SRC_SKILLS).filter((n) =>
     statSync(join(SRC_SKILLS, n)).isDirectory(),
   );
+}
+
+/** 安装标记：记录本地 skills 的版本，供 CLI 与 agent 判断是否过期 */
+const MANIFEST = '.graduation-kit.json';
+
+function readManifest(dir) {
+  try {
+    return JSON.parse(readFileSync(join(dir, MANIFEST), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function writeManifest(dir, { skills, upstream }) {
+  const data = {
+    name: 'graduation-kit',
+    version: PKG.version,
+    installedAt: new Date().toISOString(),
+    skills,
+    upstream,
+  };
+  writeFileSync(join(dir, MANIFEST), `${JSON.stringify(data, null, 2)}\n`);
+}
+
+/** 目录里真正装好的 skill（有 SKILL.md 的子目录） */
+function installedSkills(dir) {
+  return existsSync(dir)
+    ? readdirSync(dir).filter(
+        (n) => statSync(join(dir, n)).isDirectory() && existsSync(join(dir, n, 'SKILL.md')),
+      )
+    : [];
+}
+
+function cmpVersion(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const d = (pa[i] || 0) - (pb[i] || 0);
+    if (d) return d > 0 ? 1 : -1;
+  }
+  return 0;
+}
+
+// 用 npm 当前配置的源查版本：镜像与 npx 走同一个源，避免“提示有新版却拉不到”
+const REGISTRY = (process.env.npm_config_registry || 'https://registry.npmjs.org').replace(/\/+$/, '');
+const UPDATE_TTL = 24 * 60 * 60 * 1000;
+
+function updateCacheFile() {
+  return join(homedir(), '.cache', 'graduation-kit', 'update.json');
+}
+
+function readUpdateCache() {
+  try {
+    const j = JSON.parse(readFileSync(updateCacheFile(), 'utf8'));
+    if (j.registry === REGISTRY && Date.now() - j.at < UPDATE_TTL) return j.latest ?? null;
+  } catch {}
+  return undefined;
+}
+
+function writeUpdateCache(latest) {
+  try {
+    const file = updateCacheFile();
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify({ at: Date.now(), registry: REGISTRY, latest }));
+  } catch {}
+}
+
+/** 查注册表最新版；超时或离线返回 null，绝不因此拦住命令 */
+function fetchLatestVersion() {
+  return new Promise((done) => {
+    let settled = false;
+    const finish = (v) => {
+      if (!settled) {
+        settled = true;
+        done(v);
+      }
+    };
+    const req = httpsGet(
+      `${REGISTRY}/graduation-kit/latest`,
+      { timeout: 2000, headers: { 'user-agent': `graduation-kit/${PKG.version}` } },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          return finish(null);
+        }
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (d) => {
+          body += d;
+          if (body.length > 512 * 1024) {
+            req.destroy();
+            finish(null);
+          }
+        });
+        res.on('end', () => {
+          try {
+            finish(JSON.parse(body).version || null);
+          } catch {
+            finish(null);
+          }
+        });
+      },
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      finish(null);
+    });
+    req.on('error', () => finish(null));
+  });
+}
+
+/**
+ * 更新门禁：本地 skills 落后或注册表有新版时拒绝继续。
+ * 离线不拦（拿不到最新版就当自己是最新），--skip-version-check 可跳过。
+ */
+async function versionGate(opts, { dirs = [], command = '' } = {}) {
+  if (opts.skipVersionCheck || process.env.GRADUATION_KIT_SKIP_UPDATE === '1') return true;
+
+  const stale = [];
+  for (const { label, dir } of dirs) {
+    const names = installedSkills(dir);
+    if (!names.length) continue;
+    const manifest = readManifest(dir);
+    if (!manifest) {
+      stale.push({ label, dir, why: '缺少版本标记，无法确认是否为最新' });
+    } else if (cmpVersion(manifest.version, PKG.version) < 0) {
+      stale.push({ label, dir, why: `版本 ${manifest.version}，低于当前 CLI ${PKG.version}` });
+    }
+  }
+
+  let latest = readUpdateCache();
+  if (latest === undefined) {
+    latest = await fetchLatestVersion();
+    writeUpdateCache(latest);
+  }
+  const newer = latest && cmpVersion(PKG.version, latest) < 0;
+
+  if (!stale.length && !newer) return true;
+
+  // 本地 skills 过期：先提醒并继续（真正拦住的是 SKILL.md 里的版本门禁）
+  if (stale.length) {
+    warn('本地 skills 不是最新，建议先更新：');
+    for (const s of stale) info(`  · ${s.label}：${s.why}`);
+    for (const s of stale) {
+      const isGlobal = resolve(s.dir) === resolve(join(homedir(), '.agents', 'skills'));
+      info(paint('cyan', `    npx graduation-kit install${isGlobal ? ' -g' : ''} -f`));
+    }
+    info('');
+  }
+
+  // 包本身有新版本：必须升级才能继续
+  if (newer) {
+    fail(`需要更新后才能继续使用：发现新版本 ${latest}（当前 ${PKG.version}）。`);
+    info(paint('cyan', `    npx graduation-kit@latest${command ? ` ${command}` : ''}`));
+    info(paint('dim', '    仍然拉到旧版时先清缓存：npx clear-npx-cache'));
+    info(paint('dim', '  确认无需更新可加 --skip-version-check，或设 GRADUATION_KIT_SKIP_UPDATE=1'));
+    process.exitCode = 1;
+    return false;
+  }
+
+  return true;
 }
 
 function targetDir(opts) {
@@ -300,6 +463,11 @@ async function install(opts) {
     info(`${paint('dim', '=')} triggers.yaml ${paint('dim', '触发路由表已就位')}`);
   }
 
+  // 版本标记：下次运行 CLI 或 agent 加载 skill 时靠它判断本地是否过期
+  if (!counters.failed) {
+    writeManifest(dest, { skills: installedSkills(dest), upstream });
+  }
+
   // 收尾再数一遍目录，确认确实落在盘上，而不是只打印了一堆钩
   const landed = existsSync(dest)
     ? readdirSync(dest).filter(
@@ -372,7 +540,7 @@ function uninstall(opts) {
     ? readdirSync(dest).filter((x) => statSync(join(dest, x)).isDirectory())
     : [];
   if (!left.length) {
-    for (const name of ['triggers.yaml', 'triggers.scenes.yaml']) {
+    for (const name of ['triggers.yaml', 'triggers.scenes.yaml', MANIFEST]) {
       const table = join(dest, name);
       if (!existsSync(table)) continue;
       rmSync(table, { force: true });
@@ -403,6 +571,9 @@ function doctor() {
     else if (fm.description.length > 1024) errs.push('description 超 1024 字符');
     else if (fm.description.length < 40) errs.push(`description 仅 ${fm.description.length} 字符，触发信号太弱`);
     if (!/^triggers:\s*triggers\.yaml\s*$/m.test(fmBlock)) errs.push('缺 triggers 指针');
+    const vm = fmBlock.match(/^version:\s*([0-9.]+)\s*$/m);
+    if (!vm) errs.push('缺 version');
+    else if (vm[1] !== PKG.version) errs.push(`version ${vm[1]} 与 package.json ${PKG.version} 不一致`);
     if (!/^priority:\s*\d+\s*$/m.test(fmBlock)) errs.push('缺 priority');
 
     if (errs.length) {
@@ -467,6 +638,8 @@ graduation-kit — 毕业设计一件套 agent skills
       --reinstall       不比对内容，直接强制重拷一遍
   -y, --with-upstream   直接带上三个上游增强，不询问
       --no-upstream     只装六个核心 skill
+  -v, --version         打印当前版本
+      --skip-version-check  跳过更新门禁（本地 skills 过期或注册表有新版时）
 
 install 专属：
   -g, --global          装到 ~/.agents/skills/（所有项目可用）
@@ -508,6 +681,8 @@ function parse(argv) {
     else if (a === '-o' || a === '--only') opts.only = argv[++i];
     else if (a === '-y' || a === '--with-upstream') opts.withUpstream = true;
     else if (a === '--no-upstream') opts.noUpstream = true;
+    else if (a === '-v' || a === '--version') opts.version = true;
+    else if (a === '--skip-version-check') opts.skipVersionCheck = true;
     else if (a === '-h' || a === '--help') opts.help = true;
     else if (a === '-t' || a === '--template') opts.template = argv[++i];
     else if (a === '--be') opts.be = argv[++i];
@@ -525,7 +700,9 @@ function parse(argv) {
 
 const { cmd, opts } = parse(process.argv.slice(2));
 
-if (opts.help || !cmd) {
+if (opts.version) {
+  info(PKG.version);
+} else if (opts.help || !cmd) {
   info(HELP);
 } else if (opts.unknown) {
   fail(`未知选项：${opts.unknown}`);
@@ -534,6 +711,13 @@ if (opts.help || !cmd) {
 } else if (cmd === 'install') {
   await install(opts);
 } else if (cmd === 'create' || cmd === 'new') {
+  if (!opts.noSkills) {
+    const ready = await versionGate(opts, {
+      command: 'create',
+      dirs: [{ label: '全局 skills', dir: join(homedir(), '.agents', 'skills') }],
+    });
+    if (!ready) process.exit(1);
+  }
   const { create } = await import('./create.js');
   try {
     await create(opts, { SRC_SCAFFOLDS, installSkills: install });

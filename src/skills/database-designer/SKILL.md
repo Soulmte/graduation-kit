@@ -1,6 +1,7 @@
 ---
 name: database-designer
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设数据库设计 skill。用户说要建表、设计数据库、写建表 SQL、加字段、改表结构、设计 ER 关系、数据库设计不合理、表太多要不要拆、加索引时使用。匹配脚手架 scaffold_db 的命名与字段规范：主键与时间戳约定、逻辑删除、外键与关联表策略、字段类型选择、索引设计、三大范式与合理反范式。输出可直接执行的 DDL 与实体类映射说明。也用于论文里的数据库设计章节与数据字典整理。
+version: 1.3.0
 priority: 70
 triggers: triggers.yaml
 ---
@@ -10,6 +11,7 @@ triggers: triggers.yaml
 针对本脚手架 `scaffold_db` 的数据库设计 skill。**当 graduation-project 需要新增数据表时调用**。
 
 > **适用范围**：仅用于毕业设计项目。当前项目不是毕设时，立即停用本 skill 并说明原因。
+> **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit install -f`。
 > 触发：建表 / 设计数据库 / DDL / 加字段 / 改表结构 / 加索引 / 数据字典。
 > 不触发：写查询或统计 SQL、慢查询优化、接口设计（→ `api-designer`）、论文里的 ER 插图（→ `thesis-writer`）。
 > 关键词与冲突裁决见 `../triggers.yaml`。

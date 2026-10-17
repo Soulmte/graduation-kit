@@ -137,6 +137,23 @@ npx graduation-kit create rent-agent --template agent --db agent_db
 比如同是“毕设”两个字：说“帮我开工/加个模块”走 `graduation-project`；
 说“写第三章/画 ER 图”走 `thesis-writer`；说“界面太乱”走 `impeccable`。
 
+### 更新门禁
+
+安装时会在 `.agents/skills/.graduation-kit.json` 写入版本标记。CLI 与 agent 都会检查：
+
+| 检查 | 行为 |
+|---|---|
+| 注册表有新版 CLI | `create` **拒绝执行**，提示 `npx graduation-kit@latest create` |
+| 本地 skills 版本落后 | CLI 警告；agent 加载 skill 时直接停用 |
+| 无法联网查版本 | 不拦（当作已是最新） |
+
+```json
+{ "name": "graduation-kit", "version": "1.3.0", "skills": ["..."] }
+```
+
+跳过检查：加 `--skip-version-check`，或设环境变量 `GRADUATION_KIT_SKIP_UPDATE=1`。
+查看版本：`npx graduation-kit -v`。
+
 ### 会影响其他项目吗？
 
 **全局安装（`-g`）会影响。** 装到 `~/.agents/skills/` 后，所有项目都能看到这几个 skill 的
