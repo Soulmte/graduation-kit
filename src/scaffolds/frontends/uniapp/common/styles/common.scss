@@ -1,0 +1,334 @@
+@import '../../uni.scss';
+
+/* ==========================================================================
+   移动端公共样式
+   - 页面只写自己特有的布局，通用块统一在这里维护
+   - 变量 / mixin 定义在项目根的 uni.scss（uni-app 会自动注入）
+   - 单独编译本文件时靠上一行的 import 拿到变量
+   ========================================================================== */
+
+/* 页面容器 */
+.container {
+	padding: $space-md;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: hidden;
+	min-height: 100vh;
+	background: $color-bg;
+}
+
+/* 白底页面 */
+.container--surface {
+	background: $color-surface;
+}
+
+/* 需要贴边布局的页面（如编辑资料） */
+.container--flush {
+	padding: 0;
+	padding-bottom: $space-xl;
+}
+
+/* 登录 / 注册等授权页 */
+.container--auth {
+	background: $color-surface;
+	padding: $space-2xl $space-xl;
+}
+
+/* 卡片 */
+.card {
+	@include card;
+	min-width: 0;
+	margin-bottom: $space-md;
+}
+
+.card-title {
+	font-size: $font-lg;
+	font-weight: 600;
+	color: $color-text;
+	margin-bottom: $space-md;
+}
+
+.section-title {
+	font-size: $font-md;
+	font-weight: 600;
+	color: $color-text;
+	margin-bottom: $space-md;
+	padding-bottom: $space-sm;
+	border-bottom: 1rpx solid $color-border-strong;
+}
+
+/* 列表：卡片内的信息行 */
+.cell-item {
+	min-width: 0;
+	padding: $space-md 0;
+	border-bottom: 1rpx solid $color-border;
+}
+
+.cell-item:last-child {
+	border-bottom: none;
+}
+
+.cell-title {
+	font-size: $font-base;
+	color: $color-text;
+	margin-bottom: $space-xs;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+.cell-desc {
+	@include ellipsis(2);
+	font-size: $font-sm;
+	color: $color-text-secondary;
+	line-height: 1.6;
+	margin-bottom: $space-xs;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+.cell-meta {
+	font-size: $font-xs;
+	color: $color-text-muted;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/* 长标题 / 长单词不撑破容器 */
+.card-title,
+.section-title,
+.article-title,
+.article-meta,
+.auth-title,
+.auth-subtitle,
+.footer,
+.form-label,
+.error-text {
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/* 列表：整行可点的菜单 */
+.cell-group {
+	background: $color-surface;
+	border-radius: $radius-lg;
+	margin-bottom: $space-xl;
+	overflow: hidden;
+}
+
+.cell {
+	@include flex(space-between);
+	min-width: 0;
+	padding: $space-lg;
+	border-bottom: 1rpx solid $color-border;
+}
+
+.cell:last-child {
+	border-bottom: none;
+}
+
+.cell-text {
+	min-width: 0;
+	font-size: $font-base;
+	color: $color-text;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+.cell-arrow {
+	color: #cccccc;
+	font-size: $font-lg;
+}
+
+/* 表单 */
+.form-item {
+	margin-bottom: $space-md;
+}
+
+.form-label {
+	font-size: $font-sm;
+	color: $color-text-muted;
+	margin-bottom: $space-sm;
+}
+
+.form-row {
+	@include flex();
+	gap: $space-md;
+}
+
+.form-row .form-label {
+	margin-bottom: 0;
+	white-space: nowrap;
+}
+
+.form-row .input {
+	flex: 1;
+	min-width: 0;
+}
+
+.input {
+	width: 100%;
+	max-width: 100%;
+	height: 76rpx;
+	padding: 0 $space-lg;
+	background: $color-surface;
+	border: 1rpx solid $color-border-strong;
+	border-radius: $radius-pill;
+	font-size: $font-base;
+	color: $color-text;
+	box-sizing: border-box;
+}
+
+.input-placeholder {
+	color: $color-text-placeholder;
+}
+
+.error-text {
+	font-size: $font-sm;
+	color: $color-danger;
+	padding: $space-xs $space-sm $space-md;
+}
+
+/* 单选条（性别等） */
+.gender-group {
+	display: flex;
+	gap: $space-md;
+	margin-top: $space-xs;
+}
+
+.gender-item {
+	flex: 1;
+	text-align: center;
+	height: 64rpx;
+	line-height: 64rpx;
+	background: $color-surface-muted;
+	border-radius: $radius-md;
+	font-size: $font-base;
+	color: $color-text-secondary;
+	border: 2rpx solid transparent;
+}
+
+.gender-item.active {
+	background: $color-primary-light;
+	color: $color-primary;
+	border-color: $color-primary;
+}
+
+/* 按钮 */
+.btn-primary {
+	@include btn-filled;
+	max-width: 100%;
+}
+
+.btn-primary--pill {
+	width: 400rpx;
+	max-width: 100%;
+	border-radius: $radius-pill;
+}
+
+.btn-logout {
+	max-width: 100%;
+	background: $color-surface;
+	color: $color-danger;
+	border-radius: $radius-md;
+	font-size: $font-md;
+}
+
+/* 空状态 / 加载 */
+.empty,
+.loading {
+	text-align: center;
+	color: $color-text-muted;
+	font-size: $font-sm;
+	padding: $space-xl 0;
+}
+
+/* 授权页头部与底部 */
+.auth-header {
+	text-align: center;
+	margin: $space-2xl 0;
+}
+
+.auth-title {
+	font-size: $font-display;
+	font-weight: 600;
+	color: $color-text;
+}
+
+.auth-subtitle {
+	font-size: $font-sm;
+	color: $color-text-muted;
+	margin-top: $space-sm;
+}
+
+.footer {
+	text-align: center;
+	margin-top: $space-2xl;
+	font-size: $font-sm;
+}
+
+.footer-text {
+	color: $color-text-muted;
+}
+
+.footer-link {
+	color: $color-primary;
+	margin-left: $space-xs;
+}
+
+/* 头像 */
+.avatar {
+	max-width: 100%;
+	flex-shrink: 0;
+	border-radius: 50%;
+	background: $color-surface-muted;
+}
+
+.avatar--md {
+	width: 140rpx;
+	height: 140rpx;
+}
+
+.avatar--lg {
+	width: 160rpx;
+	height: 160rpx;
+}
+
+.avatar-fallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #dbeafe;
+	color: $color-primary;
+	font-size: 64rpx;
+	font-weight: 600;
+}
+
+/* 文章正文 */
+.article-title {
+	font-size: $font-xl;
+	font-weight: 600;
+	color: $color-text;
+	margin-bottom: $space-sm;
+}
+
+.article-meta {
+	font-size: $font-sm;
+	color: $color-text-muted;
+	margin-bottom: $space-lg;
+	padding-bottom: $space-md;
+	border-bottom: 1rpx solid $color-border;
+}
+
+.article-content {
+	max-width: 100%;
+	overflow-x: auto;
+	font-size: $font-base;
+	color: $color-text;
+	line-height: 1.8;
+	overflow-wrap: break-word;
+	word-break: break-word;
+}
+
+/* 间距工具类 */
+.mt-xl { margin-top: $space-xl; }

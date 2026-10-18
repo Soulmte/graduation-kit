@@ -1,0 +1,54 @@
+// 设计变量：只定义值，不产出 CSS。
+// config/index.js 里的 sass.resource 会把本文件注入每个 scss，
+// 因此页面里可以直接用这些变量，无需重复 import。
+// 改主题色 / 圆角 / 间距时只改这一个文件。
+
+// 品牌色
+$color-primary: #007aff;
+$color-primary-dark: #096dd9;
+$color-primary-light: #e8f4ff;
+$color-danger: #ff3b30;
+
+// 文字
+$color-text: #333333;
+$color-text-secondary: #666666;
+$color-text-muted: #999999;
+$color-text-placeholder: #aaaaaa;
+$color-text-inverse: #ffffff;
+
+// 背景与边框
+$color-bg: #f5f5f5;
+$color-surface: #ffffff;
+$color-surface-muted: #f7f7f7;
+$color-border: #f0f0f0;
+$color-border-strong: #e5e5e5;
+
+// 圆角
+$radius-md: 12rpx;
+$radius-lg: 16rpx;
+$radius-pill: 999rpx;
+
+// 字号
+$font-xs: 22rpx;
+$font-sm: 24rpx;
+$font-base: 28rpx;
+$font-md: 30rpx;
+$font-lg: 32rpx;
+$font-xl: 36rpx;
+$font-2xl: 44rpx;
+$font-display: 48rpx;
+
+// 间距
+$space-xs: 8rpx;
+$space-sm: 12rpx;
+$space-md: 20rpx;
+$space-lg: 30rpx;
+$space-xl: 40rpx;
+$space-2xl: 60rpx;
+
+// 控件与布局
+$control-height: 90rpx;
+$tabbar-height: 150rpx;
+
+// 层级
+$z-tabbar: 99;

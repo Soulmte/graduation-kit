@@ -41,6 +41,42 @@
 			"style": {
 				"navigationBarTitleText": "编辑资料"
 			}
+		},
+		{
+			"path": "pages/settings/index",
+			"style": {
+				"navigationBarTitleText": "设置"
+			}
+		},
+		{
+			"path": "pages/password/index",
+			"style": {
+				"navigationBarTitleText": "修改密码"
+			}
+		},
+		{
+			"path": "pages/about/index",
+			"style": {
+				"navigationBarTitleText": "关于我们"
+			}
+		},
+		{
+			"path": "pages/agreement/index",
+			"style": {
+				"navigationBarTitleText": "用户协议"
+			}
+		},
+		{
+			"path": "pages/message/index",
+			"style": {
+				"navigationBarTitleText": "消息中心"
+			}
+		},
+		{
+			"path": "pages/message/detail",
+			"style": {
+				"navigationBarTitleText": "消息详情"
+			}
 		}
 	],
 	"globalStyle": {
@@ -48,26 +84,6 @@
 		"navigationBarTitleText": "uni-app",
 		"navigationBarBackgroundColor": "#007aff",
 		"backgroundColor": "#f5f5f5"
-	},
-	"tabBar": {
-		"color": "#999999",
-		"selectedColor": "#007aff",
-		"backgroundColor": "#ffffff",
-		"borderStyle": "black",
-		"list": [
-			{
-				"pagePath": "pages/index/index",
-				"text": "首页"
-			},
-			{
-				"pagePath": "pages/notice/list",
-				"text": "公告"
-			},
-			{
-				"pagePath": "pages/profile/index",
-				"text": "我的"
-			}
-		]
 	},
 	"uniIdRouter": {}
 }

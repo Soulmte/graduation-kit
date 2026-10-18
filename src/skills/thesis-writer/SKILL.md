@@ -1,14 +1,14 @@
 ---
 name: thesis-writer
 description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English keywords — write thesis, thesis chapter, abstract, thesis figure, convert to Word.
-version: 1.4.2
+version: 1.5.0
 priority: 90
 triggers: triggers.yaml
 ---
 
 # thesis-writer v2.0
 
-本科毕业论文写作专用 skill，配套本项目（6 后端 + 6 前端多技术栈脚手架）。
+本科毕业论文写作专用 skill，配套本项目（6 后端 + 7 前端多技术栈脚手架）。
 
 > **适用范围**：仅用于本科毕业论文或毕设项目。其他项目不要使用本 skill。
 > **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit update`。
@@ -551,5 +551,5 @@ cd docs/thesis/figure-kit
 8. **截图与嵌图全自动**：先跑 `screenshot.mjs`，再转换 Word；转换器会自动嵌图并缩放。不要让用户自己截图，也不要手改脚本
 9. **字数不是越多越好**。本科论文 12000-20000，超了就压缩
 10. **所有章节完成后自动运行转换脚本**，并跑 `check-refs.mjs`；报告图片数量与缺失项
-11. **只写项目真实用到的技术栈**。脚手架有 6 后端 6 前端，但你的毕设只用了一套，不要把没用的也写进论文
+11. **只写项目真实用到的技术栈**。脚手架有 6 后端 7 前端，但你的毕设只用了一套，不要把没用的也写进论文
 12. **禁止在 skills 目录下生成任何论文内容**。输出目录永远是 `docs/thesis/`

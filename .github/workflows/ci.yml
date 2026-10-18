@@ -27,6 +27,26 @@ jobs:
       - name: Scaffold smoke test
         run: node scripts/smoke.js
 
+  taro:
+    name: Taro scaffold builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generate Taro project
+        run: node bin/cli.js create taro-check --be express --fe taro --db taro_db --db-pass x --no-skills -d /tmp
+      - name: Install dependencies
+        working-directory: /tmp/taro-check/frontend
+        run: npm install --no-audit --no-fund
+      - name: Build H5
+        working-directory: /tmp/taro-check/frontend
+        run: npm run build:h5
+      - name: Build WeChat mini program
+        working-directory: /tmp/taro-check/frontend
+        run: npm run build:weapp
+
   python:
     name: Thesis converter
     runs-on: ubuntu-latest

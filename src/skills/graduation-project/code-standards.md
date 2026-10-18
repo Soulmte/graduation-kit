@@ -4,7 +4,7 @@
 
 > 前置阅读：本文件只规定代码怎么写。阶段流程看 `SKILL.md §2`，自检清单看 `self-check.md`。
 >
-> **适用范围**：react / vue-antd / vue-elementplus / vue-naive 四个 Web 前端。项目用的是 **uniapp 或 wxapp 时请读 `crossplatform-standards.md`**，那两个的目录结构、状态管理、请求封装与本文件完全不同。但 §0.3（接口协议）、§8（注释）、§9（命名）两边通用。
+> **适用范围**：react / vue-antd / vue-elementplus / vue-naive 四个 Web 前端。项目用的是 **uniapp、taro 或 wxapp 时请读 `crossplatform-standards.md`**，它们的目录结构、状态管理、请求封装与本文件完全不同。但 §0.3（接口协议）、§8（注释）、§9（命名）两边通用。
 
 ---
 
@@ -20,7 +20,7 @@
 | 4 | `<FE>/src/views/admin/UserManage.jsx` | `<FE>/src/views/admin/UserManage.vue` | 页面结构模板：Card→Toolbar→Table→Modal |
 | 5 | `<FE>/src/styles/global.css` | 同左 | 已有 CSS 变量、class 命名约定 |
 
-跨端项目（uniapp / wxapp）目录结构完全不同，**改读 `crossplatform-standards.md`**。
+跨端项目（uniapp / taro / wxapp）目录结构完全不同，**改读 `crossplatform-standards.md`**。
 
 ---
 
@@ -45,6 +45,7 @@
 | Vue-Antd | `@/` 别名 | `import { login } from '@/api/user'` |
 | Vue-ElementPlus | `@/` 别名 | `import { login } from '@/api/user'` |
 | Vue-Naive | `@/` 别名 | `import { login } from '@/api/user'` |
+| Taro + Vue | `@/` 别名 | `import { login } from '@/api/user'` |
 
 **`@/` 指向 `src/`**。写 Vue 代码时一律用 `@/`，写 React 代码时一律用相对路径。
 

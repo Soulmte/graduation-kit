@@ -96,6 +96,7 @@ const RUN_HINT = {
 const FE_HINT = {
   vite: 'npm install && npm run dev',
   uniapp: 'HBuilderX 打开，或 npm install && npm run dev:h5',
+  taro: 'npm install && npm run dev:h5（H5）/ dev:weapp（微信开发者工具导入 dist）',
   wxapp: '微信开发者工具直接导入此目录',
 };
 
@@ -731,7 +732,7 @@ export async function create(opts, ctx) {
     line('');
   }
   if (fes.some((f) => f.kind !== 'vite')) {
-    warn('小程序真机调试时，需将 config/index.js 中的 LAN_HOST 改为电脑局域网 IP');
+    warn('小程序真机调试时，需将 config/index.js（Taro 为 src/config/index.js）中的 LAN_HOST 改为电脑局域网 IP');
     line('');
   }
   line(paint('cyan', '━━━━━━━━━━━━━━━━━━'));

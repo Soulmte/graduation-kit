@@ -5,9 +5,11 @@
 				v-model="searchTitle"
 				class="search-input"
 				placeholder="搜索公告标题"
+				placeholder-class="input-placeholder"
 				confirm-type="search"
 				@confirm="handleSearch"
 			/>
+			<view class="search-btn" :class="{ disabled: loading }" @tap="handleSearch">搜索</view>
 		</view>
 
 		<view v-if="list.length === 0 && !loading" class="empty">暂无公告</view>
@@ -15,16 +17,18 @@
 		<view
 			v-for="item in list"
 			:key="item.id"
-			class="notice-card"
+			class="card"
 			@click="goDetail(item.id)"
 		>
-			<view class="notice-title">{{ item.title }}</view>
-			<view class="notice-preview">{{ item.content }}</view>
-			<view class="notice-time">{{ item.createTime }}</view>
+			<view class="cell-title">{{ item.title }}</view>
+			<view class="cell-desc">{{ item.content }}</view>
+			<view class="cell-meta">{{ item.createTime }}</view>
 		</view>
 
 		<view v-if="loading" class="loading">加载中...</view>
 		<view v-else-if="!hasMore && list.length > 0" class="loading">没有更多了</view>
+
+		<TabBar active="notice" />
 	</view>
 </template>
 
@@ -32,6 +36,7 @@
 import { ref } from 'vue'
 import { onLoad, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app'
 import { pageQueryNotice } from '@/api/notice'
+import TabBar from '@/components/TabBar.vue'
 
 const list = ref([])
 const total = ref(0)
@@ -68,6 +73,10 @@ const loadData = async (reset = false) => {
 }
 
 const handleSearch = () => {
+	if (loading.value) return
+	searchTitle.value = searchTitle.value.trim()
+	list.value = []
+	hasMore.value = true
 	loadData(true)
 }
 
@@ -90,60 +99,39 @@ onPullDownRefresh(async () => {
 })
 </script>
 
-<style>
-.container {
-	padding: 20rpx;
-	min-height: 100vh;
-	background: #f5f5f5;
-}
-
+<style scoped lang="scss">
 .search-bar {
-	margin-bottom: 20rpx;
+	display: flex;
+	align-items: center;
+	gap: $space-md;
+	margin-bottom: $space-md;
 }
 
 .search-input {
-	background: #fff;
-	padding: 20rpx 30rpx;
-	border-radius: 40rpx;
-	font-size: 28rpx;
-	border: 1rpx solid #e5e5e5;
+	flex: 1;
+	min-width: 0;
+	height: 76rpx;
+	padding: 0 $space-lg;
+	background: $color-surface;
+	border-radius: $radius-pill;
+	font-size: $font-base;
+	border: 1rpx solid $color-border-strong;
+	box-sizing: border-box;
 }
 
-.notice-card {
-	background: #fff;
-	border-radius: 16rpx;
-	padding: 30rpx;
-	margin-bottom: 20rpx;
-}
-
-.notice-title {
-	font-size: 30rpx;
-	font-weight: 600;
-	color: #333;
-	margin-bottom: 12rpx;
-}
-
-.notice-preview {
-	font-size: 26rpx;
-	color: #666;
-	line-height: 1.6;
-	margin-bottom: 16rpx;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.notice-time {
-	font-size: 22rpx;
-	color: #999;
-}
-
-.empty,
-.loading {
+.search-btn {
+	flex-shrink: 0;
+	height: 76rpx;
+	line-height: 76rpx;
+	padding: 0 $space-lg;
+	border-radius: $radius-pill;
+	background: $color-primary;
+	color: $color-text-inverse;
+	font-size: $font-base;
 	text-align: center;
-	color: #999;
-	font-size: 26rpx;
-	padding: 40rpx 0;
+}
+
+.search-btn.disabled {
+	opacity: 0.5;
 }
 </style>

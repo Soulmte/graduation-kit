@@ -1,0 +1,41 @@
+@import './variables';
+
+// 卡片容器
+@mixin card($padding: $space-lg) {
+  background: $color-surface;
+  border-radius: $radius-lg;
+  padding: $padding;
+}
+
+// 单行 / 多行省略
+@mixin ellipsis($lines: 1) {
+  overflow: hidden;
+
+  @if $lines == 1 {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+  }
+}
+
+// 实心按钮
+@mixin btn-filled($bg: $color-primary, $color: $color-text-inverse) {
+  height: $control-height;
+  line-height: $control-height;
+  background: $bg;
+  color: $color;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-md;
+  text-align: center;
+}
+
+// flex 布局快捷写法
+@mixin flex($justify: flex-start, $align: center) {
+  display: flex;
+  align-items: $align;
+  justify-content: $justify;
+}

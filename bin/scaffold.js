@@ -5,6 +5,14 @@
 import { existsSync, mkdirSync, readdirSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 
+/** 拷贝时跳过的依赖与构建产物，避免把带绝对路径的旧缓存带进新项目 */
+const SKIP_DIRS = new Set([
+  'node_modules', '.git', '.idea', '.vscode',
+  'unpackage', 'dist', 'build', 'target', 'coverage',
+  '.next', '.nuxt', '.preview', 'oh_modules',
+]);
+const shouldSkip = (name) => SKIP_DIRS.has(name);
+
 /** 可用后端。port 必须与脚手架内实际配置一致 */
 export const BACKENDS = [
   { id: 'springboot', label: 'Spring Boot 3', port: 8080, lang: 'Java 17 + MyBatis-Plus', ready: true },
@@ -22,6 +30,7 @@ export const FRONTENDS = [
   { id: 'vue-antd', label: 'Vue 3 + Ant Design Vue', kind: 'vite', ready: true },
   { id: 'vue-naive', label: 'Vue 3 + Naive UI（含暗色模式）', kind: 'vite', ready: true },
   { id: 'uniapp', label: 'uni-app 跨端（H5 / 小程序 / App）', kind: 'uniapp', ready: true },
+  { id: 'taro', label: 'Taro 4 + Vue 3（H5 / 微信小程序）', kind: 'taro', ready: true },
   { id: 'wxapp', label: '微信小程序原生', kind: 'wxapp', ready: true },
 ];
 
@@ -150,13 +159,18 @@ export function patchFrontend(dir, frontend, port) {
     ])) changed.push('.env.development');
     return changed;
   }
+  if (frontend.kind === 'taro') {
+    // Taro 的后端地址分散在两处：H5 代理在 config/index.js，真机地址在 src/config/index.js
+    if (replaceInFile(join(dir, 'config', 'index.js'), [['http://localhost:8080', `http://localhost:${port}`]])) {
+      changed.push('config/index.js');
+    }
+    if (replaceInFile(join(dir, 'src', 'config', 'index.js'), [[':8080', `:${port}`]])) {
+      changed.push('src/config/index.js');
+    }
+    return changed;
+  }
   if (replaceInFile(join(dir, 'config', 'index.js'), [[':8080', `:${port}`]])) {
     changed.push('config/index.js');
-  }
-  if (frontend.kind === 'uniapp') {
-    if (replaceInFile(join(dir, 'manifest.json'), [
-      ['http://localhost:8080', `http://localhost:${port}`],
-    ])) changed.push('manifest.json');
   }
   return changed;
 }
@@ -188,6 +202,7 @@ function countFiles(dir) {
   if (!existsSync(dir)) return 0;
   let n = 0;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (shouldSkip(entry.name)) continue;
     if (entry.isDirectory()) n += countFiles(join(dir, entry.name));
     else n += 1;
   }
@@ -210,6 +225,8 @@ export function copyTree(from, to) {
       force: true,
       // Windows 下保留符号链接的处理
       verbatimSymlinks: false,
+      // 依赖与构建产物一律不拷
+      filter: (src) => !shouldSkip(basename(src)),
     });
   } catch (err) {
     // cpSync 在部分 Node 版本 / 文件系统上会中途失败，一律回退到手动拷贝
@@ -245,6 +262,7 @@ function copyTreeManual(from, to) {
   const errors = [];
   
   for (const entry of entries) {
+    if (shouldSkip(entry.name)) continue;
     const srcPath = join(from, entry.name);
     const destPath = join(to, entry.name);
     

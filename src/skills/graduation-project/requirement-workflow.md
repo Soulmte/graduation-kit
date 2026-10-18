@@ -48,7 +48,7 @@
    （没偏好我按题目类型推荐；只能从脚手架已有的里选）
 2. 最终跑在什么设备上？
    浏览器  → frontends/ 下的 react / vue-antd / vue-elementplus / vue-naive
-   微信小程序 → frontends/wxapp（原生）或 frontends/uniapp（跨端）
+   微信小程序 → frontends/wxapp（原生）、frontends/taro（Vue 3）或 frontends/uniapp（跨端）
    手机 APP → frontends/uniapp 或 clients/rn
    桌面客户端 → clients/pyqt
 ```

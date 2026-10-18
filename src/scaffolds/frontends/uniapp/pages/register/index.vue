@@ -1,7 +1,7 @@
 <template>
-	<view class="container">
-		<view class="header">
-			<view class="title">用户注册</view>
+	<view class="container container--auth">
+		<view class="auth-header">
+			<view class="auth-title">用户注册</view>
 		</view>
 
 		<view class="form">
@@ -10,7 +10,7 @@
 					v-model="form.username"
 					class="input"
 					placeholder="用户名（2-20位字母数字下划线）"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 				/>
 			</view>
 			<view v-if="errors.username" class="error-text">{{ errors.username }}</view>
@@ -20,7 +20,7 @@
 					v-model="form.password"
 					class="input"
 					placeholder="密码（至少6位）"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 					password
 				/>
 			</view>
@@ -31,7 +31,7 @@
 					v-model="form.confirmPassword"
 					class="input"
 					placeholder="确认密码"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 					password
 				/>
 			</view>
@@ -42,7 +42,7 @@
 					v-model="form.nickname"
 					class="input"
 					placeholder="昵称（可选）"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 				/>
 			</view>
 
@@ -51,7 +51,7 @@
 					v-model="form.email"
 					class="input"
 					placeholder="邮箱（可选）"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 				/>
 			</view>
 			<view v-if="errors.email" class="error-text">{{ errors.email }}</view>
@@ -61,27 +61,27 @@
 					v-model="form.phone"
 					class="input"
 					placeholder="手机号（可选）"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 					type="number"
 					maxlength="11"
 				/>
 			</view>
 			<view v-if="errors.phone" class="error-text">{{ errors.phone }}</view>
 
-			<view class="form-item row-item">
-				<view class="row-label">年龄（可选）</view>
+			<view class="form-item form-row">
+				<view class="form-label">年龄（可选）</view>
 				<input
 					v-model="form.age"
-					class="input row-input"
+					class="input"
 					placeholder="年龄"
-					placeholder-style="color:#aaa"
+					placeholder-class="input-placeholder"
 					type="number"
 					maxlength="3"
 				/>
 			</view>
 
 			<view class="form-item">
-				<view class="row-label">性别（可选）</view>
+				<view class="form-label">性别（可选）</view>
 				<view class="gender-group">
 					<view
 						class="gender-item"
@@ -101,7 +101,7 @@
 				</view>
 			</view>
 
-			<button class="btn-primary" :disabled="loading" @click="handleRegister">
+			<button class="btn-primary mt-xl" :disabled="loading" @click="handleRegister">
 				{{ loading ? '注册中...' : '注册' }}
 			</button>
 		</view>
@@ -223,105 +223,3 @@ const goLogin = () => {
 	uni.redirectTo({ url: '/pages/login/index' })
 }
 </script>
-
-<style>
-.container {
-	min-height: 100vh;
-	background: #fff;
-	padding: 60rpx 50rpx;
-}
-
-.header {
-	text-align: center;
-	margin: 40rpx 0 60rpx;
-}
-
-.title {
-	font-size: 48rpx;
-	font-weight: 600;
-	color: #333;
-}
-
-.form-item {
-	margin-bottom: 20rpx;
-}
-
-.input {
-	height: 90rpx;
-	background: #f7f7f7;
-	border-radius: 12rpx;
-	padding: 0 30rpx;
-	font-size: 28rpx;
-}
-
-.row-item {
-	display: flex;
-	align-items: center;
-	gap: 20rpx;
-}
-
-.row-label {
-	font-size: 26rpx;
-	color: #666;
-	margin-bottom: 12rpx;
-	white-space: nowrap;
-}
-
-.row-input {
-	flex: 1;
-}
-
-.gender-group {
-	display: flex;
-	gap: 20rpx;
-}
-
-.gender-item {
-	flex: 1;
-	text-align: center;
-	height: 70rpx;
-	line-height: 70rpx;
-	background: #f7f7f7;
-	border-radius: 12rpx;
-	font-size: 28rpx;
-	color: #666;
-	border: 2rpx solid transparent;
-}
-
-.gender-item.active {
-	background: #e8f4ff;
-	color: #007aff;
-	border-color: #007aff;
-}
-
-.error-text {
-	font-size: 24rpx;
-	color: #ff3b30;
-	padding: 4rpx 10rpx 12rpx;
-}
-
-.btn-primary {
-	margin-top: 40rpx;
-	background: #007aff;
-	color: #fff;
-	border-radius: 12rpx;
-	height: 90rpx;
-	line-height: 90rpx;
-	font-size: 30rpx;
-}
-
-.footer {
-	text-align: center;
-	margin-top: 60rpx;
-	font-size: 26rpx;
-}
-
-.footer-text {
-	color: #999;
-}
-
-.footer-link {
-	color: #007aff;
-	margin-left: 10rpx;
-}
-</style>

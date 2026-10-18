@@ -7,9 +7,9 @@
 
 		<view class="card">
 			<view class="card-title">系统功能</view>
-			<view class="feature" v-for="(item, idx) in features" :key="idx">
-				<view class="feature-name">{{ item.name }}</view>
-				<view class="feature-desc">{{ item.desc }}</view>
+			<view class="cell-item" v-for="(item, idx) in features" :key="idx">
+				<view class="cell-title">{{ item.name }}</view>
+				<view class="cell-desc">{{ item.desc }}</view>
 			</view>
 		</view>
 
@@ -19,19 +19,22 @@
 			<view
 				v-for="item in notices"
 				:key="item.id"
-				class="notice-item"
+				class="cell-item"
 				@click="goDetail(item.id)"
 			>
-				<view class="notice-title">{{ item.title }}</view>
-				<view class="notice-time">{{ item.createTime }}</view>
+				<view class="cell-title">{{ item.title }}</view>
+				<view class="cell-meta">{{ item.createTime }}</view>
 			</view>
 		</view>
+
+		<TabBar active="home" />
 	</view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listAllNotice } from '@/api/notice'
+import TabBar from '@/components/TabBar.vue'
 
 const notices = ref([])
 const features = [
@@ -56,90 +59,23 @@ const goDetail = (id) => {
 onMounted(loadNotices)
 </script>
 
-<style>
-.container {
-	padding: 20rpx;
-	min-height: 100vh;
-	background: #f5f5f5;
-}
-
+<style scoped lang="scss">
 .banner {
 	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	color: #fff;
-	padding: 60rpx 40rpx;
-	border-radius: 16rpx;
-	margin-bottom: 20rpx;
+	color: $color-text-inverse;
+	padding: $space-2xl $space-xl;
+	border-radius: $radius-lg;
+	margin-bottom: $space-md;
 }
 
 .banner-title {
-	font-size: 44rpx;
-	font-weight: bold;
+	font-size: $font-2xl;
+	font-weight: 700;
 }
 
 .banner-sub {
-	font-size: 26rpx;
-	margin-top: 12rpx;
+	font-size: $font-sm;
+	margin-top: $space-sm;
 	opacity: 0.9;
-}
-
-.card {
-	background: #fff;
-	border-radius: 16rpx;
-	padding: 30rpx;
-	margin-bottom: 20rpx;
-}
-
-.card-title {
-	font-size: 32rpx;
-	font-weight: 600;
-	margin-bottom: 20rpx;
-	color: #333;
-}
-
-.feature {
-	padding: 20rpx 0;
-	border-bottom: 1rpx solid #f0f0f0;
-}
-
-.feature:last-child {
-	border-bottom: none;
-}
-
-.feature-name {
-	font-size: 28rpx;
-	color: #333;
-	margin-bottom: 6rpx;
-}
-
-.feature-desc {
-	font-size: 24rpx;
-	color: #999;
-}
-
-.empty {
-	text-align: center;
-	color: #999;
-	font-size: 26rpx;
-	padding: 40rpx 0;
-}
-
-.notice-item {
-	padding: 24rpx 0;
-	border-bottom: 1rpx solid #f0f0f0;
-}
-
-.notice-item:last-child {
-	border-bottom: none;
-}
-
-.notice-title {
-	font-size: 28rpx;
-	color: #333;
-	margin-bottom: 8rpx;
-}
-
-.notice-time {
-	font-size: 22rpx;
-	color: #999;
 }
 </style>

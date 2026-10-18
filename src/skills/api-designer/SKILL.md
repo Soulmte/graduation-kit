@@ -1,7 +1,7 @@
 ---
 name: api-designer
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设接口设计 skill。用户说要加接口、设计 API、定义请求响应格式、前后端联调对不上、接口该用 GET 还是 POST、返回结构怎么统一、分页怎么写、错误码怎么定、要写接口文档时使用。确保接口遵循脚手架统一协议 {code, message, data}：RESTful 路径命名、请求参数与 DTO 设计、分页与列表约定、状态码与错误码规范、鉴权与权限标注。输出接口清单表格，可直接用于论文的接口设计章节。English keywords — design API, add endpoint, API documentation, response format.
-version: 1.4.2
+version: 1.5.0
 priority: 70
 triggers: triggers.yaml
 ---
@@ -307,7 +307,7 @@ if (user.role !== 'admin' && Number(dto.id) !== user.id) {
 **设计完接口后，四处必须同步改到**（少一处前后端就联不上，或者代码写了没人调）：
 
 1. **后端路由 + 控制器** — 按 §2 对应后端的模板写，入参遵守 §2.7，归属遵守 §2.8，管理员接口别忘标权限
-2. **前端 API 函数** — Web 前端在 `<FE>/src/api/<module>.js` 新增，写法见 `code-standards.md §1.2`；uniapp / wxapp 无 `src/`，直接是 `<FE>/api/<module>.js`，且两者调用方式不同（见 `crossplatform-standards.md §5`）。路径必须与后端逐字一致
+2. **前端 API 函数** — Web 前端在 `<FE>/src/api/<module>.js` 新增，写法见 `code-standards.md §1.2`；uniapp / wxapp 无 `src/`，直接是 `<FE>/api/<module>.js`；taro 有 `src/`，是 `<FE>/src/api/<module>.js`。三者调用方式不同（见 `crossplatform-standards.md §5`）。路径必须与后端逐字一致
 3. **前端页面调用** — 光加 `api/xxx.js` 不算做完，必须有页面或组件实际 import 并调用它；涉及管理员权限的，同步路由守卫与菜单的角色判断
 4. **新增业务码登记** — 如果引入了新的 `code`，同时补到 §0.1 表里和后端的 `ResultCode` 定义里（三个后端各一份），否则前端拦截器不知道怎么处理
 

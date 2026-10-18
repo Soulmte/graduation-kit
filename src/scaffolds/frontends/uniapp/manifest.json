@@ -47,20 +47,7 @@
     "mp-toutiao" : {
         "usingComponents" : true
     },
-    "h5" : {
-        "devServer" : {
-            "proxy" : {
-                "/api" : {
-                    "target" : "http://localhost:8080",
-                    "changeOrigin" : true
-                },
-                "/uploads" : {
-                    "target" : "http://localhost:8080",
-                    "changeOrigin" : true
-                }
-            }
-        }
-    },
+    "h5" : {},
     "uniStatistics" : {
         "enable" : false
     },

@@ -64,6 +64,28 @@ const DEMO_EXPECT = {
 };
 
 /**
+ * 每个 ready 前端至少要有这些文件。新增前端忘了打包、或者目录被清空，
+ * smoke 会直接报，不用等用户生成项目才发现。
+ */
+const FE_EXPECT = {
+  react: ['package.json', 'vite.config.js', 'src/main.jsx', 'src/App.jsx'],
+  'vue-elementplus': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
+  'vue-antd': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
+  'vue-naive': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
+  uniapp: ['pages.json', 'App.vue', 'main.js', 'pages/login/index.vue', 'components/TabBar.vue', 'pages/settings/index.vue', 'pages/message/index.vue', 'data/messages.js', 'utils/message.js', 'common/styles/common.scss'],
+  taro: ['package.json', 'config/index.js', 'src/app.config.js', 'src/pages/login/index.vue', 'src/static/tab-home.png', 'src/components/TabBar.vue', 'src/pages/settings/index.vue', 'src/pages/settings/index.config.js', 'src/pages/message/index.vue', 'src/data/messages.js', 'src/utils/message.js', 'src/styles/common.scss', 'src/styles/_variables.scss', 'src/styles/_mixins.scss'],
+  wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'styles/common.wxss'],
+};
+
+/** 各前端把后端端口写在哪里，用于确认 patchFrontend 真的改到了 */
+const PORT_FILES = {
+  vite: ['.env.development'],
+  uniapp: ['config/index.js'],
+  taro: ['config/index.js', 'src/config/index.js'],
+  wxapp: ['config/index.js'],
+};
+
+/**
  * 找出解析后没落在项目根 uploads/ 的相对路径引用。
  * 两种写法基准不同：拼在 __dirname / __file__ 上的以文件所在目录为基准，
  * 其余是配置默认值，运行时以后端目录（进程工作目录）为基准。
@@ -192,6 +214,58 @@ try {
 
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     check('README 含 demo 说明', want.readme.every((k) => readme.includes(k)));
+  }
+
+  // 每个前端各生成一次，确认目录、关键文件与端口改写都在
+  const feBackend = readyBackends()[0];
+  for (const fe of readyFrontends()) {
+    console.log(`\n前端 ${fe.id}`);
+    const name = `smoke-fe-${fe.id}`;
+    execFileSync(process.execPath, [
+      CLI, 'create', name, '--be', feBackend.id, '--fe', fe.id,
+      '--db', DB, '--db-pass', PASS, '--no-skills', '-d', work,
+    ], { stdio: 'pipe' });
+
+    const root = join(work, name);
+    const dir = join(root, 'frontend');
+    const want = FE_EXPECT[fe.id];
+    check(`${fe.id} 已在 smoke 登记预期文件`, Boolean(want), '请往 FE_EXPECT 补一项');
+    if (!want) continue;
+
+    const missing = want.filter((f) => !existsSync(join(dir, f)));
+    check(`${fe.id} 关键文件齐全`, missing.length === 0, missing.join('、'));
+
+    for (const rel of PORT_FILES[fe.kind] || []) {
+      const file = join(dir, rel);
+      check(`${fe.id} ${rel} 已指向 :${feBackend.port}`,
+        existsSync(file) && readFileSync(file, 'utf8').includes(`:${feBackend.port}`));
+    }
+
+    if (fe.id === 'uniapp') {
+      const pages = JSON.parse(readFileSync(join(dir, 'pages.json'), 'utf8'));
+      check('uniapp 没有原生 tabBar', !('tabBar' in pages));
+    }
+    if (fe.id === 'taro') {
+      const appConfig = readFileSync(join(dir, 'src', 'app.config.js'), 'utf8');
+      check('taro 没有原生 tabBar', !/tabBar\s*:/.test(appConfig));
+    }
+
+    const mobileStyle = {
+      uniapp: 'common/styles/common.scss',
+      taro: 'src/styles/common.scss',
+      wxapp: 'styles/common.wxss',
+    }[fe.id];
+    if (mobileStyle) {
+      const css = readFileSync(join(dir, mobileStyle), 'utf8');
+      check(`${fe.id} 公共样式禁止横向溢出`,
+        /overflow-x:\s*hidden/.test(css) && /max-width:\s*100%/.test(css));
+      if (fe.id !== 'wxapp') {
+        const tabPath = fe.id === 'taro' ? 'src/components/TabBar.vue' : 'components/TabBar.vue';
+        const tab = readFileSync(join(dir, tabPath), 'utf8');
+        check(`${fe.id} TabBar 自带等高占位块`,
+          tab.includes('tabbar-spacer') && tab.includes('boundingClientRect'));
+      }
+    }
   }
 } finally {
   rmSync(work, { recursive: true, force: true });

@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设代码审查 skill。用户说审查代码、review 一下、代码写得对不对、有没有更好的写法、检查规范、代码质量、找 bug、导师会不会挑刺、答辩前过一遍代码时使用。也在 graduation-project 每生成完一个模块后自动调用。站在导师视角检查：脚手架分层规范、命名一致性、异常与边界处理、SQL 注入与越权等安全问题、事务与并发、重复代码与圈复杂度、日志与注释、前端组件拆分与状态管理。输出按严重程度分级的问题清单与修改建议。English keywords — review code, code review, find bugs, security review.
-version: 1.4.2
+version: 1.5.0
 priority: 60
 auto_invoke_after_modules: true
 triggers: triggers.yaml
@@ -9,7 +9,7 @@ triggers: triggers.yaml
 
 # code-reviewer
 
-针对本脚手架项目（6 后端 + 6 前端 + 2 客户端）的代码审查 skill。**每次 `graduation-project` 生成完一个模块后调用**。
+针对本脚手架项目（6 后端 + 7 前端 + 2 客户端）的代码审查 skill。**每次 `graduation-project` 生成完一个模块后调用**。
 
 > **适用范围**：仅用于毕业设计项目。当前项目不是毕设时，立即停用本 skill 并说明原因。
 > **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit update`。

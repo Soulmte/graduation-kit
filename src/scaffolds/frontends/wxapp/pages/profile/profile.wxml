@@ -22,7 +22,7 @@
       <input placeholder="请输入邮箱" bindinput="onInput" data-field="email" value="{{email}}" />
     </view>
 
-    <button class="btn-primary" loading="{{loading}}" bindtap="handleSave">保存修改</button>
+    <button class="btn-primary mt-lg" loading="{{loading}}" bindtap="handleSave">保存修改</button>
 
     <view class="section-title">安全设置</view>
     <button class="btn-plain" bindtap="openPwd">修改密码</button>

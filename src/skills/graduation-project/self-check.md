@@ -40,7 +40,7 @@
 **路径写错时，搜索命令会返回零结果——这看起来和“检查通过”一模一样。** 两个必做的预防：
 
 1. **跑第一条命令前先验证目录存在**：`ls <FE>/src/views` 能列出文件才往下走。报 `No such file` 就是路径错了，不是代码干净
-2. **uniapp / wxapp 没有 `src/` 目录**，下文命令要**把 `<FE>/src/` 改成 `<FE>/`**，并把 `views/` 改成 `pages/`、`stores/` 改成 `store/`（wxapp 是 `utils/`）。不改就全部返空假通过。跨端项目的完整目录差异见 `crossplatform-standards.md §1`
+2. **uniapp / wxapp 没有 `src/` 目录**，下文命令要**把 `<FE>/src/` 改成 `<FE>/`**，并把 `views/` 改成 `pages/`、`stores/` 改成 `store/`（wxapp 是 `utils/`）。**taro 有 `src/`**，路径保留 `<FE>/src/`，但 `views/` 仍要改成 `pages/`、`stores/` 改成 `store/`。不改就全部返空假通过。跨端项目的完整目录差异见 `crossplatform-standards.md §1`
 
 每项检查输出结果时，**要区分“搜了但没命中”和“目录不存在”**，后者不能计作通过。
 
@@ -269,6 +269,28 @@ search_content "style=\{" --glob "*.jsx" --path <FE>/src
 
 # 搜硬编码颜色：命中的 :root 变量定义行是合法的，只看变量定义之外的规则
 search_content "#[0-9a-fA-F]{6}" --glob "*.css" --path <FE>/src/styles
+```
+
+**移动端（uniapp / taro / wxapp）额外检查**：
+
+- [ ] 页面没有重复定义 `.container` `.card` `.btn-primary` `.input` `.form-item` `.empty` 等公共块
+- [ ] uniapp / taro 的设计变量分别只在 `uni.scss` / `_variables.scss` 里改；wxapp 只在 `styles/common.wxss` 顶部的 CSS 变量里改
+- [ ] uniapp 的 `App.vue` 引入了 `common/styles/common.scss`；taro 的 `app.scss` 引入了 `src/styles/common.scss`
+- [ ] wxapp 的 `app.wxss` 有 `@import "styles/common.wxss";`，页面 `.wxss` 只写本页特有布局
+- [ ] wxml 里没有成片的 `style="..."`，公共布局用工具类
+- [ ] 页面没有给固定 tabBar / 导航栏手写 `padding-bottom` / `padding-top`：`TabBar` / `NavBar` 组件自带等高占位块，改样式后高度自动跟随
+- [ ] 页面根节点使用 `.container`，没有自己写超过屏幕的固定宽度或负边距
+- [ ] 长文本块有 `overflow-wrap: break-word` / `word-break: break-word`，flex 文本子项有 `min-width: 0`
+- [ ] 图片有 `max-width: 100%`，弹窗有 `max-width`
+- [ ] 320px 宽 + 长英文/长标题下没有横向滚动条，底部内容不被 tabBar 遮挡
+
+检查命令：
+```bash
+# uniapp / taro：页面里不应再出现这些公共块定义
+grep -rn "^\.container\|^\.btn-primary\|^\.input {" <FE>/pages <FE>/src/pages
+
+# wxapp：wxml 里不应有成片内联样式
+grep -rn 'style="' <FE>/pages
 ```
 
 ---

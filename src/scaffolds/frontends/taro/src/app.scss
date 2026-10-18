@@ -1,0 +1,53 @@
+@import './styles/common.scss';
+
+page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background: $color-bg;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  color: $color-text;
+}
+
+/* 所有盒子默认 border-box，避免 width + padding 撑出父容器 */
+view,
+text,
+input,
+textarea,
+button,
+image {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* 图片默认不撑破容器，也不被 flex 压扁 */
+image {
+  display: block;
+  flex-shrink: 0;
+}
+
+button {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+button::after {
+  border: none;
+}
+
+/* H5 兜底：页面根节点不产生横向滚动条 */
+#app {
+  overflow-x: hidden;
+}
+
+/* H5 在桌面浏览器预览时限制宽度，避免移动端页面被拉伸 */
+@media (min-width: 768px) {
+  #app {
+    max-width: 750px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: #fff;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.06);
+  }
+}

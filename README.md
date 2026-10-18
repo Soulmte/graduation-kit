@@ -59,6 +59,7 @@ npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db
 | `vue-antd` | Vue 3 + Ant Design Vue | 5174 |
 | `vue-naive` | Vue 3 + Naive UI | 5177 |
 | `uniapp` | uni-app 跨端 | - |
+| `taro` | Taro 4 + Vue 3（H5 / 微信小程序） | 10086 |
 | `wxapp` | 微信小程序原生 | - |
 
 **推荐组合**：`springboot` + `vue-antd`（企业级主流，面试认可度高）

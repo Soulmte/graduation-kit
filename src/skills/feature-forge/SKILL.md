@@ -1,7 +1,7 @@
 ---
 name: feature-forge
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设需求定义与功能边界 skill。用户说不知道毕设做什么、题目太宽泛不知从哪下手、要写需求文档、列功能清单、画用例、定 MVP 范围、评估工作量是否够毕设体量、技术选型拿不定主意时使用。从毕设题目出发做需求访谈，输出角色划分、功能模块树、用户故事、EARS 格式需求描述、优先级排序与非功能需求。也用于开题报告的需求分析章节、砍掉超纲功能、判断某功能值不值得做。English keywords — define requirements, feature list, MVP scope, cut features.
-version: 1.4.2
+version: 1.5.0
 priority: 80
 triggers: triggers.yaml
 ---

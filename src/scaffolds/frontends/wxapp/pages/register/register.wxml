@@ -27,12 +27,10 @@
       <input placeholder="请输入邮箱" bindinput="onInput" data-field="email" />
     </view>
 
-    <button class="btn-primary" loading="{{loading}}" bindtap="handleRegister" style="margin-top:32rpx">
-      注册
-    </button>
+    <button class="btn-primary mt-lg" loading="{{loading}}" bindtap="handleRegister">注册</button>
 
-    <view style="text-align:center;margin-top:24rpx;color:#999">
-      已有账号？<navigator url="/pages/login/login" style="color:#1890ff">立即登录</navigator>
+    <view class="text-center mt-md text-muted">
+      已有账号？<navigator url="/pages/login/login" class="link">立即登录</navigator>
     </view>
   </view>
 </view>

@@ -1,0 +1,51 @@
+{
+  "name": "taro-vue-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "多技术栈脚手架的 Taro 4 + Vue 3 移动端",
+  "templateInfo": {
+    "name": "vue3",
+    "typescript": false,
+    "css": "sass",
+    "framework": "vue3"
+  },
+  "scripts": {
+    "build:weapp": "taro build --type weapp",
+    "build:h5": "taro build --type h5",
+    "dev:weapp": "npm run build:weapp -- --watch",
+    "dev:h5": "npm run build:h5 -- --watch"
+  },
+  "browserslist": [
+    "defaults and fully supports es6-module",
+    "maintained node versions"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime": "^7.24.4",
+    "@tarojs/components": "4.3.0",
+    "@tarojs/helper": "4.3.0",
+    "@tarojs/plugin-framework-vue3": "4.3.0",
+    "@tarojs/plugin-platform-h5": "4.3.0",
+    "@tarojs/plugin-platform-weapp": "4.3.0",
+    "@tarojs/runtime": "4.3.0",
+    "@tarojs/shared": "4.3.0",
+    "@tarojs/taro": "4.3.0",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.4",
+    "@tarojs/cli": "4.3.0",
+    "@tarojs/taro-loader": "4.3.0",
+    "@tarojs/webpack5-runner": "4.3.0",
+    "@vue/babel-plugin-jsx": "^1.2.2",
+    "@vue/compiler-sfc": "^3.4.21",
+    "babel-preset-taro": "4.3.0",
+    "css-loader": "3.4.2",
+    "postcss": "^8.4.38",
+    "sass": "^1.77.0",
+    "style-loader": "1.3.0",
+    "vue-loader": "^17.1.0",
+    "webpack": "5.91.0"
+  }
+}

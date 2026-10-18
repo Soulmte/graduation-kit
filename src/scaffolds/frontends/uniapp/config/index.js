@@ -13,23 +13,18 @@ const DEV_BASE_URL = `http://${LAN_HOST}:8080/api`;
 // 生产环境后端地址（按实际部署修改）
 const PROD_BASE_URL = "https://your-domain.com/api";
 
-// H5 开发走 devServer 代理（见 manifest.json 的 h5.devServer.proxy）
+// H5 直接访问后端（后端已开 CORS）。
+// 不要改用 /api 代理：项目根的 api/ 源码目录会与 /api 前缀冲突，
+// 浏览器把 @/api/xxx 请求成 /api/xxx.js 时会被代理拦截。
 let BASE_URL = DEV_BASE_URL;
 
 // 上传文件访问地址（对应后端的 uploads 目录）
 let UPLOAD_BASE = `http://${LAN_HOST}:8080/uploads`;
 
-// #ifdef H5
-BASE_URL = "/api";
-UPLOAD_BASE = "/uploads";
-// #endif
-
 // 生产环境
 if (process.env.NODE_ENV === "production") {
-	// #ifndef H5
-	BASE_URL = PROD_BASE_URL;
-	UPLOAD_BASE = PROD_BASE_URL.replace("/api", "/uploads");
-	// #endif
+		BASE_URL = PROD_BASE_URL;
+		UPLOAD_BASE = PROD_BASE_URL.replace("/api", "/uploads");
 }
 
 export default {

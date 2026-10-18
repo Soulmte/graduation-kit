@@ -1,7 +1,7 @@
 ---
 name: graduation-project
-description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 6 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。English keywords — graduation project, final year project, capstone project, build my project.
-version: 1.4.2
+description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 7 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。English keywords — graduation project, final year project, capstone project, build my project.
+version: 1.5.0
 priority: 100
 auto_invoke: true
 triggers: triggers.yaml
@@ -9,7 +9,7 @@ triggers: triggers.yaml
 
 # graduation-project
 
-毕业设计代码生成专用 skill，配套本项目的多技术栈脚手架：**6 个后端 + 6 个 Web/小程序前端 + 2 个客户端**（pyqt 桌面端 / rn 原生 APP）。**站在导师视角，确保代码质量过关。**
+毕业设计代码生成专用 skill，配套本项目的多技术栈脚手架：**6 个后端 + 7 个 Web/小程序前端 + 2 个客户端**（pyqt 桌面端 / rn 原生 APP）。**站在导师视角，确保代码质量过关。**
 
 ---
 
@@ -56,7 +56,7 @@ triggers: triggers.yaml
 |------|-------------|---------|
 | 不确定整体开发流程怎么走 | 本文件 §2 | 五阶段工作流 |
 | 不知道代码怎么写才规范（Web 前端 + 后端）| `code-standards.md` | API 层 / Store 层 / 组件层 / 路由 / 样式规范 |
-| 项目用的是 uniapp 或 wxapp | `crossplatform-standards.md` | 跨端目录 / 状态管理 / 请求封装差异 |
+| 项目用的是 uniapp、taro 或 wxapp | `crossplatform-standards.md` | 跨端目录 / 状态管理 / 请求封装差异 |
 | 不知道怎么敲定需求 | `requirement-workflow.md` | 需求模板 + 确认流程 + 功能清单 |
 | 不知道怎么选前端风格 | `style-integration.md` | ui-ux-pro-max + taste-skill + 避免深色方案 |
 | 写完代码不确定质量 | `self-check.md` | 9 项自检清单 |
@@ -126,7 +126,7 @@ ls
 探测时还要确认两件事，它们决定了后续所有路径：
 
 1. **后端是哪个技术栈** —— 有 `pom.xml` 是 Spring Boot；有 `src/app.js` 是 Express；有 `app.py` 是 Flask
-2. **前端是哪个技术栈** —— 看 `package.json` 的 `dependencies`：有 `react` / `ant-design-vue` / `element-plus` / `naive-ui`；有 `pages.json` 是 uniapp；有 `app.json` + `.wxml` 是 wxapp
+2. **前端是哪个技术栈** —— 看 `package.json` 的 `dependencies`：有 `react` / `ant-design-vue` / `element-plus` / `naive-ui`；有 `pages.json` 是 uniapp；有 `@tarojs/taro` + `app.config.js` 是 taro；有 `app.json` + `.wxml` 是 wxapp
 
 确认完再往下走。本文档与 `code-standards.md`、`self-check.md` 里出现的 `<BE>` / `<FE>` 均指代这两个探测结果。
 
@@ -169,8 +169,8 @@ ls
 
 **硬性约束**（下列路径指**脚手架仓库**里的源目录，抽到新项目后重命名为 `backend/` / `frontend/`，见 §1.5）：
 - 后端从脚手架已有的 6 个中选：`springboot` / `express` / `flask` / `fastapi` / `go` / `dotnet`
-- Web 前端从 `frontends/` 的 6 个中选：`react` / `vue-antd` / `vue-elementplus` / `vue-naive` / `uniapp` / `wxapp`
-- 微信小程序需求 → `frontends/wxapp/`（原生）或 `frontends/uniapp/`（跨端）
+- Web 前端从 `frontends/` 的 7 个中选：`react` / `vue-antd` / `vue-elementplus` / `vue-naive` / `uniapp` / `taro` / `wxapp`
+- 微信小程序需求 → `frontends/wxapp/`（原生）、`frontends/taro/`（Vue 3）或 `frontends/uniapp/`（跨端）
 - 原生 APP / 桌面端需求 → `clients/rn/`（React Native）或 `clients/pyqt/`（PyQt 桌面端）
 - **不创建新技术栈目录**，在现有目录内新增/修改文件
 
@@ -240,7 +240,7 @@ ls
 
 ```
 0. 读目标前端的 5 个核心文件（code-standards.md §0 必读清单）→ 理解现有风格
-1. 读代码规范 → Web 前端读 code-standards.md；uniapp/wxapp 读 crossplatform-standards.md
+1. 读代码规范 → Web 前端读 code-standards.md；uniapp / taro / wxapp 读 crossplatform-standards.md
 2. 按模块顺序生成：基础层 → 用户模块 → 核心业务 → 公告 → 日志 → 文件
 3. 每个模块生成完 → 🧠 调用 code-reviewer skill 审查 → 立即自检（阶段 3）
 4. 一个模块通过审查 → 才能进入下一个模块
@@ -256,7 +256,7 @@ ls
 | 4 | `<FE>/src/views/admin/UserManage.vue` 或 `.jsx` | 页面骨架：Card→Toolbar→Table→Modal | 新增页面照这个结构写 |
 | 5 | `<FE>/src/styles/` 下的全局样式文件 | 已有 CSS 变量名、class 命名约定 | 用已有变量，不重复定义 |
 
-选了 uniapp / wxapp 时**去掉 `src/`**，改读：`<FE>/api/request.js`、`<FE>/store/`（uniapp，单数）或 `<FE>/utils/`（wxapp）、`<FE>/pages.json`（uniapp 路由）或 `<FE>/app.json`（wxapp 路由）、`<FE>/pages/` 下任一现有页面。
+选了 uniapp / wxapp 时**去掉 `src/`**；选了 taro 时**保留 `src/`**。分别读：`<FE>/api/request.js` 或 `<FE>/src/api/request.js`、`<FE>/store/`（uniapp/taro，单数）或 `<FE>/utils/`（wxapp）、`<FE>/pages.json`（uniapp）、`<FE>/src/app.config.js`（taro）、`<FE>/app.json`（wxapp）、`<FE>/pages/`（uniapp/taro）下任一现有页面。
 
 **模块生成顺序**（不可打乱）：
 
@@ -361,6 +361,7 @@ cd frontend && npm install && npm run dev
 | Vue+ElementPlus | Element Plus 2 | @element-plus/icons-vue | @/ 别名导入 |
 | Vue+NaiveUI | Naive UI | N 组件内置图标 | @/ 别名，需 setup 内 useMessage |
 | uni-app | uni-ui / 内置组件 | - | rpx 单位，不能用 HTML 标签 |
+| taro | @tarojs/components 内置组件 | - | rpx 单位，页面用 `@tarojs/taro` API |
 | wxapp | WeUI / 内置组件 | - | rpx 单位，module.exports |
 
 **禁止混用**：用了 Ant Design Vue 就不要引入 Element Plus 的组件。
@@ -380,6 +381,7 @@ cd frontend && npm install && npm run dev
 | React | Zustand | token, userInfo |
 | Vue 三版 | Pinia（Composition 写法） | token, userInfo |
 | uni-app | `store/` 下自定义（单数目录） | token, userInfo |
+| taro | `src/store/` 下自定义（单数目录） | token, userInfo |
 | wxapp | `app.js` 的 globalData + 本地缓存 | token, userInfo |
 
 - token 和 userInfo **必须**走 Store，**禁止**组件内直接读写 localStorage
@@ -570,20 +572,59 @@ src/
 | vue-elementplus | `src/api/request.js` | `src/router/index.js` | `@/` 别名，额外有 `src/constants/` |
 | vue-naive | `src/api/request.js` | `src/router/index.js` | `@/` 别名 |
 
-**uni-app / wxapp 没有 `src/` 目录**，目录直接摊在 `<FE>/` 下，结构完全不同：
+**uni-app / wxapp 没有 `src/` 目录**，目录直接摊在 `<FE>/` 下；**taro 有 `src/`**，但页面仍按 `pages/` + `*.config.js` 组织，不要按 Web 的 `views/` 去找。
 
+**uniapp**
 ```
-uniapp 版 <FE>/               wxapp 版 <FE>/
-├── api/                        ├── api/
-├── components/                 ├── config/
-├── config/                     ├── pages/          ← 页面四件套
-├── pages/          ← 页面      ├── static/
-├── static/                     ├── utils/
-├── store/          ← 单数      ├── app.js / app.json / app.wxss
-└── pages.json      ← 路由配置   └── project.config.json
+<FE>/
+├── api/
+├── common/styles/      ← 公共样式
+├── components/
+├── config/
+├── data/               ← mock 数据
+├── pages/              ← 页面
+├── static/
+├── store/              ← 单数
+├── utils/
+└── pages.json          ← 路由配置
 ```
 
-注意 uniapp 的 Store 目录是 **`store/`（单数）**，与 Vue 三版的 `stores/` 不同；页面放 `pages/` 而非 `views/`；路由靠 `pages.json` 声明而不是 Vue Router。**写自检命令时不要拼 `<FE>/src/`**，会直接返空导致假通过。
+**wxapp**
+```
+<FE>/
+├── api/
+├── config/
+├── pages/
+├── static/
+├── styles/             ← 公共样式
+├── utils/
+├── app.js / app.json
+└── project.config.json
+```
+
+**taro**
+```
+<FE>/
+├── config/             ← H5 代理
+├── src/
+│   ├── api/
+│   ├── components/
+│   ├── config/         ← BASE_URL
+│   ├── data/           ← mock 数据
+│   ├── pages/          ← .vue + .config.js
+│   ├── static/         ← tabBar 图标
+│   ├── store/          ← 单数
+│   ├── styles/         ← 变量+公共样式
+│   ├── utils/
+│   └── app.js / app.config.js / app.scss
+└── project.config.json
+```
+
+注意 uniapp / taro 的 Store 目录是 **`store/`（单数）**，与 Vue 三版的 `stores/` 不同；页面放 `pages/` 而非 `views/`；路由靠 `pages.json`（uniapp）或 `app.config.js`（taro）声明，不是 Vue Router。**uniapp / wxapp 写自检命令时不要拼 `<FE>/src/`**，taro 则必须拼。
+
+**uniapp / taro 的底部导航是自绘的 `components/TabBar.vue`**，原生 tabBar 已移除。页面只负责传 `active`，切换用 `uni.reLaunch` / `Taro.reLaunch`；不要再往 `pages.json` 或 `app.config.js` 里加 `tabBar`。
+
+**uniapp / taro / wxapp 的样式是分层的**：变量与 mixin、公共类、页面样式分开存。页面只写自己特有的布局，**不要每页复制一套 `.container` `.card` `.btn-primary` `.input`**。变量文件：uniapp `uni.scss`，taro `src/styles/_variables.scss`，wxapp `styles/common.wxss` 顶部的 CSS 变量。详见 `crossplatform-standards.md §2`。
 
 选了跨端项目时，**完整的目录、状态管理、请求封装、页面命名差异全在 `crossplatform-standards.md`**，写代码前先读那份。
 

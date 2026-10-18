@@ -1,7 +1,7 @@
 <view class="container">
-  <view class="card" style="margin-top: 80rpx;">
-    <view class="page-title" style="text-align:center">欢迎登录</view>
-    <view class="page-subtitle" style="text-align:center">多技术栈脚手架</view>
+  <view class="card mt-xl">
+    <view class="page-title text-center">欢迎登录</view>
+    <view class="page-subtitle text-center">多技术栈脚手架</view>
 
     <view class="input-group">
       <label>用户名</label>
@@ -12,12 +12,10 @@
       <input placeholder="请输入密码" password bindinput="onInput" data-field="password" />
     </view>
 
-    <button class="btn-primary" loading="{{loading}}" bindtap="handleLogin" style="margin-top:32rpx">
-      登录
-    </button>
+    <button class="btn-primary mt-lg" loading="{{loading}}" bindtap="handleLogin">登录</button>
 
-    <view style="text-align:center;margin-top:24rpx;color:#999">
-      还没有账号？<navigator url="/pages/register/register" style="color:#1890ff">立即注册</navigator>
+    <view class="text-center mt-md text-muted">
+      还没有账号？<navigator url="/pages/register/register" class="link">立即注册</navigator>
     </view>
   </view>
 </view>
