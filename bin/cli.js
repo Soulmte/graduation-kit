@@ -595,6 +595,13 @@ function doctor() {
     }
     const fmBlock = (text.match(/^---\n([\s\S]*?)\n---/) || [, ''])[1];
     const errs = [];
+    // 单行值里出现 ": " 会被 YAML 当成新键，编辑器会报 Invalid YAML frontmatter
+    for (const line of fmBlock.split('\n')) {
+      const kv = line.match(/^[a-z-]+:\s+(.*)$/);
+      if (kv && !/^["']/.test(kv[1]) && /:\s/.test(kv[1])) {
+        errs.push(`frontmatter 值里有未转义的 ": "：${line.trim().slice(0, 48)}`);
+      }
+    }
     if (!fm.name) errs.push('缺 name');
     else if (fm.name !== dir) errs.push(`name “${fm.name}” 与目录名不一致`);
     else if (!NAME_RE.test(fm.name)) errs.push(`name “${fm.name}” 不合法`);

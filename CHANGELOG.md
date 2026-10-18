@@ -2,6 +2,14 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.4.2
+
+### 修复
+
+- 修正 `description` 里未转义的英文冒号。它会让编辑器按 YAML 解析 frontmatter 时失败，
+  表现为 `Invalid YAML frontmatter`、skill 无法加载。
+- `doctor` 新增检查：frontmatter 单行值里出现 `: ` 直接报错；CI 增加真实 YAML 解析。
+
 ## 1.4.1
 
 ### 新增
