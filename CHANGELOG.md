@@ -34,6 +34,7 @@
 
 ### 修复
 
+- CI 的 Thesis converter 任务补装 `PyYAML`，修复 frontmatter 校验步骤 `ModuleNotFoundError: No module named 'yaml'`。
 - 公告列表的搜索增加明确的「搜索」按钮（H5 上只靠键盘回车很容易没反应），
   并在搜索时清空旧列表、重置分页，避免出现「点了搜索但列表没变化」。
 - uniapp 的 H5 不再使用 `/api` 代理：项目根的 `api/` 源码目录会与代理前缀冲突，
