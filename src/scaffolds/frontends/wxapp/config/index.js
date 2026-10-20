@@ -1,7 +1,7 @@
 /**
  * 应用配置
  * 切换后端只需改端口
- * 8080(Spring Boot) / 8081(Express) / 8082(Flask)
+ * 端口以 backend/ 实际配置为准
  */
 
 // 真机调试地址：小程序真机连不上 localhost，改成电脑的局域网 IP

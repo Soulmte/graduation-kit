@@ -23,6 +23,25 @@ uniapp、taro 与 wxapp 之间差别也很大，**别把 uniapp 的写法搬到 
 
 **wxapp**：`api/` `config/` `pages/` `static/` `styles/` `utils/` + `app.js` `app.json` `app.wxss` `project.config.json` `sitemap.json`
 
+### 1.1 静态资源分类
+
+**`static/` 下必须再分一级用途目录，不允许把图片直接摊在 `static/` 根上。**
+
+| 目录 | 放什么 | 已内置 |
+|---|---|---|
+| `static/tab/` | 底部导航图标（普通态 + 选中态） | `tab-home*.png` `tab-notice*.png` `tab-profile*.png` |
+| `static/avatar/` | 头像类图片（默认头像、占位图） | `default-avatar.png` |
+| `static/banner/` | 轮播图、活动图 | 按业务新建 |
+| `static/empty/` | 空状态插图 | 按业务新建 |
+
+**路径统一从 `utils/assets.js`（taro 为 `src/assets/index.js`）引，页面里不要写死 `/static/xxx.png`。** 新增图片时先归到对应分类，再到这个文件里登记导出。
+
+```js
+// uniapp / wxapp：utils/assets.js
+// taro：src/assets/index.js（图片必须 import，H5 不会自动拷贝 src/static）
+import { TAB_ICONS, DEFAULT_AVATAR } from '@/utils/assets'
+```
+
 页面文件的命名规则不一样，写路径时容易错：
 
 | | 页面目录 | 页面文件名 | 页面配置 | 登录页路径 |

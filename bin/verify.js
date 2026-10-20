@@ -249,6 +249,7 @@ function checkOtherFiles(root) {
     { name: 'README.md', desc: '项目说明', required: true },
     { name: '.gitignore', desc: 'Git 忽略配置', required: true },
     { name: 'uploads/.gitkeep', desc: '上传目录占位', required: false },
+    { name: 'package-delivery.bat', desc: '双击打交付包', required: false },
   ];
 
   files.forEach(({ name, desc, required }) => {

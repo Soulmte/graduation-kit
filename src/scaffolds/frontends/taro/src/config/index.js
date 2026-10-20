@@ -1,6 +1,6 @@
 /**
  * 应用配置
- * 切换后端只需改端口：8080(Spring Boot) / 8081(Express) / 8082(Flask)
+ * 切换后端只需改端口（以 backend/ 实际端口为准）
  * 真机调试时把 LAN_HOST 改成电脑的局域网 IP（Windows 用 ipconfig 查 IPv4）
  */
 const LAN_HOST = 'localhost'

@@ -29,12 +29,7 @@
  */
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import Taro from '@tarojs/taro'
-import homeIcon from '@/static/tab-home.png'
-import homeActiveIcon from '@/static/tab-home-active.png'
-import noticeIcon from '@/static/tab-notice.png'
-import noticeActiveIcon from '@/static/tab-notice-active.png'
-import profileIcon from '@/static/tab-profile.png'
-import profileActiveIcon from '@/static/tab-profile-active.png'
+import { TAB_ICONS } from '@/assets'
 
 const props = defineProps({
   active: { type: String, default: 'home' }
@@ -76,22 +71,19 @@ const items = [
     key: 'home',
     text: '首页',
     url: '/pages/index/index',
-    icon: homeIcon,
-    activeIcon: homeActiveIcon
+    ...TAB_ICONS.home
   },
   {
     key: 'notice',
     text: '公告',
     url: '/pages/notice/list',
-    icon: noticeIcon,
-    activeIcon: noticeActiveIcon
+    ...TAB_ICONS.notice
   },
   {
     key: 'profile',
     text: '我的',
     url: '/pages/profile/index',
-    icon: profileIcon,
-    activeIcon: profileActiveIcon
+    ...TAB_ICONS.profile
   }
 ]
 

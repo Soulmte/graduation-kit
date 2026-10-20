@@ -1,4 +1,5 @@
 const { UPLOAD_BASE } = require('../config/index')
+const { DEFAULT_AVATAR } = require('./assets')
 
 const formatTime = date => {
   const year = date.getFullYear()
@@ -16,12 +17,6 @@ const formatNumber = n => {
   return n[1] ? n : `0${n}`
 }
 
-const DEFAULT_AVATAR = '/static/default-avatar.png'
-
-/**
- * 拼接头像完整地址
- * 后端返回的是 /uploads/xxx.jpg 相对路径，小程序不认，必须拼成完整 URL
- */
 const resolveAvatar = avatar => {
   if (!avatar) return DEFAULT_AVATAR
   if (avatar.startsWith('http')) return avatar

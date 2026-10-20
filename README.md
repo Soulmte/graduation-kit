@@ -36,7 +36,18 @@ npx graduation-kit create
 
 # 或指定参数跳过交互
 npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db
+
+# 生成后直接导入本地 MySQL，并声明项目使用 Redis
+npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db \
+  --db-pass 123456 --import-db --redis
 ```
+
+创建时会问两件事：
+
+- **是否直接导入本地 MySQL**（交互默认是，非交互加 `--import-db`）。密码沿用 `--db-pass`，地址/用户/端口可用 `--db-host` / `--db-user` / `--db-port` 覆盖。没装 `mysql` 客户端或连不上时会继续生成项目，并打印手动导入命令与排查提示。
+- **是否使用 Redis**（`--redis`）。选了会检测 `redis-cli`、`redis-server` 与 6379 端口；环境齐全就确认可用，没装就按当前系统打印安装/启动命令，检测结果写进项目里的 `docs/redis.md`。Redis 有密码时交互模式会追问，非交互用 `--redis-pass`。
+
+项目根会生成 `package-delivery.bat`，双击即可打交付包。
 
 ## 技术栈选项
 
@@ -101,12 +112,44 @@ npx graduation-kit create my-booking --template booking --db booking_db
 npx graduation-kit create rent-agent --template agent --db agent_db
 ```
 
+## 交付打包
+
+项目开发完要发给客户（不是上线部署）时，用 `package` 打一个干净包：
+
+```bash
+npx graduation-kit package ./my-project
+# → my-project-delivery.zip
+```
+
+项目根已经带了 `package-delivery.bat`，双击等价于上面的命令，也可以在后面接参数（如 `package-delivery.bat --no-db`）。
+
+包内只有源码和本地库：
+
+- `backend/`、`frontend-*/`、`docs/`、`uploads/`、`README.md`
+- `database/<库名>.sql`：本地库的**结构 + 数据**全量导出，文件里自带 `CREATE DATABASE` 与 `USE`，客户直接导入即可
+- `database/README.txt`：导入步骤与字符集说明
+
+会被排除：`node_modules`、`target`、`dist`、`unpackage`、`__pycache__`、`bin`/`obj`、`.git`、`.agents`、编辑器目录、日志。
+
+数据库连接信息默认从 `backend/.env` 或 `application.yml` 读，命令行参数可覆盖：
+
+```bash
+npx graduation-kit package ./my-project --db-pass 123456 --db-port 3306
+npx graduation-kit package ./my-project --db-file ./backup.sql   # 直接用已导出的 SQL
+npx graduation-kit package ./my-project --no-db                  # 只打代码
+npx graduation-kit package ./my-project --out ./交付包.zip
+```
+
+没装 MySQL 客户端或连不上库时，会退回 `docs/` 里的建表脚本并明确告警（此时不包含本地开发新增的数据）。
+
 ## Agent Skills（可选）
 
 生成项目后可安装 AI 辅助工具（需支持 `.agents/skills/` 的编辑器，如 Zed、Cursor）：
 
 **Windows**：双击 `install-skills.bat`  
 **Mac/Linux**：运行 `bash install-skills.sh`
+
+`create` 会先检查 skills 的现状：全局 `~/.agents/skills/` 已装齐 6 个核心 skill 时，默认不再往新项目里重复装一份；项目内已有 skills 时也不覆盖。需要在项目内单独装一份加 `--local-skills`，需要覆盖项目内已有的加 `--force-skills`，什么都不装加 `--no-skills`。
 
 包含 6 个 Skills：
 
@@ -236,6 +279,9 @@ npx graduation-kit install -g --reinstall
 
 # 验证项目完整性
 npx graduation-kit verify
+
+# 打包发给客户（含本地数据库）
+npx graduation-kit package ./my-project
 
 # 跑触发路由回归（开发者）
 npm run eval

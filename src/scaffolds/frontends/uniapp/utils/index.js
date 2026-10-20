@@ -2,8 +2,9 @@
  * 公共工具方法
  */
 import config from '@/config/index'
+import { DEFAULT_AVATAR } from './assets'
 
-const DEFAULT_AVATAR = '/static/logo.png'
+export { DEFAULT_AVATAR }
 
 /**
  * 拼接头像完整地址

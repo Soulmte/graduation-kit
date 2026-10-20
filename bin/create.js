@@ -4,8 +4,11 @@
  */
 import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { text, confirm, select, multiselect, closePrompt } from './prompt.js';
+import { checkMysql, databaseExists, importSqlFile, mysqlGuide, mysqlFailureHint } from './mysql.js';
+import { checkRedis, redisGuide } from './redis.js';
 import {
   BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
   findTemplate, demoPaths, frontendDirName,
@@ -85,6 +88,45 @@ uploads/*
 !uploads/.gitkeep
 `;
 
+/** 写进项目根的交付打包脚本：双击就能出包，不要求用户记住命令 */
+const PACKAGE_BAT = [
+  '@echo off',
+  'chcp 65001 >nul',
+  'setlocal',
+  'cd /d "%~dp0"',
+  '',
+  'echo ============================================',
+  'echo   毕业设计项目 - 交付打包',
+  'echo ============================================',
+  'echo.',
+  '',
+  'where npx >nul 2>&1',
+  'if errorlevel 1 (',
+  '  echo [错误] 未找到 npx，请先安装 Node.js 18 或更高版本。',
+  '  echo 下载地址：https://nodejs.org/',
+  '  pause',
+  '  exit /b 1',
+  ')',
+  '',
+  'where graduation-kit >nul 2>&1',
+  'if not errorlevel 1 (',
+  '  call graduation-kit package . %*',
+  ') else (',
+  '  call npx --yes graduation-kit@latest package . %*',
+  ')',
+  '',
+  'if errorlevel 1 (',
+  '  echo.',
+  '  echo [失败] 打包没有完成，请查看上面的错误信息。',
+  '  pause',
+  '  exit /b 1',
+  ')',
+  '',
+  'echo.',
+  'echo 打包完成，zip 已生成在项目同级目录。',
+  'pause',
+].join('\r\n') + '\r\n';
+
 const RUN_HINT = {
   springboot: 'mvn spring-boot:run',
   express: 'npm install && npm run dev',
@@ -95,7 +137,7 @@ const RUN_HINT = {
 };
 const FE_HINT = {
   vite: 'npm install && npm run dev',
-  uniapp: 'HBuilderX 打开，或 npm install && npm run dev:h5',
+  uniapp: 'HBuilderX 打开项目，运行到浏览器 / 微信开发者工具',
   taro: 'npm install && npm run dev:h5（H5）/ dev:weapp（微信开发者工具导入 dist）',
   wxapp: '微信开发者工具直接导入此目录',
 };
@@ -287,12 +329,16 @@ const DEMO_INFO = {
   },
 };
 
-/** 项目根 README：终端提示会滚走，端口与库名这类东西得落在文件里 */
-function projectReadme({ name, be, fes, db, sqlFile, template }) {
+/** 项目根 README：环境、启动步骤、常用命令、交付与 Skills 都写进去 */
+function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true, withRedis = false, dbImported = false }) {
+  const F = '```';
+  const code = (lang, body) => `${F}${lang}\n${body}\n${F}`;
+  const row = (cells) => `| ${cells.join(' | ')} |`;
+
   const feRows = fes.map((f) => {
     const dir = frontendDirName(f.id, fes.length);
-    return `| \`${dir}/\` | ${f.label} | ${FE_HINT[f.kind]} |`;
-  }).join('\n');
+    return row([`\`${dir}/\``, f.label, FE_HINT[f.kind]]);
+  });
 
   const info = DEMO_INFO[template?.id];
 
@@ -301,47 +347,260 @@ function projectReadme({ name, be, fes, db, sqlFile, template }) {
     || `| admin | 123456 | 管理员 |
 | test | 123456 | 普通用户 |`;
 
-  return `# ${name}
+  const beRuntime = {
+    springboot: 'JDK 17+、Maven 3.8+',
+    express: 'Node.js 18+',
+    flask: 'Python 3.9+',
+    go: 'Go 1.21+',
+    dotnet: '.NET 10 SDK',
+  }[be.id] || be.lang;
 
-基于 [graduation-kit](https://gitee.com/rain-drops/graduation-kit) 生成。
+  // 运行说明按后端拆成多行，比一行 && 拼起来好复制
+  const beRun = {
+    springboot: 'mvn spring-boot:run',
+    express: 'npm install\nnpm run dev',
+    flask: 'pip install -r requirements.txt\npython app.py',
+    go: 'go mod tidy\ngo run .',
+    dotnet: 'dotnet restore\ndotnet run',
+  }[be.id] || RUN_HINT[be.id] || '# 见该目录说明';
 
-## 技术栈
+  const envRows = [
+    row(['Node.js', '18+', fes.some((f) => f.kind === 'vite' || f.kind === 'taro')
+      ? '前端构建 / graduation-kit 命令'
+      : 'graduation-kit 命令（前端用 HBuilderX / 微信开发者工具）']),
+    row(['MySQL', '5.7 / 8.x（utf8mb4）', '数据库']),
+    row([`${be.label} 运行时`, beRuntime, '后端运行']),
+  ];
+  if (fes.some((f) => f.kind === 'uniapp')) {
+    envRows.push(row(['HBuilderX', '最新稳定版', 'uniapp 运行与调试']));
+  }
+  if (fes.some((f) => f.kind === 'wxapp' || f.kind === 'taro')) {
+    envRows.push(row(['微信开发者工具', '最新稳定版', '小程序调试']));
+  }
+  if (withRedis) {
+    envRows.push(row(['Redis', '5+', '缓存 / 验证码 / 会话（见 docs/redis.md）']));
+  }
 
-| 目录 | 技术 | 启动 |
-| --- | --- | --- |
-| \`backend/\` | ${be.label}（${be.lang}） | ${RUN_HINT[be.id] || '见该目录说明'} |
-${feRows}
+  const feRuns = fes.map((f) => {
+    const dir = frontendDirName(f.id, fes.length);
+    if (f.kind === 'vite') {
+      return `**${dir}/**\n\n${code('bash', `cd ${dir}\nnpm install\nnpm run dev`)}`;
+    }
+    if (f.kind === 'taro') {
+      return `**${dir}/**\n\n${code('bash', `cd ${dir}\nnpm install\nnpm run dev:h5      # H5\nnpm run dev:weapp   # 微信小程序，产物在 dist/`)}`;
+    }
+    if (f.kind === 'uniapp') {
+      return `**${dir}/**\n\n${code('text', `HBuilderX 打开 ${dir}/，运行到浏览器 / 微信开发者工具 / 真机`)}`;
+    }
+    return `**${dir}/**\n\n${code('text', `微信开发者工具直接导入 ${dir}/`)}`;
+  });
 
-后端端口 **${be.port}**，前端已配好代理指向它，不用再改。
+  const beCmdRows = {
+    springboot: [
+      ['mvn spring-boot:run', `开发启动（:${be.port}）`],
+      ['mvn clean package', '打包 jar 到 target/'],
+      ['java -jar target/*.jar', '运行打包后的 jar'],
+    ],
+    express: [
+      ['npm install', '安装依赖'],
+      ['npm run dev', `开发启动（:${be.port}，nodemon）`],
+      ['npm start', '生产启动'],
+    ],
+    flask: [
+      ['pip install -r requirements.txt', '安装依赖'],
+      ['python app.py', `启动（:${be.port}）`],
+    ],
+    go: [
+      ['go mod tidy', '拉取依赖'],
+      ['go run .', `开发启动（:${be.port}）`],
+      ['go build -o app', '编译可执行文件'],
+    ],
+    dotnet: [
+      ['dotnet restore', '还原依赖'],
+      ['dotnet run', `启动（:${be.port}）`],
+      ['dotnet publish -c Release -o publish', '发布到 publish/'],
+    ],
+  }[be.id] || [];
 
-## 跑起来
+  const feCmdSections = fes.map((f) => {
+    const dir = frontendDirName(f.id, fes.length);
+    const rows = {
+      vite: [
+        ['npm install', '安装依赖'],
+        ['npm run dev', '开发模式（热更新）'],
+        ['npm run build', '生产构建到 dist/'],
+        ['npm run preview', '预览构建结果'],
+      ],
+      taro: [
+        ['npm install', '安装依赖'],
+        ['npm run dev:h5', 'H5 开发（热更新）'],
+        ['npm run dev:weapp', '微信小程序开发，产物在 dist/'],
+        ['npm run build:h5', 'H5 生产构建'],
+        ['npm run build:weapp', '微信小程序生产构建'],
+      ],
+      uniapp: [
+        ['HBuilderX 打开本目录', '运行到浏览器 / 微信开发者工具 / 真机'],
+      ],
+      wxapp: [
+        ['微信开发者工具导入本目录', '编译预览'],
+      ],
+    }[f.kind] || [];
+    return `### ${dir}/（${f.label}）\n\n| 命令 | 说明 |\n| --- | --- |\n${rows.map(([c, d]) => row([`\`${c}\``, d])).join('\n')}`;
+  });
 
-先建库（库名 \`${db.name}\`）：
+  const dbTarget = dbImported
+    ? `数据库已经导入本地 MySQL（库名 \`${db.name}\`），直接启动后端即可。`
+    : `先导入数据库（库名 \`${db.name}\`）：\n\n${code('bash', `mysql -u ${db.user} -p --default-character-set=utf8mb4 < docs/${sqlFile}`)}`;
 
-\`\`\`bash
-mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}
-\`\`\`
+  const dbConfigText = be.id === 'springboot'
+    ? '数据库连接配置在 `backend/src/main/resources/application.yml`，库名、账号、密码要与本机一致。'
+    : (be.id === 'go' || be.id === 'dotnet')
+      ? '数据库连接从环境变量读（`DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`）；项目里没有 `backend/.env` 时按这几个名字新建一个。'
+      : '数据库连接配置在 `backend/.env`，库名、账号、密码要与本机一致。';
 
-再开两个终端，分别跑后端和前端（命令见上表）。前端启动后终端会打印访问地址。
+  // 常见问题只写当前技术栈用得上的，避免 Web 项目里出现小程序提示
+  const faq = [
+    '- **后端启动报数据库连接失败**：确认已导入 SQL，且配置文件里的库名、账号、密码与本机一致。',
+  ];
+  if (fes.some((f) => f.kind === 'vite')) {
+    faq.push('- **前端请求 404 / 网络错误**：先启动后端；确认 `frontend/.env.development` 指向的端口与后端一致。');
+  }
+  if (fes.some((f) => f.kind === 'uniapp' || f.kind === 'wxapp')) {
+    faq.push('- **小程序请求失败**：真机连不上 localhost，把 `config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP。');
+  }
+  if (fes.some((f) => f.kind === 'taro')) {
+    faq.push('- **Taro 请求失败**：H5 看 `config/index.js` 的代理，真机把 `src/config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP。');
+  }
+  faq.push('- **端口被占用**：改后端配置和前端配置里的端口，再重启。');
+  faq.push('- **CLI 命令找不到或版本旧**：用 `npx graduation-kit@latest ...`，或先 `npx clear-npx-cache`。');
 
-默认账号：
+  const out = [
+    `# ${name}`,
+    '',
+    '基于 [graduation-kit](https://gitee.com/rain-drops/graduation-kit) 生成。',
+    '',
+    '## 环境要求',
+    '',
+    '| 依赖 | 要求 | 用途 |',
+    '| --- | --- | --- |',
+    ...envRows,
+    '',
+    '## 技术栈',
+    '',
+    '| 目录 | 技术 | 启动方式 |',
+    '| --- | --- | --- |',
+    row(['`backend/`', `${be.label}（${be.lang}）`, RUN_HINT[be.id] || '见该目录说明']),
+    ...feRows,
+    '',
+    `后端端口 **${be.port}**，前端已配好指向它；改端口时前后端要一起改。`,
+    '',
+    '## 使用说明',
+    '',
+    '### 1. 准备数据库',
+    '',
+    dbTarget,
+    '',
+    dbConfigText,
+    '',
+    '### 2. 启动后端',
+    '',
+    code('bash', `cd backend\n${beRun}`),
+    '',
+    `后端运行在 **:${be.port}**，接口统一以 \`/api\` 开头。`,
+    '',
+    '### 3. 启动前端（另开终端）',
+    '',
+    ...feRuns.flatMap((s) => [s, '']),
+    '### 4. 登录',
+    '',
+    '| 账号 | 密码 | 角色 |',
+    '| --- | --- | --- |',
+    accountRows,
+    '',
+    '### 5. 停止',
+    '',
+    '终端里按 `Ctrl+C`。',
+    '',
+    ...(info?.readme ? [info.readme.trim()] : []),
+    '## 常用命令',
+    '',
+    `### 后端（${be.label}）`,
+    '',
+    '| 命令 | 说明 |',
+    '| --- | --- |',
+    ...beCmdRows.map(([c, d]) => row([`\`${c}\``, d])),
+    '',
+    ...feCmdSections.flatMap((s) => [s, '']),
+    '## 交付打包与 Skills',
+    '',
+    '### 打包给客户',
+    '',
+    '双击项目根的 `package-delivery.bat`，或执行：',
+    '',
+    code('bash', 'npx graduation-kit package .'),
+    '',
+    `会生成 \`${name}-delivery.zip\`，包含前端、后端和 \`database/${db.name}.sql\`（本地库结构与数据），自动排除 \`node_modules\`、\`target\`、\`dist\`、\`unpackage\` 等构建与依赖产物。`,
+    '',
+    '常用参数：',
+    '',
+    '| 参数 | 说明 |',
+    '| --- | --- |',
+    '| `--no-db` | 只打代码，不带数据库 |',
+    '| `--db-file <sql>` | 用指定 SQL 代替 mysqldump 导出 |',
+    '| `--out <zip>` | 指定输出路径 |',
+    '',
+    '### 安装 / 更新 Skills',
+    '',
+    withSkills
+      ? '当前项目已安装到 `.agents/skills/`，新开 Agent 会话即可使用。'
+      : '当前项目内没有安装 Agent Skills。',
+    '',
+    code('bash', [
+      '# 装到当前项目（<项目>/.agents/skills/）',
+      'npx graduation-kit install',
+      'npx graduation-kit update',
+      '',
+      '# 装到全局（~/.agents/skills/，所有项目可用）',
+      'npx graduation-kit install -g',
+      'npx graduation-kit update -g',
+      '',
+      '# 只装某一个',
+      'npx graduation-kit install --only thesis-writer',
+    ].join('\n')),
+    '',
+    '`update` 会按当初的安装范围更新；`create` 检测到全局已装时会跳过项目内重复安装，需要项目内独立一份用 `--local-skills`。',
+    '',
+    '### 自检',
+    '',
+    code('bash', [
+      'npx graduation-kit verify    # 检查项目结构',
+      'npx graduation-kit doctor    # 检查 skills 的 frontmatter',
+      'npx graduation-kit -v        # 当前 CLI 版本',
+    ].join('\n')),
+    '',
+    '## 目录说明',
+    '',
+    '- `backend/` 后端代码',
+    ...fes.map((f) => `- \`${frontendDirName(f.id, fes.length)}/\` ${f.label}`),
+    `- \`docs/${sqlFile}\` 建表脚本，含初始数据`,
+    '- `uploads/` 用户上传的图片（内容不入库）',
+    '- `package-delivery.bat` 双击打交付包',
+    ...(withRedis ? ['- `docs/redis.md` Redis 连接信息、环境检测与安装步骤'] : []),
+    ...(withSkills ? ['- `.agents/skills/` Agent Skills，不影响项目运行'] : []),
+    '',
+    '## 常见问题',
+    '',
+    ...faq,
+    '',
+    '## 接口约定',
+    '',
+    '响应结构统一为 `{ code, message, data }`，HTTP 状态码一律 200，业务结果看 `code`（200 成功）。只有 Token 失效才返回 HTTP 401。',
+    '',
+    '后端出口已统一转驼峰，前端直接读 `createTime` 这类字段。',
+    '',
+  ];
 
-| 账号 | 密码 | 角色 |
-| --- | --- | --- |
-${accountRows}
-${info?.readme || ''}
-## 目录说明
-
-- \`docs/${sqlFile}\` 建表脚本，含初始数据
-- \`uploads/\` 用户上传的图片，前端头像靠代理读这里（内容不入库）
-- \`.agents/skills/\` 开发用的 agent skill，不影响项目运行
-
-## 接口约定
-
-响应结构统一为 \`{ code, message, data }\`，HTTP 状态码一律 200，业务结果看 \`code\`（200 成功）。只有 Token 失效才返回 HTTP 401。
-
-后端出口已统一转驼峰，前端直接读 \`createTime\` 这类字段。
-`;
+  return out.join('\n');
 }
 
 /** create --list：列出可选模板与脚手架，未完善的标注出来 */
@@ -488,6 +747,90 @@ function resolveFlags(opts, template) {
   return { be, fes };
 }
 
+/**
+ * 创建前先看清楚 skills 的现状。
+ * 全局装过就不该再往每个新项目里塞一份；项目内已有一份时更不该默默覆盖。
+ */
+function inspectSkills(ctx, root) {
+  const core = ctx.CORE || [];
+  const globalDir = join(homedir(), '.agents', 'skills');
+  const localDir = join(root, '.agents', 'skills');
+  const installed = ctx.installedSkills || (() => []);
+  const manifest = ctx.readManifest || (() => null);
+  const globalNames = installed(globalDir);
+  const localNames = installed(localDir);
+  return {
+    globalNames,
+    localNames,
+    globalManifest: manifest(globalDir),
+    // 只有六个核心 skill 全部就位才算“全局已装好”，缺一个都还要补
+    globalComplete: core.length > 0 && core.every((n) => globalNames.includes(n)),
+  };
+}
+
+/**
+ * 决定这次创建要不要装 skills。
+ * no-skills > force-skills > 项目内已有 > 全局已装 > 正常安装
+ */
+function planSkills(opts, state) {
+  if (opts.noSkills) return { install: false, reason: 'no-skills' };
+  if (opts.forceSkills) return { install: true, reason: 'force' };
+  if (state.localNames.length) return { install: false, reason: 'local' };
+  if (state.globalComplete && !opts.localSkills) return { install: false, reason: 'global' };
+  return { install: true, reason: 'fresh' };
+}
+
+/** 打印“为什么没装”，避免用户以为装失败 */
+function skillSkipNote(state, reason) {
+  if (reason === 'local') {
+    return `项目内已有 skills（${state.localNames.join('、')}），已保留不覆盖；要覆盖加 --force-skills`;
+  }
+  if (reason === 'global') {
+    const v = state.globalManifest?.version || '未知版本';
+    return `已检测到全局 skills（v${v}，${state.globalNames.length} 个），本次不再在项目内重复安装`;
+  }
+  if (reason === 'no-skills') return '已按 --no-skills 跳过 Agent Skills';
+  return '未安装 Agent Skills';
+}
+
+/** 把本次 Redis 检测结果落成文档，换台机器也能照着装 */
+function redisDoc(cfg, state) {
+  const lines = [
+    '# Redis 环境说明',
+    '',
+    '本项目在创建时选择了使用 Redis。',
+    '',
+    '## 连接信息（默认）',
+    '',
+    '| 项 | 值 |',
+    '| --- | --- |',
+    `| host | ${cfg.host} |`,
+    `| port | ${cfg.port} |`,
+    '| db | 0 |',
+    `| password | ${cfg.password ? '已设置' : '空'} |`,
+    '',
+    '## 环境检测',
+    '',
+    `检测时间：${new Date().toLocaleString('zh-CN')}`,
+    '',
+    `- redis-cli：${state?.cli || '未找到'}`,
+    `- redis-server：${state?.server || '未找到'}`,
+    `- 端口：${state?.open ? '有服务监听' : '未监听'}`,
+    `- PING：${state?.pong ? 'PONG' : '无响应'}`,
+    `- 版本：${state?.version || '未知'}`,
+    `- 结论：${state?.usable ? '可用' : '未就绪'}`,
+    '',
+  ];
+  if (state?.usable) {
+    lines.push('## 下一步', '', 'Redis 已可用，可以在业务代码里接缓存、验证码或会话共享。', '');
+  } else {
+    lines.push('## 安装与启动', '', '```text', ...redisGuide(cfg.host, cfg.port), '```', '');
+    lines.push('装好后在项目根执行下面的命令，返回 PONG 即就绪：', '', '```bash',
+      `redis-cli -h ${cfg.host} -p ${cfg.port} ping`, '```', '');
+  }
+  return lines.join('\n');
+}
+
 export async function create(opts, ctx) {
   const { SRC_SCAFFOLDS, installSkills } = ctx;
   if (!existsSync(SRC_SCAFFOLDS)) {
@@ -500,14 +843,46 @@ export async function create(opts, ctx) {
 
   // --be 或 --template 任一给出都走非交互，方便脚本一行创建
   const interactive = process.stdin.isTTY && !opts.be && !opts.template;
-  let name, template, be, fes, db, withSkills;
+  let name, template, be, fes, db, withSkills, root, skillState, skillReason;
+  let importDb = false;
+  let importSkipped = false;
+  let useRedis = false;
+  let redisState = null;
+  let dbImported = false;
+  const dbConn = {
+    host: opts.dbHost || '127.0.0.1',
+    port: String(opts.dbPort || '3306'),
+    user: opts.dbUser || 'root',
+  };
+  const redisOpts = {
+    host: opts.redisHost || '127.0.0.1',
+    port: Number(opts.redisPort) || 6379,
+    password: opts.redisPass || '',
+  };
 
   if (!interactive) {
     template = resolveTemplate(opts.template);
     ({ be, fes } = resolveFlags(opts, template));
     name = opts.name || 'my-graduation-project';
-    db = { name: opts.db || 'scaffold_db', password: opts.dbPass || '' };
-    withSkills = !opts.noSkills;
+    root = resolve(opts.dir || process.cwd(), name);
+    db = { name: opts.db || 'scaffold_db', password: opts.dbPass || '', ...dbConn };
+    importDb = Boolean(opts.importDb) && !opts.noImportDb;
+    useRedis = Boolean(opts.redis) && !opts.noRedis;
+    if (useRedis) {
+      redisState = await checkRedis(redisOpts);
+      if (!redisState.usable) {
+        warn('未检测到可用的 Redis');
+        if (/NOAUTH|WRONGPASS|invalid password/i.test(redisState.error || '')) {
+          line(`  ${paint('dim', '服务在跑，但认证没通过；用 --redis-pass 指定密码')}`);
+        }
+        redisGuide(redisOpts.host, redisOpts.port).forEach((l) => line(`  ${paint('dim', l)}`));
+        line('');
+      }
+    }
+    skillState = inspectSkills(ctx, root);
+    const plan = planSkills(opts, skillState);
+    withSkills = plan.install;
+    skillReason = plan.reason;
   } else {
     line('');
     line(`${paint('bold', paint('cyan', '━━━ 毕业设计脚手架向导 ━━━'))} ${paint('dim', `v${pkgVersion()}`)}`);
@@ -522,6 +897,7 @@ export async function create(opts, ctx) {
       def: opts.name || 'my-graduation-project',
       validate: validName,
     });
+    root = resolve(opts.dir || process.cwd(), name);
     line('');
 
     const tplItems = readyTemplates().map((t) => {
@@ -580,14 +956,81 @@ export async function create(opts, ctx) {
       def: '', 
       validate: validDbPassword 
     });
-    db = { name: dbName, password: dbPass };
+    db = { name: dbName, password: dbPass, ...dbConn };
     line('');
 
-    withSkills = await confirm('同时安装 Agent Skills（需求定义、代码审查、论文写作等）', true);
+    importDb = await confirm('生成后直接把 SQL 导入本地 MySQL？', true);
+    if (importDb) {
+      const check = checkMysql(db);
+      if (!check.ok) {
+        importDb = false;
+        warn(check.reason === 'missing-client'
+          ? '未找到 mysql 客户端，无法自动导入'
+          : `MySQL 连接失败：${check.stderr || '请确认服务已启动'}`);
+        if (check.reason === 'missing-client') {
+          mysqlGuide(db).forEach((l) => line(`  ${paint('dim', l)}`));
+        } else {
+          line(`  ${paint('dim', mysqlFailureHint(db, check.stderr))}`);
+          line(`  ${paint('dim', '也可以先生成项目，之后手动导入。')}`);
+        }
+        line('');
+      } else if (databaseExists(db)) {
+        const overwrite = await confirm(`库 ${db.name} 已存在，导入会重建（DROP DATABASE），继续？`, false);
+        if (!overwrite) {
+          importDb = false;
+          importSkipped = true;
+          line('  已跳过导入，原库保持不变。');
+          line('');
+        }
+      }
+    }
+
+    useRedis = await confirm('是否使用 Redis（缓存 / 验证码 / 会话共享）？', false);
+    if (useRedis) {
+      info('正在检测 Redis 环境…');
+      redisState = await checkRedis(redisOpts);
+      if (!redisState.usable && /NOAUTH|WRONGPASS|invalid password|AUTH/i.test(redisState.error || '')) {
+        const pass = await text('Redis 密码（留空表示无密码）', { def: redisOpts.password || '' });
+        redisOpts.password = pass;
+        if (pass) redisState = await checkRedis(redisOpts);
+      }
+      if (redisState.usable) {
+        ok(`Redis 可用${redisState.version ? `（v${redisState.version}）` : ''}`);
+      } else {
+        warn('未检测到可用的 Redis');
+        if (/NOAUTH|WRONGPASS|invalid password/i.test(redisState.error || '')) {
+          line(`  ${paint('dim', '服务在跑，但认证没通过；非交互模式可用 --redis-pass 指定密码')}`);
+        }
+        redisGuide(redisOpts.host, redisOpts.port).forEach((l) => line(`  ${paint('dim', l)}`));
+      }
+      line('');
+    }
+
+    if (opts.noSkills) {
+      withSkills = false;
+      skillReason = 'no-skills';
+    } else {
+      skillState = inspectSkills(ctx, root);
+      const plan = planSkills(opts, skillState);
+      skillReason = plan.reason;
+      if (plan.reason === 'local') {
+        info(`项目内已有 skills：${skillState.localNames.join('、')}`);
+        line(`  ${paint('dim', '默认跳过不覆盖；需要覆盖请加 --force-skills')}`);
+      } else if (plan.reason === 'global') {
+        const v = skillState.globalManifest?.version || '未知版本';
+        info(`检测到全局 skills（v${v}，${skillState.globalNames.length} 个）`);
+        line(`  ${paint('dim', '默认不再在项目内装一份；需要独立一份请加 --local-skills')}`);
+      }
+      const promptText = plan.reason === 'local'
+        ? '覆盖项目内已有的 skills？'
+        : plan.reason === 'global'
+          ? '仍在项目内再装一份 skills？'
+          : '同时安装 Agent Skills（需求定义、代码审查、论文写作等）';
+      withSkills = await confirm(promptText, plan.install);
+    }
     line('');
   }
 
-  const root = resolve(opts.dir || process.cwd(), name);
   const sqlFile = sqlFileName(db.name);
   assertEmptyTarget(root);
 
@@ -608,7 +1051,11 @@ export async function create(opts, ctx) {
   }
   line(`    docs/${sqlFile}`.padEnd(26) + paint('dim', `库名 ${db.name}`));
   line(`    uploads/`);
+  if (importDb) line(`    数据库导入`.padEnd(26) + paint('dim', `${db.user}@${db.host}:${db.port}`));
+  if (useRedis) line(`    Redis`.padEnd(26) + paint('dim', redisState?.usable ? '已就绪' : '环境未就绪，见 docs/redis.md'));
   if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '6 个核心 skill + 上游增强'));
+  else if (skillReason === 'global') line(`    .agents/skills/`.padEnd(26) + paint('dim', '跳过：全局已安装'));
+  else if (skillReason === 'local') line(`    .agents/skills/`.padEnd(26) + paint('dim', '跳过：项目内已有'));
   line('');
 
   if (interactive && !(await confirm('确认创建', true))) {
@@ -631,7 +1078,7 @@ export async function create(opts, ctx) {
     for (const f of fes) {
       const dirName = frontendDirName(f.id, fes.length);
       copyTree(demo ? demo.frontend : join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
-      const changed = patchFrontend(join(root, dirName), f, be.port);
+      const changed = patchFrontend(join(root, dirName), f, be);
       ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
       if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
     }
@@ -652,6 +1099,28 @@ export async function create(opts, ctx) {
     patchSql(sqlTo, db.name);
     ok(`docs/${sqlFile} ${paint('dim', `库名 ${db.name}`)}`);
 
+    if (importDb) {
+      line('');
+      info(`正在导入数据库 ${db.name} …`);
+      const result = importSqlFile(sqlTo, db);
+      if (result.ok) {
+        dbImported = true;
+        ok(`数据库已导入 ${paint('dim', `${db.user}@${db.host}:${db.port}`)}`);
+      } else if (result.reason === 'missing-client') {
+        warn('未找到 mysql 客户端，已跳过自动导入');
+        mysqlGuide(db).forEach((l) => line(`  ${paint('dim', l)}`));
+      } else {
+        warn(`数据库导入失败：${result.stderr || '请检查 MySQL 是否启动、账号密码是否正确'}`);
+        line(`  ${paint('dim', mysqlFailureHint(db, result.stderr))}`);
+        line(`  ${paint('dim', `手动导入：mysql -u ${db.user} -p --default-character-set=utf8mb4 < docs/${sqlFile}`)}`);
+      }
+    }
+
+    if (useRedis) {
+      writeFileSync(join(root, 'docs', 'redis.md'), redisDoc(redisOpts, redisState));
+      ok(`docs/redis.md ${paint('dim', redisState?.usable ? 'Redis 已就绪' : '含安装指引')}`);
+    }
+
     mkdirSync(join(root, 'uploads'), { recursive: true });
     writeFileSync(join(root, 'uploads', '.gitkeep'), '');
     ok(`uploads/ ${paint('dim', '用户上传的图片落在这里')}`);
@@ -659,8 +1128,11 @@ export async function create(opts, ctx) {
     writeFileSync(join(root, '.gitignore'), GITIGNORE);
     ok(`.gitignore ${paint('dim', '已挡住依赖与构建产物')}`);
 
-    writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template }));
+    writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template, withSkills, withRedis: useRedis, dbImported }));
     ok(`README.md ${paint('dim', '端口、库名、启动命令存档')}`);
+
+    writeFileSync(join(root, 'package-delivery.bat'), PACKAGE_BAT);
+    ok(`package-delivery.bat ${paint('dim', '双击即可打交付包')}`);
 
     if (withSkills) {
       line('');
@@ -673,6 +1145,9 @@ export async function create(opts, ctx) {
         force: true,
         withUpstream: true,
       });
+    } else {
+      line('');
+      line(`  ${paint('dim', skillSkipNote(skillState, skillReason))}`);
     }
   } catch (err) {
     line('');
@@ -704,9 +1179,16 @@ export async function create(opts, ctx) {
   line(paint('bold', '1. 进入项目目录'));
   line(`   cd ${name}`);
   line('');
-  line(paint('bold', '2. 创建并导入数据库'));
-  line(`   mysql -u root -p --default-character-set=utf8mb4 < docs/${sqlFile}`);
-  line(paint('dim', '   提示：脚本会自动创建数据库，无需手动建库'));
+  line(paint('bold', '2. 数据库'));
+  if (dbImported) {
+    line(`   ✓ 已导入本地 MySQL：${db.name}（${db.user}@${db.host}:${db.port}）`);
+  } else if (importSkipped) {
+    line('   已跳过导入，原库保持不变。');
+    line(paint('dim', '   需要重建时再执行： ') + `mysql -u ${db.user} -p --default-character-set=utf8mb4 < docs/${sqlFile}`);
+  } else {
+    line(`   mysql -u ${db.user} -p --default-character-set=utf8mb4 < docs/${sqlFile}`);
+    line(paint('dim', '   提示：脚本会自动创建数据库，无需手动建库'));
+  }
   line('');
   line(paint('bold', '3. 启动后端'));
   line(`   cd backend && ${RUN_HINT[be.id] || '见该目录说明'}`);
@@ -731,6 +1213,10 @@ export async function create(opts, ctx) {
     warn('数据库密码留空，启动前请到 backend/ 配置文件中补上');
     line('');
   }
+  if (useRedis && !redisState?.usable) {
+    warn('Redis 环境未就绪，安装步骤见 docs/redis.md');
+    line('');
+  }
   if (fes.some((f) => f.kind !== 'vite')) {
     warn('小程序真机调试时，需将 config/index.js（Taro 为 src/config/index.js）中的 LAN_HOST 改为电脑局域网 IP');
     line('');
@@ -740,6 +1226,12 @@ export async function create(opts, ctx) {
   info('详细说明请查看项目根目录的 README.md');
   if (withSkills) {
     info('Agent Skills 已安装到 .agents/skills/，新开会话即可使用');
+  } else if (skillReason === 'global') {
+    info('Skills 使用全局已安装的版本，本项目未重复安装（需要独立一份加 --local-skills）');
+  } else if (skillReason === 'local') {
+    info('保留项目内已有的 skills，未覆盖（需要更新加 --force-skills）');
+  } else if (skillReason === 'fresh') {
+    info('未安装 Agent Skills，之后可在项目目录运行 graduation-kit install 补装');
   }
   line('');
 }

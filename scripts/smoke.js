@@ -72,9 +72,9 @@ const FE_EXPECT = {
   'vue-elementplus': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
   'vue-antd': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
   'vue-naive': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
-  uniapp: ['pages.json', 'App.vue', 'main.js', 'pages/login/index.vue', 'components/TabBar.vue', 'pages/settings/index.vue', 'pages/message/index.vue', 'data/messages.js', 'utils/message.js', 'common/styles/common.scss'],
-  taro: ['package.json', 'config/index.js', 'src/app.config.js', 'src/pages/login/index.vue', 'src/static/tab-home.png', 'src/components/TabBar.vue', 'src/pages/settings/index.vue', 'src/pages/settings/index.config.js', 'src/pages/message/index.vue', 'src/data/messages.js', 'src/utils/message.js', 'src/styles/common.scss', 'src/styles/_variables.scss', 'src/styles/_mixins.scss'],
-  wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'styles/common.wxss'],
+  uniapp: ['pages.json', 'App.vue', 'main.js', 'pages/login/index.vue', 'components/TabBar.vue', 'pages/settings/index.vue', 'pages/message/index.vue', 'data/messages.js', 'utils/message.js', 'utils/assets.js', 'static/tab/tab-home.png', 'static/avatar/default-avatar.png', 'common/styles/common.scss'],
+  taro: ['package.json', 'config/index.js', 'src/app.config.js', 'src/pages/login/index.vue', 'src/static/tab/tab-home.png', 'src/assets/index.js', 'src/components/TabBar.vue', 'src/pages/settings/index.vue', 'src/pages/settings/index.config.js', 'src/pages/message/index.vue', 'src/data/messages.js', 'src/utils/message.js', 'src/styles/common.scss', 'src/styles/_variables.scss', 'src/styles/_mixins.scss'],
+  wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'utils/assets.js', 'static/avatar/default-avatar.png', 'styles/common.wxss'],
 };
 
 /** 各前端把后端端口写在哪里，用于确认 patchFrontend 真的改到了 */
@@ -126,6 +126,7 @@ try {
     const sql = join(root, 'docs', sqlFileName(DB));
     check('生成 backend/ frontend/ docs/ uploads/', ['backend', 'frontend', 'docs', 'uploads']
       .every((d) => existsSync(join(root, d))));
+    check('交付打包脚本已写入', existsSync(join(root, 'package-delivery.bat')));
     check(`SQL 文件名跟随库名（${sqlFileName(DB)}）`, existsSync(sql));
     check('SQL 内的库名已改写', existsSync(sql) && readFileSync(sql, 'utf8').includes(`\`${DB}\``));
 
@@ -148,6 +149,12 @@ try {
       check('application.yml 已填库名与密码', t.includes(`/${DB}?`) && t.includes(PASS));
       check('application.yml 无遗留占位符', !t.includes('__DB_PASSWORD__'));
     }
+
+    const readme = readFileSync(join(root, 'README.md'), 'utf8');
+    check('README 含环境/使用/命令/交付章节', ['## 环境要求', '## 使用说明', '## 常用命令', '## 交付打包与 Skills']
+      .every((h) => readme.includes(h)));
+    check('README 含打包与 skills 命令', readme.includes('npx graduation-kit package .')
+      && readme.includes('npx graduation-kit update') && readme.includes('npx graduation-kit install'));
   }
 
   // demo 模板：技术栈固定，落盘后应当带上业务表与业务页面
@@ -245,6 +252,13 @@ try {
       const pages = JSON.parse(readFileSync(join(dir, 'pages.json'), 'utf8'));
       check('uniapp 没有原生 tabBar', !('tabBar' in pages));
     }
+    if (['uniapp', 'taro', 'wxapp'].includes(fe.id)) {
+      const leftovers = [
+        'static/tab-home.png', 'src/static/tab-home.png',
+        'static/logo.png', 'static/default-avatar.png',
+      ].filter((p) => existsSync(join(dir, p)));
+      check(`${fe.id} 静态资源已归入二级目录`, leftovers.length === 0, leftovers.join('、'));
+    }
     if (fe.id === 'taro') {
       const appConfig = readFileSync(join(dir, 'src', 'app.config.js'), 'utf8');
       check('taro 没有原生 tabBar', !/tabBar\s*:/.test(appConfig));
@@ -265,6 +279,51 @@ try {
         check(`${fe.id} TabBar 自带等高占位块`,
           tab.includes('tabbar-spacer') && tab.includes('boundingClientRect'));
       }
+      if (fe.id === 'uniapp' || fe.id === 'taro') {
+        const about = fe.id === 'taro' ? 'src/pages/about/index.vue' : 'pages/about/index.vue';
+        const text = readFileSync(join(dir, about), 'utf8');
+        check(`${fe.id} 关于页技术栈跟随所选后端`,
+          text.includes("'Spring Boot'") && !text.includes("'Express'"));
+      }
+    }
+  }
+
+  // 创建选项：Redis 说明与交付脚本
+  console.log('\n创建选项');
+  const optName = 'smoke-options';
+  execFileSync(process.execPath, [
+    CLI, 'create', optName, '--be', readyBackends()[0].id, '--fe', 'react',
+    '--db', DB, '--no-skills', '--redis', '--no-import-db', '-d', work,
+  ], { stdio: 'pipe' });
+  const optRoot = join(work, optName);
+  const bat = join(optRoot, 'package-delivery.bat');
+  check('交付脚本存在且调用 package', existsSync(bat)
+    && readFileSync(bat, 'utf8').includes('graduation-kit')
+    && readFileSync(bat, 'utf8').includes('package .'));
+  check('选择 Redis 后生成 docs/redis.md', existsSync(join(optRoot, 'docs', 'redis.md')));
+
+  // 交付打包：不带数据库也能出包，依赖与构建产物必须被排除
+  console.log('\n交付打包');
+  const pkgSrc = join(work, `smoke-${readyBackends()[0].id}`);
+  const pkgOut = join(work, 'delivery.zip');
+  execFileSync(process.execPath, [
+    CLI, 'package', pkgSrc, '--no-db', '--out', pkgOut,
+  ], { stdio: 'pipe' });
+  check('交付包已生成', existsSync(pkgOut));
+  if (existsSync(pkgOut)) {
+    let names = [];
+    try {
+      names = execFileSync('unzip', ['-Z1', pkgOut], { encoding: 'utf8' })
+        .split(/\r?\n/).filter(Boolean);
+    } catch {
+      // 本机没 unzip 就只验文件存在，CI 的 ubuntu 一定有
+    }
+    if (names.length) {
+      const projectName = `smoke-${readyBackends()[0].id}`;
+      check('交付包包含 backend/ 与 frontend/', names.some((n) => n.startsWith(`${projectName}/backend/`))
+        && names.some((n) => n.startsWith(`${projectName}/frontend/`)));
+      check('交付包不含依赖与构建产物', !names.some((n) => /\/(node_modules|target|dist|unpackage|__pycache__)\//.test(n)));
+      check('交付包不含 skills', !names.some((n) => n.includes('/.agents/')));
     }
   }
 } finally {

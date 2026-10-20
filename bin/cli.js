@@ -666,6 +666,7 @@ graduation-kit — 毕业设计一件套 agent skills
   npx graduation-kit install [选项]     只安装 skills 到 .agents/skills/
   npx graduation-kit update [选项]      更新已安装的 skills（保留原安装范围）
   npx github:Soulmte/graduation-kit verify [目录]      验证项目结构与配置完整性
+  npx github:Soulmte/graduation-kit package [目录]     打包交付给客户的版本（含本地库）
   npx github:Soulmte/graduation-kit diagnose           诊断包完整性与系统兼容性
   npx github:Soulmte/graduation-kit list               列出包内 skill
   npx github:Soulmte/graduation-kit uninstall [选项]   移除已安装的 skill
@@ -679,6 +680,16 @@ graduation-kit — 毕业设计一件套 agent skills
       --no-upstream     只装六个核心 skill
   -v, --version         打印当前版本
       --skip-version-check  跳过更新门禁（本地 skills 过期或注册表有新版时）
+
+package 专属：
+      --out <file>      输出 zip 路径（默认项目同级目录 <名称>-delivery.zip）
+      --db <name>       数据库名（默认从后端配置或 docs/*.sql 推断）
+      --db-file <file>  直接指定已经导出的 SQL，不再连本地数据库
+      --no-db           不打数据库文件（不建议）
+      --db-user <u>     导出用的 MySQL 用户（默认取后端配置）
+      --db-pass <pwd>   导出用的 MySQL 密码（默认取后端配置）
+      --db-host <h>     数据库地址（默认 127.0.0.1）
+      --db-port <p>     数据库端口（默认 3306）
 
 install / update 专属：
   -g, --global          操作 ~/.agents/skills/（所有项目可用）
@@ -694,8 +705,20 @@ create 专属（全部给出则跳过向导，适合脚本）：
       --fe <a,b>        前端，可多个：react | vue-elementplus | vue-antd
                                     | vue-naive | uniapp | taro | wxapp
       --db <name>       数据库名（默认 scaffold_db，生成的 SQL 同名）
-      --db-pass <pwd>   MySQL root 密码，会写进后端配置
+      --db-pass <pwd>   MySQL 密码，会写进后端配置；导入时也用它
+      --db-user <u>     导入用的 MySQL 用户（默认 root，不改后端配置）
+      --db-host <h>     导入用的 MySQL 地址（默认 127.0.0.1）
+      --db-port <p>     导入用的 MySQL 端口（默认 3306）
+      --import-db       生成后直接导入本地 MySQL（会重建同名库）
+      --no-import-db    只生成 SQL，不导入
+      --redis           项目使用 Redis，创建时检测环境
+      --no-redis        不使用 Redis（默认）
+      --redis-host <h>  Redis 地址（默认 127.0.0.1）
+      --redis-port <p>  Redis 端口（默认 6379）
+      --redis-pass <p>  Redis 密码（默认空）
       --no-skills       不安装 skills，只要脚手架
+      --local-skills    全局已装 skills 时，仍在项目内单独装一份
+      --force-skills    项目内已有 skills 时覆盖安装（否则跳过）
 
 例：
   npx github:Soulmte/graduation-kit create
@@ -704,8 +727,10 @@ create 专属（全部给出则跳过向导，适合脚本）：
   npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
   npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
   npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+  npx github:Soulmte/graduation-kit create shop --be express --fe vue-antd --db shop_db --import-db --redis
   npx github:Soulmte/graduation-kit install -g
   npx github:Soulmte/graduation-kit install --only thesis-writer
+  npx github:Soulmte/graduation-kit package ./my-project
 `;
 
 function parse(argv) {
@@ -728,7 +753,22 @@ function parse(argv) {
     else if (a === '--fe') opts.fe = argv[++i];
     else if (a === '--db') opts.db = argv[++i];
     else if (a === '--db-pass') opts.dbPass = argv[++i];
+    else if (a === '--import-db') opts.importDb = true;
+    else if (a === '--no-import-db') opts.noImportDb = true;
+    else if (a === '--redis') opts.redis = true;
+    else if (a === '--no-redis') opts.noRedis = true;
+    else if (a === '--redis-host') opts.redisHost = argv[++i];
+    else if (a === '--redis-port') opts.redisPort = argv[++i];
+    else if (a === '--redis-pass') opts.redisPass = argv[++i];
+    else if (a === '--db-user') opts.dbUser = argv[++i];
+    else if (a === '--db-host') opts.dbHost = argv[++i];
+    else if (a === '--db-port') opts.dbPort = argv[++i];
+    else if (a === '--db-file') opts.dbFile = argv[++i];
+    else if (a === '--no-db') opts.noDb = true;
+    else if (a === '--out') opts.out = argv[++i];
     else if (a === '--no-skills') opts.noSkills = true;
+    else if (a === '--local-skills') opts.localSkills = true;
+    else if (a === '--force-skills') opts.forceSkills = true;
     else if (a === '-l' || a === '--list') opts.list = true;
     else if (a.startsWith('-')) opts.unknown = a;
     else rest.push(a);
@@ -763,7 +803,7 @@ if (opts.version) {
   }
   const { create } = await import('./create.js');
   try {
-    await create(opts, { SRC_SCAFFOLDS, installSkills: install });
+    await create(opts, { SRC_SCAFFOLDS, installSkills: install, CORE, installedSkills, readManifest });
   } catch (e) {
     const msg = e.message || e.code || String(e);
     fail(msg || '未知错误，请运行 graduation-kit diagnose 检查环境');
@@ -784,6 +824,14 @@ if (opts.version) {
   const targetDir = opts.dir || opts.name || process.cwd();
   const exitCode = await verify(targetDir);
   process.exit(exitCode);
+} else if (cmd === 'package' || cmd === 'deliver') {
+  const { pack } = await import('./package.js');
+  try {
+    await pack(opts);
+  } catch (e) {
+    fail(e.message || e.code || String(e));
+    process.exit(1);
+  }
 } else if (cmd === 'diagnose') {
   const { diagnose } = await import('./diagnose.js');
   await diagnose();

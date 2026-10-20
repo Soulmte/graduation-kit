@@ -151,8 +151,17 @@ export function patchBackend(dir, backend, db) {
 }
 
 /** 前端指向所选后端的端口 */
-export function patchFrontend(dir, frontend, port) {
+export function patchFrontend(dir, frontend, backend) {
   const changed = [];
+  const port = backend.port;
+  const tag = {
+    springboot: 'Spring Boot',
+    express: 'Express',
+    flask: 'Flask',
+    go: 'Go',
+    dotnet: '.NET',
+  }[backend.id] || backend.label;
+
   if (frontend.kind === 'vite') {
     if (replaceInFile(join(dir, '.env.development'), [
       ['http://localhost:8080', `http://localhost:${port}`],
@@ -167,11 +176,15 @@ export function patchFrontend(dir, frontend, port) {
     if (replaceInFile(join(dir, 'src', 'config', 'index.js'), [[':8080', `:${port}`]])) {
       changed.push('src/config/index.js');
     }
-    return changed;
-  }
-  if (replaceInFile(join(dir, 'config', 'index.js'), [[':8080', `:${port}`]])) {
+  } else if (replaceInFile(join(dir, 'config', 'index.js'), [[':8080', `:${port}`]])) {
     changed.push('config/index.js');
   }
+
+  // 关于页的「技术栈」标签跟着实际后端走
+  for (const rel of ['pages/about/index.vue', 'src/pages/about/index.vue']) {
+    if (replaceInFile(join(dir, ...rel.split('/')), [["'Express'", `'${tag}'`]])) changed.push(rel);
+  }
+
   return changed;
 }
 

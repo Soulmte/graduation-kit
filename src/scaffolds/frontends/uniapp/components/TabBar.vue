@@ -28,6 +28,7 @@
  * - 切换用 reLaunch：tab 页不再是原生 tabBar 页面，switchTab 不生效
  */
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { TAB_ICONS } from '@/utils/assets'
 
 const props = defineProps({
   active: { type: String, default: 'home' }
@@ -69,22 +70,19 @@ const items = [
     key: 'home',
     text: '首页',
     url: '/pages/index/index',
-    icon: '/static/tab-home.png',
-    activeIcon: '/static/tab-home-active.png'
+    ...TAB_ICONS.home
   },
   {
     key: 'notice',
     text: '公告',
     url: '/pages/notice/list',
-    icon: '/static/tab-notice.png',
-    activeIcon: '/static/tab-notice-active.png'
+    ...TAB_ICONS.notice
   },
   {
     key: 'profile',
     text: '我的',
     url: '/pages/profile/index',
-    icon: '/static/tab-profile.png',
-    activeIcon: '/static/tab-profile-active.png'
+    ...TAB_ICONS.profile
   }
 ]
 

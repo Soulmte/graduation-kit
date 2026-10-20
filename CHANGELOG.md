@@ -2,6 +2,46 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.5.1
+
+### 新增
+
+- 新增 **`package`（别名 `deliver`）交付打包命令**：只把前端、后端、文档、上传目录和
+  本地数据库打进 zip，去掉 `node_modules`、`target`、`dist`、`unpackage`、`__pycache__`、
+  `bin`/`obj`、`.git`、`.agents` 与日志。
+- 数据库优先用本机 `mysqldump` 全量导出（结构 + 数据 + `CREATE DATABASE` + `USE`），
+  客户导入即可迁移；没装客户端或连不上库时退回 `docs/` 建表脚本并明确告警。
+  支持 `--db-file` 指定现成 SQL、`--no-db` 只打代码、`--out` 指定输出路径。
+- 打包内置零依赖 ZIP 写入器，不新增运行依赖；Windows 下会自动扫 `C:/Program Files/MySQL`、
+  `D:/mysql`、XAMPP、phpStudy 等常见 `mysqldump` 安装位置。
+- 数据库导出文件旁附 `database/README.txt`，写明导入命令与 utf8mb4 字符集要求；
+  同时把原 `docs/` 里的脚手架 SQL 移出交付包，避免客户导错文件。
+- **创建时可直接导入本地 MySQL**：交互向导默认询问，非交互加 `--import-db`。
+  沿用 `--db-pass`，地址/用户/端口可用 `--db-host` / `--db-user` / `--db-port` 覆盖；
+  没装客户端或连接失败时继续生成项目，并给出针对性的排查提示。
+- **创建时可选 Redis**：`--redis` 会检测 `redis-cli`、`redis-server` 与端口连通性；
+  环境可用就确认版本，未就绪就按 Windows / macOS / Linux 给出安装与启动命令，
+  并把连接信息、检测结果和安装步骤写入 `docs/redis.md`。
+- **项目根自动生成 `package-delivery.bat`**：双击即可调用 `graduation-kit package .`，
+  优先用全局 CLI，找不到再走 `npx`，支持继续传入 `--no-db` 等参数。
+- **重写生成项目的 README**：补上环境要求、分步使用说明、前后端常用命令，
+  以及 `package` / `install` / `update` / `verify` / `doctor` 等命令速查；
+  uni-app 的运行方式改为 HBuilderX，不再给出不存在的 npm 命令。
+- **生成的文档与代码全部跟随所选技术栈**：环境要求、启动命令、常用命令、
+  常见问题、目录说明、关于页技术栈标签、前端配置注释都不再硬编码 Express / 8080-8082。
+
+### 调整
+
+- **`create` 增加 skills 冲突校验**：全局 `~/.agents/skills/` 已装齐 6 个核心 skill 时，
+  默认不再往新项目里重复装一份；项目内已有 skills 时也不覆盖。
+  需要项目内独立一份用 `--local-skills`，需要覆盖已有用 `--force-skills`，不装用 `--no-skills`。
+- **前端静态资源改为二级分类目录**：`static/tab/` 放导航图标，`static/avatar/` 放默认头像，
+  Web 前端统一为 `src/assets/images/` 与 `src/assets/icons/`。
+  新增 `utils/assets.js`（taro 为 `src/assets/index.js`）集中登记路径，页面不再写死 `/static/xxx.png`。
+- 清理三个 Web 前端与 demo 模板中从未被引用的 `hero.png`、`vite.svg`、`vue.svg`、
+  `logo.svg`、`empty.svg`、`default-avatar.png` 残留文件。
+- `smoke` 增加静态资源目录与交付包结构校验。
+
 ## 1.5.0
 
 ### 新增
