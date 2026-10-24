@@ -1,7 +1,7 @@
 ---
 name: api-designer
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设接口设计 skill。用户说要加接口、设计 API、定义请求响应格式、前后端联调对不上、接口该用 GET 还是 POST、返回结构怎么统一、分页怎么写、错误码怎么定、要写接口文档时使用。确保接口遵循脚手架统一协议 {code, message, data}：RESTful 路径命名、请求参数与 DTO 设计、分页与列表约定、状态码与错误码规范、鉴权与权限标注。输出接口清单表格，可直接用于论文的接口设计章节。English keywords — design API, add endpoint, API documentation, response format.
-version: 1.6.0
+version: 1.6.1
 priority: 70
 triggers: triggers.yaml
 ---

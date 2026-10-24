@@ -2,6 +2,16 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.6.1
+
+### 修复
+
+- **老用户 `update` 补不上新增的核心 skill**。以前只按安装记录里那批 skill 重装，
+  1.5.x 升上来的用户永远拿不到 `literature-review`；现在按 `CORE_ADDED_IN` 记录
+  逐版补装，并在输出里明确列出新增项。用 `--only` 装单个 skill 的不会被一口气装满。
+- README 补充 npx 缓存提示：`npx graduation-kit` 会复用 `~/.npm/_npx` 里的旧版本，
+  升级要写 `npx graduation-kit@latest update`。
+
 ## 1.6.0
 
 ### 新增

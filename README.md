@@ -116,12 +116,16 @@ npx graduation-kit install -g --only impeccable                  # 全局只留�
 ### 升级
 
 ```bash
-npx graduation-kit update            # 项目内，按安装记录更新
-npx graduation-kit update -g         # 全局
-npx graduation-kit install -g --reinstall   # 不比对内容，强制重拷
+npx graduation-kit@latest update        # 项目内，按安装记录更新
+npx graduation-kit@latest update -g     # 全局
+npx graduation-kit@latest install -g --reinstall   # 不比对内容，强制重拷
 ```
 
 > `update` 会用包内版本覆盖本地改动，不做备份。
+>
+> **一定要加 `@latest`**：`npx graduation-kit` 会复用 `~/.npm/_npx` 里的旧版本，
+> 哪怕 npm 上已经更新了，拿到的还是上次那个，结果就是每条都显示“本地已是同一份”。
+> 仍不对就先清缓存：`npx clear-npx-cache`。
 
 安装时会在 `.agents/skills/.graduation-kit.json` 写版本标记：本地版本落后时 CLI 警告、agent 加载 skill 时直接停用；注册表有新版时 `create` 会拒绝执行。跳过检查加 `--skip-version-check`。
 

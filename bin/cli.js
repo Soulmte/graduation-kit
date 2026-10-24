@@ -61,6 +61,16 @@ const UPSTREAM = [
   },
 ];
 
+/**
+ * 各版本新加入的核心 skill。
+ * update 只看安装记录里的那批，不然老用户永远补不上后来新增的核心 skill；
+ * 也不根据 CORE 全量补，避免把当初用 --only 装单个 skill 的用户一口气装满。
+ * after：只要本地装了它，就得跟着装（依赖关系），否则不加。
+ */
+const CORE_ADDED_IN = {
+  '1.6.0': [{ id: 'literature-review', after: 'thesis-writer' }],
+};
+
 const C = {
   reset: '\x1b[0m',
   dim: '\x1b[2m',
@@ -550,8 +560,21 @@ async function updateSkills(opts) {
     return;
   }
 
+  // 从安装时的版本开始，逐版把新增的核心 skill 补进来
+  const added = [];
+  for (const [version, entries] of Object.entries(CORE_ADDED_IN)) {
+    if (cmpVersion(manifest.version || '0.0.0', version) >= 0) continue;
+    for (const entry of entries) {
+      if (entry.after && !ids.includes(entry.after)) continue;
+      if (!ids.includes(entry.id) && !added.includes(entry.id)) added.push(entry.id);
+    }
+  }
+
   info(`更新已安装的 ${ids.length} 项：${ids.join('、')}`);
-  await install({ ...opts, force: true, only: ids.join(',') });
+  if (added.length) {
+    info(`${paint('cyan', '新增核心 skill')}：${added.join('、')} ${paint('dim', '（本版本新加，一并装上）')}`);
+  }
+  await install({ ...opts, force: true, only: [...ids, ...added].join(',') });
 }
 
 function uninstall(opts) {
