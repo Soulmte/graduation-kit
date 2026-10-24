@@ -29,6 +29,7 @@ const SRC_SCAFFOLDS = join(PKG_ROOT, 'src', 'scaffolds');
 const CORE = [
   'graduation-project',
   'thesis-writer',
+  'literature-review',
   'feature-forge',
   'database-designer',
   'api-designer',
@@ -677,7 +678,7 @@ graduation-kit — 毕业设计一件套 agent skills
   -f, --force           内容有变化时覆盖已存在的 skill
       --reinstall       不比对内容，直接强制重拷一遍
   -y, --with-upstream   直接带上三个上游增强，不询问
-      --no-upstream     只装六个核心 skill
+      --no-upstream     只装核心 skill（默认 7 个）
   -v, --version         打印当前版本
       --skip-version-check  跳过更新门禁（本地 skills 过期或注册表有新版时）
 

@@ -1,7 +1,7 @@
 ---
 name: database-designer
 description: 仅用于毕业设计项目，非毕设项目不要加载。毕设数据库设计 skill。用户说要建表、设计数据库、写建表 SQL、加字段、改表结构、设计 ER 关系、数据库设计不合理、表太多要不要拆、加索引时使用。匹配脚手架 scaffold_db 的命名与字段规范：主键与时间戳约定、逻辑删除、外键与关联表策略、字段类型选择、索引设计、三大范式与合理反范式。输出可直接执行的 DDL 与实体类映射说明。也用于论文里的数据库设计章节与数据字典整理。English keywords — create table, database schema, add index, data dictionary.
-version: 1.5.1
+version: 1.6.0
 priority: 70
 triggers: triggers.yaml
 ---

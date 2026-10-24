@@ -2,6 +2,51 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.6.0
+
+### 新增
+
+- **`literature-review` skill**：专管文献的真实检索与核验。按 Crossref / OpenAlex /
+  Semantic Scholar / PubMed / arXiv / CNKI 等真实源检索，逐条核对标题、作者、年份、DOI，
+  产出 `docs/thesis/refs-source.json`；配套 `verify-refs.mjs` 联网复核（DOI 解析、标题相似度、
+  年份比对、链接可达性），查不到就判失败。随核心 skill 一起安装，是 `thesis-writer` 的前置依赖。
+- **引用硬约束**：全文 ≥ 22 条；英文 ≥ 6 条且附中文译名；中文 ≥ 15 条；`scope` 为
+  `domain`（主题/业务）与 `tech`（技术）的各 ≥ 5 条；一句只引一条、一条只引一次、
+  正文首现编号严格 `1 → 2 → … → N`。`check-refs.mjs` 全部纳入校验，配额可在
+  `refs-source.json` 里用 `minReferences` / `minEnglish` / `minChinese` / `minPerScope` 覆盖。
+- **检索不到就报缺**：不够配额时写 `docs/thesis/refs-gaps.md`，列出缺口与下一轮检索关键词，
+  禁止用不相关文献凑数。
+- `triggers.yaml` 增加 `literature-review` 路由（找文献 / 核实文献真假），并补了 3 条回归用例。
+
+### 变更
+
+- **skill 自动串联**：`triggers.yaml` 新增 `pipelines`（build / thesis / defense），命中入口后
+  按链路自己往下跑，不再要求用户把步骤拆开。说“写论文”就直接走
+  `literature-review` → `thesis-writer` → 两个校验脚本 → 转 Word；说“做毕设”就一路跑到
+  需求、建表、接口、风格、代码、审查、论文。只有需求确认单、风格方案、文献补不齐三处停下来问。
+- `graduation-project` 新增「阶段 0 之前：自动编排」：跨 skill 的硬约束不能跳，收尾主动衔接论文。
+- `thesis-writer` 新增「自动编排」小节：文献不自备就先去补，表结构/接口从代码里读，不反问用户。
+- `literature-review` 补齐后直接交回调用方，不再等用户发下一步指令。
+- `thesis-writer`：铁律第 1 条改为“真实检索 + 配额硬性”，引用规则拆成
+  「检索核验」与「标注校验」两步，文件索引补上 `literature-review`。
+- 核心 skill 从 6 个增加到 7 个，`create` / `install` 默认一并安装。
+- `scripts/test-check-refs.mjs` 的合规用例改为按 22 条配额生成，并新增配额、顺序、`scope` 四类反例。
+
+### 移动端脚手架（react-native）
+
+- **`create` 可以选择 `--fe react-native`**：复制 `clients/react-native/`，按所选后端写入 `.env`
+  （`EXPO_PUBLIC_API_BASE_URL` / `EXPO_PUBLIC_STATIC_BASE_URL`），开发端口固定 8090。
+  生成的 README、启动提示、FAQ 都跟着带上了 Expo Go 与真机 IP 说明。
+- 目录从 `clients/rn` 改为 `clients/react-native`，页面只保留 `src/app/` 一套路由目录。
+- 升级到 Expo SDK 58 / RN 0.88，组件库从 React Native Paper 换成 HeroUI Native，样式改用 Uniwind。
+- 新增 `src/theme/`（`tokens.css` / `typography.css` / `layout.css` / `tabbar.css`），
+  导航栏、全局排版、底部 Tab 的样式全部抽成 CSS。
+- 内置 Noto Sans SC（400/700），字形不跟随手机系统字体；关掉 `allowFontScaling` 防止超大字号挤坏版式。
+- 「我的」改为用户中心导航页，个人资料 / 修改密码 / 用户协议 / 隐私政策 / 关于应用均为二级页。
+- 新增统一 `showToast()` 与 `ConfirmDialog`，不再用系统 `Alert`。
+- 头像上传改用 `expo-file-system` 的 `File.upload`，绕开 RN 对 FormData 文件的限制。
+- 新增 `useKeyboardAwareScroll`，表单页键盘弹出时自动把输入框滚到键盘上方。
+
 ## 1.5.1
 
 ### 新增

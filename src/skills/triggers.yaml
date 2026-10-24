@@ -18,7 +18,7 @@ scope:
     或项目根目录存在 docs/scaffold_db.sql / 需求确认单.md
   outside: 非毕设项目：本表所有 skill 一律不加载。
   ambiguous: 判断不了就先问一句，不要默认启用。
-  note: impeccable 是通用 UI skill，不受本门禁限制；其余 6 个受限制。
+  note: impeccable 是通用 UI skill，不受本门禁限制；其余 7 个受限制。
 
 rules:
   - "strong 命中 1 个即激活；weak 需 2 个，或 1 个 weak + 1 个 context 词。"
@@ -44,6 +44,13 @@ skills:
     strong: [写论文, 写毕业论文, 写第X章, 写摘要, 改论文措辞, 降AI味, 转Word, 转docx, 论文配图, 画ER图, 画架构图, 画流程图, 画用例图, 画时序图, 画功能模块图, 画技术栈图, write thesis, thesis chapter, write abstract, convert to word, thesis figure]
     weak: [论文, 章节, 字数, 图注, 三线表, 开题报告, thesis, paper, chapter, abstract, docx]
     not_for: [写业务代码, 改数据库表, 设计接口, 前端样式调整]
+
+  - id: literature-review
+    priority: 85
+    when: 找文献 / 查文献 / 检索文献 / 文献综述 / 补引用 / 核验文献真假
+    strong: [找文献, 查文献, 文献检索, 检索文献, 文献综述, 补引用, 引用核验, 核实文献, 文献核验, 文献是不是真的, 文献不真实, 参考文献太少, find literature, search papers, literature review, verify references, citation check]
+    weak: [文献, 引用, 参考文献, 期刊, doi, paper, reference, citation]
+    not_for: [写正文, 画图, 转Word, 写业务代码]
 
   - id: feature-forge
     priority: 80
@@ -80,6 +87,24 @@ skills:
     weak: [前端, 页面, 样式, 布局, 设计, 好看, ui, layout, styling, design]
     not_for: [后端代码, 数据库, 论文写作, 没有可运行的前端工程]
 
+# 自动编排：命中入口后按 chain 的顺序自己往下跑，不要让用户再细分。
+# chain 就是默认执行顺序；标 ? 的是条件触发（条件满足才跑）。
+# 环节内部该确认的照确认（如需求单），不该问的直接做。
+pipelines:
+  - name: build
+    entry: [做毕设, 开发毕业设计, 毕设项目, 写毕设代码, 加模块, 继续做]
+    chain: [feature-forge, database-designer, api-designer, impeccable?, graduation-project, code-reviewer]
+    tail: [thesis-writer]
+    note: 阶段 1 需求单必须等用户点头，其余阶段自己推进；代码验收后主动问要不要进论文
+  - name: thesis
+    entry: [写论文, 写毕业论文, 写第X章, 写摘要, 转Word]
+    chain: [literature-review, thesis-writer]
+    note: 文献没备齐先自己去补，不要反问用户“文献定了吗”；写完自动跑两个校验再转 Word
+  - name: defense
+    entry: [答辩前, 答辩检查, 导师要检查]
+    chain: [code-reviewer, graduation-project, thesis-writer]
+    note: 代码、论文引用、图表编号一起过一遍，不要只查一样
+
 conflicts:
   - "毕设 + 写代码/做系统 → graduation-project；毕设 + 写章节/画图/Word → thesis-writer。"
   - "需求没定只走 feature-forge；表定之后才 api-designer。"
@@ -93,5 +118,6 @@ phase_map:
   phase_1_style: [impeccable]
   phase_2_codegen: [graduation-project]
   phase_2_review: [code-reviewer]
+  phase_3_literature: [literature-review]
   phase_3_thesis: [thesis-writer]
   phase_4_defense: [code-reviewer, graduation-project]

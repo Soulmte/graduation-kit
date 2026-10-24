@@ -73,6 +73,7 @@ const FE_EXPECT = {
   'vue-antd': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
   'vue-naive': ['package.json', 'vite.config.js', 'src/main.js', 'src/App.vue'],
   uniapp: ['pages.json', 'App.vue', 'main.js', 'pages/login/index.vue', 'components/TabBar.vue', 'pages/settings/index.vue', 'pages/message/index.vue', 'data/messages.js', 'utils/message.js', 'utils/assets.js', 'static/tab/tab-home.png', 'static/avatar/default-avatar.png', 'common/styles/common.scss'],
+  'react-native': ['package.json', 'app.json', 'global.css', 'src/app/_layout.tsx', 'src/app/login.tsx', 'src/app/profile/password.tsx', 'src/theme/tabbar.css', 'src/theme/typography.css', 'src/components/AppToast.tsx', 'src/components/ConfirmDialog.tsx', '.env'],
   taro: ['package.json', 'config/index.js', 'src/app.config.js', 'src/pages/login/index.vue', 'src/static/tab/tab-home.png', 'src/assets/index.js', 'src/components/TabBar.vue', 'src/pages/settings/index.vue', 'src/pages/settings/index.config.js', 'src/pages/message/index.vue', 'src/data/messages.js', 'src/utils/message.js', 'src/styles/common.scss', 'src/styles/_variables.scss', 'src/styles/_mixins.scss'],
   wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'utils/assets.js', 'static/avatar/default-avatar.png', 'styles/common.wxss'],
 };
@@ -80,6 +81,7 @@ const FE_EXPECT = {
 /** 各前端把后端端口写在哪里，用于确认 patchFrontend 真的改到了 */
 const PORT_FILES = {
   vite: ['.env.development'],
+  rn: ['.env'],
   uniapp: ['config/index.js'],
   taro: ['config/index.js', 'src/config/index.js'],
   wxapp: ['config/index.js'],

@@ -11,7 +11,7 @@ import { checkMysql, databaseExists, importSqlFile, mysqlGuide, mysqlFailureHint
 import { checkRedis, redisGuide } from './redis.js';
 import {
   BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
-  findTemplate, demoPaths, frontendDirName,
+  findTemplate, demoPaths, frontendDirName, frontendSrc,
   patchBackend, patchFrontend, patchSql, sqlFileName, assertEmptyTarget, copyTree,
   validName, validDbName, validDbPassword, escapePasswordForYaml,
 } from './scaffold.js';
@@ -137,6 +137,7 @@ const RUN_HINT = {
 };
 const FE_HINT = {
   vite: 'npm install && npm run dev',
+  rn: 'npm install && npm start（手机装 Expo Go 扫码）',
   uniapp: 'HBuilderX 打开项目，运行到浏览器 / 微信开发者工具',
   taro: 'npm install && npm run dev:h5（H5）/ dev:weapp（微信开发者工具导入 dist）',
   wxapp: '微信开发者工具直接导入此目录',
@@ -348,7 +349,7 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
 | test | 123456 | 普通用户 |`;
 
   const beRuntime = {
-    springboot: 'JDK 17+、Maven 3.8+',
+    springboot: 'JDK 21、Maven 3.8+',
     express: 'Node.js 18+',
     flask: 'Python 3.9+',
     go: 'Go 1.21+',
@@ -377,6 +378,9 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
   if (fes.some((f) => f.kind === 'wxapp' || f.kind === 'taro')) {
     envRows.push(row(['微信开发者工具', '最新稳定版', '小程序调试']));
   }
+  if (fes.some((f) => f.kind === 'rn')) {
+    envRows.push(row(['Expo Go', '最新版（手机应用商店）', '扫码调试 React Native 客户端']));
+  }
   if (withRedis) {
     envRows.push(row(['Redis', '5+', '缓存 / 验证码 / 会话（见 docs/redis.md）']));
   }
@@ -388,6 +392,9 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
     }
     if (f.kind === 'taro') {
       return `**${dir}/**\n\n${code('bash', `cd ${dir}\nnpm install\nnpm run dev:h5      # H5\nnpm run dev:weapp   # 微信小程序，产物在 dist/`)}`;
+    }
+    if (f.kind === 'rn') {
+      return `**${dir}/**\n\n${code('bash', `cd ${dir}\nnpm install\nnpm start            # 终端出二维码，手机 Expo Go 扫码\nnpm run android      # 或在 Android 模拟器里跑`)}`;
     }
     if (f.kind === 'uniapp') {
       return `**${dir}/**\n\n${code('text', `HBuilderX 打开 ${dir}/，运行到浏览器 / 微信开发者工具 / 真机`)}`;
@@ -438,6 +445,13 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
         ['npm run build:h5', 'H5 生产构建'],
         ['npm run build:weapp', '微信小程序生产构建'],
       ],
+      rn: [
+        ['npm install', '安装依赖'],
+        ['npm start', '启动 Metro（:8090），手机扫码调试'],
+        ['npm run android', 'Android 模拟器'],
+        ['npm run web', '浏览器（只看样式）'],
+        ['npm run type-check', 'TypeScript 类型检查'],
+      ],
       uniapp: [
         ['HBuilderX 打开本目录', '运行到浏览器 / 微信开发者工具 / 真机'],
       ],
@@ -470,6 +484,9 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
   }
   if (fes.some((f) => f.kind === 'taro')) {
     faq.push('- **Taro 请求失败**：H5 看 `config/index.js` 的代理，真机把 `src/config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP。');
+  }
+  if (fes.some((f) => f.kind === 'rn')) {
+    faq.push('- **React Native 请求失败**：真机连不上 `localhost`，把前端目录 `.env` 里的地址改成开发机局域网 IP，再 `npm start -- --clear` 重启（`EXPO_PUBLIC_*` 在启动时内联）。');
   }
   faq.push('- **端口被占用**：改后端配置和前端配置里的端口，再重启。');
   faq.push('- **CLI 命令找不到或版本旧**：用 `npx graduation-kit@latest ...`，或先 `npx clear-npx-cache`。');
@@ -763,7 +780,7 @@ function inspectSkills(ctx, root) {
     globalNames,
     localNames,
     globalManifest: manifest(globalDir),
-    // 只有六个核心 skill 全部就位才算“全局已装好”，缺一个都还要补
+    // 只有核心 skill 全部就位才算“全局已装好”，缺一个都还要补
     globalComplete: core.length > 0 && core.every((n) => globalNames.includes(n)),
   };
 }
@@ -1053,7 +1070,7 @@ export async function create(opts, ctx) {
   line(`    uploads/`);
   if (importDb) line(`    数据库导入`.padEnd(26) + paint('dim', `${db.user}@${db.host}:${db.port}`));
   if (useRedis) line(`    Redis`.padEnd(26) + paint('dim', redisState?.usable ? '已就绪' : '环境未就绪，见 docs/redis.md'));
-  if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '6 个核心 skill + 上游增强'));
+  if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '7 个核心 skill + 上游增强'));
   else if (skillReason === 'global') line(`    .agents/skills/`.padEnd(26) + paint('dim', '跳过：全局已安装'));
   else if (skillReason === 'local') line(`    .agents/skills/`.padEnd(26) + paint('dim', '跳过：项目内已有'));
   line('');
@@ -1077,7 +1094,7 @@ export async function create(opts, ctx) {
 
     for (const f of fes) {
       const dirName = frontendDirName(f.id, fes.length);
-      copyTree(demo ? demo.frontend : join(SRC_SCAFFOLDS, 'frontends', f.id), join(root, dirName));
+      copyTree(demo ? demo.frontend : frontendSrc(SRC_SCAFFOLDS, f), join(root, dirName));
       const changed = patchFrontend(join(root, dirName), f, be);
       ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
       if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
@@ -1217,8 +1234,12 @@ export async function create(opts, ctx) {
     warn('Redis 环境未就绪，安装步骤见 docs/redis.md');
     line('');
   }
-  if (fes.some((f) => f.kind !== 'vite')) {
+  if (fes.some((f) => ['uniapp', 'taro', 'wxapp'].includes(f.kind))) {
     warn('小程序真机调试时，需将 config/index.js（Taro 为 src/config/index.js）中的 LAN_HOST 改为电脑局域网 IP');
+    line('');
+  }
+  if (fes.some((f) => f.kind === 'rn')) {
+    warn('React Native 真机调试时，需将前端目录 .env 里的 localhost 改为电脑局域网 IP，再 npm start -- --clear');
     line('');
   }
   line(paint('cyan', '━━━━━━━━━━━━━━━━━━'));

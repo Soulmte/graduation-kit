@@ -34,6 +34,10 @@
     { "prompt": "improve layout of the dashboard", "expect": "impeccable" },
     { "prompt": "redesign the ui, it looks bad", "expect": "impeccable" },
     { "prompt": "mvp scope for my project", "expect": "feature-forge" },
+    { "prompt": "find literature for my thesis", "expect": "literature-review" },
+
+    { "prompt": "帮我找文献，参考文献太少了", "expect": "literature-review" },
+    { "prompt": "参考文献是不是编的，帮我核实文献", "expect": "literature-review" },
 
     { "prompt": "重构一下这个函数", "expect": null },
     { "prompt": "今天天气不错", "expect": null },

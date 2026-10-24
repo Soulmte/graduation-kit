@@ -17,5 +17,5 @@
   上游的指令、方法论与其余 59 个文件未改动。
 - `ui-ux-pro-max`、`taste-skill`：原样引入，未修改。
 
-其余 skill（`graduation-project`、`thesis-writer`、`feature-forge`、
+其余 skill（`graduation-project`、`thesis-writer`、`literature-review`、`feature-forge`、
 `database-designer`、`api-designer`、`code-reviewer`）为本包原创，MIT 许可，版权归 浅梦听晚 所有。

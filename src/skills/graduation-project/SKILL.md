@@ -1,7 +1,7 @@
 ---
 name: graduation-project
 description: 仅用于毕业设计（毕设）项目，非毕设项目不要加载。全流程开发编排 skill。用户说做毕设、开发毕业设计、写毕设代码、毕设项目、基于脚手架开发、给了毕设题目要开工时使用。覆盖五阶段工作流：需求访谈与功能边界确认、数据库建表、接口设计、前端风格与设计系统选型、模块化代码生成、逐模块代码审查、交付自检。配套 6 后端 + 7 前端多技术栈脚手架（Spring Boot / Vue / React 等），站在导师视角把关代码质量与命名规范，并按需调用 feature-forge、database-designer、api-designer、code-reviewer、impeccable 协同工作。也用于毕设进度规划、技术选型纠结、脚手架改造、答辩前代码检查。English keywords — graduation project, final year project, capstone project, build my project.
-version: 1.5.1
+version: 1.6.0
 priority: 100
 auto_invoke: true
 triggers: triggers.yaml
@@ -9,7 +9,7 @@ triggers: triggers.yaml
 
 # graduation-project
 
-毕业设计代码生成专用 skill，配套本项目的多技术栈脚手架：**6 个后端 + 7 个 Web/小程序前端 + 2 个客户端**（pyqt 桌面端 / rn 原生 APP）。**站在导师视角，确保代码质量过关。**
+毕业设计代码生成专用 skill，配套本项目的多技术栈脚手架：**6 个后端 + 7 个 Web/小程序前端 + 2 个客户端**（pyqt 桌面端 / react-native 原生 APP）。**站在导师视角，确保代码质量过关。**
 
 ---
 
@@ -134,6 +134,27 @@ ls
 
 ## 2. 工作流（核心五阶段）
 
+### 阶段 0 之前：自动编排（不要等用户细分）
+
+用户说“帮我做毕设”就是授权你跑完整条链路，不是让你一级一级问。按 `triggers.yaml` 的 `pipelines.build` 走：
+
+| 顺序 | 环节 | 自动调用 | 需要用户点头吗 |
+|---|---|---|---|
+| 1 | 需求 | `feature-forge` | ✅ 需求确认单 |
+| 2 | 建表 | `database-designer` | 有新增表就直接出 DDL |
+| 3 | 接口 | `api-designer` | 直接出接口清单 |
+| 4 | 风格 | `impeccable` / `ui-ux-pro-max` | ✅ 只在给方案对比时 |
+| 5 | 代码 | 本 skill 阶段 2 | 模块顺序固定，不用问 |
+| 6 | 审查 | `code-reviewer` | 每模块生成完自动跑 |
+| 7 | 论文 | `thesis-writer` | 代码验收后主动问一句 |
+
+硬规则：
+
+- **不许把阶段拆成一句一问**。能自己定的（表名、字段、接口路径、目录结构）自己定，只在需求边界、风格方案、论文范围上问。
+- **跨 skill 的硬约束不能跳**：没建表不写实体，没接口清单不写前端 API，没过 `code-reviewer` 不算这个模块完成。
+- **收尾主动衔接**：阶段 4 完成后直接说“代码已可运行，可以开始写论文”，并调 `thesis-writer`（它会自己去调 `literature-review` 备文献），不要等用户自己想起来。
+- **用户只问一小块时不要跑整条链**（只改一个接口就走 `api-designer`），但改完要提醒它会影响哪些下游产物。
+
 ### 阶段 0：项目初始化
 
 ```
@@ -171,7 +192,7 @@ ls
 - 后端从脚手架已有的 6 个中选：`springboot` / `express` / `flask` / `fastapi` / `go` / `dotnet`
 - Web 前端从 `frontends/` 的 7 个中选：`react` / `vue-antd` / `vue-elementplus` / `vue-naive` / `uniapp` / `taro` / `wxapp`
 - 微信小程序需求 → `frontends/wxapp/`（原生）、`frontends/taro/`（Vue 3）或 `frontends/uniapp/`（跨端）
-- 原生 APP / 桌面端需求 → `clients/rn/`（React Native）或 `clients/pyqt/`（PyQt 桌面端）
+- 原生 APP / 桌面端需求 → `clients/react-native/`（React Native）或 `clients/pyqt/`（PyQt 桌面端）
 - **不创建新技术栈目录**，在现有目录内新增/修改文件
 
 **成熟度提醒**：`backends/` 里的 `springboot` / `express` / `flask` 与 `frontends/` 里的 `react` / `vue-antd` / `vue-elementplus` 已经过完整修复与联调验证，**优先推荐从这几个里选**。其余目录可用但未逐项验证，选它们时要多花时间对齐接口与字段命名。

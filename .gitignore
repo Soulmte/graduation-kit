@@ -10,3 +10,6 @@ unpackage/
 
 # 开发用原始脚手架。发布副本在 src/scaffolds/（密码已换占位符）
 脚手架/
+
+# 脚手架本地开发用的 env（新项目由 create 按所选后端生成）
+src/scaffolds/clients/react-native/.env

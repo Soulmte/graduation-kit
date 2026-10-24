@@ -6,10 +6,12 @@
  *
  * 依据 reference/citation-policy.md 检查：
  *   - refs-source.json 字段完整、编号连续、年份在近五年内
+ *   - 篇数与语种下限（默认 ≥22 条、英文 ≥6、中文 ≥15，可在 policy 里覆盖）
+ *   - 主题覆盖（scope: domain / tech 各至少 5 条）
  *   - 至少一篇英文文献，且英文文献有中文译名
  *   - 每条文献有原文摘录与链接
  *   - 正文 [n] 与文献集合一致，不重复引用，一句话不出现多个引用
- *   - 首次引用顺序符合 numbering（desc / asc）
+ *   - 首次引用顺序严格按 numbering（默认从小到大，逐条 +1）
  *   - 08-参考文献.md 包含每个编号
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -42,6 +44,11 @@ try {
 const numbering = policy.numbering === 'desc' ? 'desc' : 'asc';
 const recentYears = Number.isFinite(policy.recentYears) ? policy.recentYears : 5;
 const minYear = new Date().getFullYear() - recentYears;
+// 硬性配额：不足就是没写完，不允许用凑数的文献补位
+const minRefs = Number.isFinite(policy.minReferences) ? policy.minReferences : 22;
+const minEn = Number.isFinite(policy.minEnglish) ? policy.minEnglish : 6;
+const minZh = Number.isFinite(policy.minChinese) ? policy.minChinese : 15;
+const minPerScope = Number.isFinite(policy.minPerScope) ? policy.minPerScope : 5;
 const refs = Array.isArray(policy.references) ? policy.references : [];
 if (!refs.length) fail('references 为空');
 
@@ -61,6 +68,9 @@ for (const [i, ref] of refs.entries()) {
   if (!String(ref.quote || '').trim()) fail(`${at}: 缺 quote（原文摘录）`);
   if (!String(ref.url || ref.doi || '').trim()) fail(`${at}: 缺 url 或 doi`);
   if (ref.lang === 'en' && !String(ref.titleZh || '').trim()) fail(`${at}: 英文文献缺 titleZh（中文译名）`);
+  if (ref.scope !== 'domain' && ref.scope !== 'tech') {
+    fail(`${at}: scope 必须是 domain（主题域）或 tech（技术）`);
+  }
 }
 
 const numbers = [...byNumber.keys()].sort((a, b) => a - b);
@@ -71,7 +81,15 @@ if (numbers.length) {
   }
 }
 const enCount = refs.filter((r) => r.lang === 'en').length;
-if (enCount < 1) fail('至少需要 1 篇英文文献（lang: "en"）');
+const zhCount = refs.length - enCount;
+const domainCount = refs.filter((r) => r.scope === 'domain').length;
+const techCount = refs.filter((r) => r.scope === 'tech').length;
+
+if (refs.length < minRefs) fail(`文献共 ${refs.length} 条，少于硬性要求 ${minRefs} 条`);
+if (enCount < minEn) fail(`英文文献只有 ${enCount} 条，少于硬性要求 ${minEn} 条`);
+if (zhCount < minZh) fail(`中文文献只有 ${zhCount} 条，少于硬性要求 ${minZh} 条`);
+if (domainCount < minPerScope) fail(`主题域文献只有 ${domainCount} 条，至少 ${minPerScope} 条（scope: "domain"）`);
+if (techCount < minPerScope) fail(`技术类文献只有 ${techCount} 条，至少 ${minPerScope} 条（scope: "tech"）`);
 
 // ---------------------------------------------------------------- 正文扫描
 
@@ -152,10 +170,12 @@ if (!refFile) {
 
 // ---------------------------------------------------------------- 输出
 
-const zhCount = refs.length - enCount;
 console.log('');
-console.log(`文献 ${refs.length} 条（英文 ${enCount}，中文 ${zhCount}），正文引用 ${occurrences.size} 处`);
+console.log(
+  `文献 ${refs.length} 条（英文 ${enCount}，中文 ${zhCount}；主题 ${domainCount}，技术 ${techCount}），正文引用 ${occurrences.size} 处`,
+);
 console.log(`策略：近 ${recentYears} 年（≥ ${minYear}），编号${numbering === 'desc' ? '从大到小' : '从小到大'}`);
+console.log(`配额：≥${minRefs} 条，英文 ≥${minEn}，中文 ≥${minZh}，主题/技术各 ≥${minPerScope}`);
 
 if (errors.length) {
   console.log('');

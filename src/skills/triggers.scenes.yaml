@@ -62,6 +62,24 @@ scenes:
       - 需要新表 DDL 或数据字典 → database-designer
       - 需要接口清单 → api-designer
 
+  - id: literature-review
+    scenes:
+      - id: collect
+        name: 从零找文献
+        when: 用户说“帮我找文献”“参考文献不够”“要近五年的论文”
+        then: 定中英关键词 → 检索真实库 → 逐条核验 → 落 refs-source.json → 跑 verify-refs.mjs
+      - id: verify
+        name: 核验已有文献
+        when: 用户怀疑参考文献是编的，或拿到别人给的文献列表要核对
+        then: 只跑 verify-refs.mjs + 人工核对标题/年份，不重写清单；查不到的直接标 FAIL
+      - id: gap
+        name: 配额不够
+        when: 检索后达不到 22 条 / 英 6 / 中 15 / 主题与技术各 5
+        then: 写 docs/thesis/refs-gaps.md，给缺口与下一轮关键词，禁止拿不相关文献凑数
+    handoff:
+      - 文献齐备、refs-source.json 全绿 → thesis-writer 写正文
+      - 需要补章节结构 → thesis-writer
+
   - id: feature-forge
     scenes:
       - id: vague-topic
@@ -144,10 +162,15 @@ conflicts:
     rule: 需求没定只走 feature-forge，不要提前建表；确认单产出后才进建表。
   - pair: [database-designer, api-designer]
     rule: 表结构先定，接口后定；同时命中时按 database → api 串行。
+  - pair: [thesis-writer, literature-review]
+    rule: 找文献/核验文献 → literature-review；写正文/标注/排版 → thesis-writer。没有全绿的 refs-source.json 不写带引用的章节。
   - pair: [impeccable, graduation-project]
     rule: 页面还不存在先走 graduation-project；页面能跑但难看才走 impeccable。
   - pair: [code-reviewer, graduation-project]
     rule: 审查不替代开发；审查出问题后回当前阶段修，不另起流程。
 
 notes:
+  - pipeline 默认自己跑：命中入口后按 triggers.yaml 的 pipelines 顺序串联，不要等用户把步骤拆开。
+  - 唯一的固定停顿点：需求确认单、风格方案对比、文献补不齐时报缺口；其余环节自己推进。
   - thesis-writer 有两条子路径：写作走 SKILL.md 工作流；绘图必须先复制模板到 docs/thesis/figure-kit/，再在工作副本里改。
+  - thesis-writer 的文献一律先走 literature-review：refs-source.json 全绿后才写作，写完跑 check-refs.mjs 验配额（≥22 条，英 ≥6，中 ≥15，主题/技术各 ≥5）。

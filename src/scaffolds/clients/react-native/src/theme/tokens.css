@@ -1,0 +1,28 @@
+/*
+ * 设计令牌（变量层）
+ * 只放值，不放结构。页面和组件通过 Tailwind 类名引用这些值。
+ */
+
+/* 主色：与 Web 端脚手架保持一致的 Ant Design 蓝。
+   HeroUI 的令牌定义在 @layer theme 里，这里用未分层的 :root 覆盖，优先级更高。 */
+:root {
+  --accent: #1890ff;
+  --accent-foreground: #ffffff;
+  --focus: #1890ff;
+}
+
+@theme {
+  /* 品牌色别名：需要突出品牌时用 bg-brand / text-brand */
+  --color-brand: #1890ff;
+  --color-brand-soft: #e6f4ff;
+
+  /* 底部导航尺寸 */
+  --tabbar-height: 56px;
+  --tabbar-icon-size: 24px;
+  --tabbar-label-size: 11px;
+  --tabbar-label-line: 14px;
+
+  /* 页面通用间距 */
+  --page-padding: 16px;
+  --page-gap: 16px;
+}

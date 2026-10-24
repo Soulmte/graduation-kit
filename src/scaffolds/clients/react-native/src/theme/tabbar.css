@@ -1,0 +1,33 @@
+/*
+ * 底部导航栏
+ * 结构（flex / 间距 / 字号 / 颜色）全部在这里，组件里只负责数据和点击。
+ */
+
+@layer components {
+  /* 整条导航栏：顶部细分割线 + 安全区留白由组件通过 style 叠加 */
+  .tabbar {
+    @apply flex-row bg-surface border-t border-border;
+    padding-top: 8px;
+  }
+
+  /* 单个 Tab：等分宽度、上下居中 */
+  .tabbar__item {
+    @apply flex-1 items-center;
+    gap: 4px;
+  }
+
+  /* 文字标签 */
+  .tabbar__label {
+    font-size: var(--tabbar-label-size);
+    line-height: var(--tabbar-label-line);
+  }
+
+  /* 选中态（图标颜色由组件的 color 属性控制，这里只管文字） */
+  .tabbar__label--active {
+    color: var(--accent);
+  }
+
+  .tabbar__label--idle {
+    color: var(--muted);
+  }
+}

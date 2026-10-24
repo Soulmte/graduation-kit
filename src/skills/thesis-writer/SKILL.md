@@ -1,7 +1,7 @@
 ---
 name: thesis-writer
-description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English keywords — write thesis, thesis chapter, abstract, thesis figure, convert to Word.
-version: 1.5.1
+description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。文献检索一律交给 literature-review（真实检索 + 在线核验），本 skill 只负责引用标注与格式校验，禁止编造文献。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English keywords — write thesis, thesis chapter, abstract, thesis figure, convert to Word.
+version: 1.6.0
 priority: 90
 triggers: triggers.yaml
 ---
@@ -11,6 +11,7 @@ triggers: triggers.yaml
 本科毕业论文写作专用 skill，配套本项目（6 后端 + 7 前端多技术栈脚手架）。
 
 > **适用范围**：仅用于本科毕业论文或毕设项目。其他项目不要使用本 skill。
+> **前置依赖**：文献必须先由 `literature-review` 真实检索并核验，本 skill 不负责找文献。缺少该 skill 时停下来，让用户执行 `npx graduation-kit install --only literature-review`。
 > **版本门禁**：读 `.agents/skills/.graduation-kit.json`，其 `version` 必须等于本文件 frontmatter 的 `version`；缺失或不一致时停止使用，先让用户执行 `npx graduation-kit update`。
 > 触发：写论文 / 写第X章 / 写摘要 / 改措辞降 AI 味 / 画论文配图 / 转 Word。
 > 不触发：写业务代码、改数据库表、设计接口、前端样式调整。
@@ -22,7 +23,7 @@ triggers: triggers.yaml
 
 ## ⚠️ 铁律（AI 执行前必读，违反即重写）
 
-1. **参考文献必须真实可追溯**。近五年、至少 1 篇英文并附中文译名；每条文献必须有原文摘录与链接，正文用 `[n]` 标注，写完跑 `reference/check-refs.mjs`
+1. **参考文献必须真实可追溯，且配额硬性**。检索与核验一律走 `literature-review`，不许自己“想”文献；**全篇 ≥ 22 条，英文 ≥ 6 条且附中文译名，中文 ≥ 15 条，主题类与技术类各 ≥ 5 条**；每条文献必须有原文摘录与链接，正文用 `[n]` 标注；写完先跑 `literature-review/reference/verify-refs.mjs`（查真实性），再跑 `reference/check-refs.mjs`（查格式与配额）。凑不够就如实报缺口，禁止编造补齐
 2. **禁止写目录章节**。目录由 Word 自动生成
 3. **图表必须有编号和标题**。图下方标注"图X-Y 标题"，表上方标注"表X-Y 标题"
 4. **图片文件按编号命名**。`图X-Y 名称.png`，编号 X=章号, Y=章内序号。**图注文字必须与文件名逐字一致**
@@ -32,6 +33,30 @@ triggers: triggers.yaml
 8. **按章节分文件**。每章一个独立 .md 文件，放在 `docs/thesis/` 目录下
 9. **生成完 MD 后必须自动运行** `convert/convert_to_docx.py` 生成 Word
 10. **截图必须由脚本自动完成**，不要让用户自己截；转换器会自动嵌图并按版心宽度等比缩放
+
+---
+
+## 自动编排（用户只说一句“写论文”，也要自己跑完）
+
+用户不会替你拆步骤。命中本 skill 后按下面走，**不要反问“文献定了吗”“要不要先找文献”**：
+
+| 用户说的 | 你自己接着做 | 不用问 |
+|---|---|---|
+| 写论文 / 写第X章 / 写摘要 | 查文献 → 缺就补 → 写正文 → 跑两个校验 → 不过就改 → 转 Word | 编号怎么排、要不要跑校验 |
+| 画图 | 复制模板 → 改 `figure-kit/data/` → `verify.js` → 导出 | 用哪套模板 |
+| 转 Word | 跑转换脚本 → 报告缺图/缺引用 | 要不要嵌图 |
+
+自动调用规则：
+
+- **文献环节**：`docs/thesis/refs-source.json` 不存在、`verify-refs.mjs` 有 FAIL、或数量不足（<22 / 英<6 / 中<15 / 主题·技术各<5）→ **先调 `literature-review`**，补齐再写。
+- **事实环节**：写需求/数据库/接口章节时，表结构与接口从 `docs/` 的建表 SQL、后端 `api/` 目录读，**不要问用户要字段**。
+- **收尾环节**：正文写完 → `verify-refs.mjs` → `check-refs.mjs` → `convert_to_docx.py` → 一次汇报结果。
+
+只有三种情况停下来问用户：
+
+1. 论文题目或章节范围完全没给；
+2. `literature-review` 补检后仍达不到配额（按 `reference/citation-policy.md` §6 报缺口 + 关键词）；
+3. 用户口述的技术栈与代码里实际用的对不上。
 
 ---
 
@@ -306,25 +331,44 @@ cd docs/thesis/figure-kit && node verify.js && node verify-editor.js && node aud
 | 被动句 | 占比 ≤ 15% | 数"被"字句 |
 | 段首套话 | 首句不用 5 类禁用开头 | 扫每段首词 |
 | 结论有据 | 每个结论前有数据/例子 | 找"因此/所以"句验证 |
+| 引用配额 | 全篇 ≥22 条；英 ≥6；中 ≥15；主题/技术各 ≥5 | 跑 `check-refs.mjs` |
+| 引用对得上 | 每条 `[n]` 的句子能被 `quote` 支撑 | 逐条对照 `refs-source.json` |
+| 编号顺序 | 正文首现顺序 `1→2→…→N` | 跑 `check-refs.mjs` |
 | 字数合规 | 在允许区间内 | 字符计数 |
 
 ---
 
 ## 引用规则
 
+**找一个文献分两步，缺一步都不算完成：**
+
+| 步骤 | 谁来做 | 干什么 |
+|---|---|---|
+| 1 检索与核验 | `literature-review` | 真实检索、逐条核验、生成 `docs/thesis/refs-source.json`，跑 `verify-refs.mjs` 到全绿 |
+| 2 标注与校验 | 本 skill | 正文按 `[n]` 标注、生成参考文献章节、跑 `check-refs.mjs` |
+
+用户直接说“写第X章”时，若 `refs-source.json` 还不存在，先让 `literature-review` 把文献备好再动笔；不要边写边编引用。
+
 完整规则见 `reference/citation-policy.md`。写完必须跑：
 
 ```bash
+# 真实性：DOI / 链接 / 标题 / 年份 能不能对上（需联网）
+node .agents/skills/literature-review/reference/verify-refs.mjs docs/thesis
+
+# 格式：编号、篇数、译名、正文 [n] 是否对应
 node .agents/skills/thesis-writer/reference/check-refs.mjs docs/thesis
 ```
 
 要点：
 
-- 文献近五年；至少 1 篇英文，英文必须附中文译名（`titleZh`）
-- 每条文献在 `docs/thesis/refs-source.json` 里记录原文摘录 `quote` 与链接 `url`／`doi`
-- 正文用 `[n]` 标注；每条文献只引一次，一句话只引一条
-- 默认编号从小到大（`numbering: "asc"`，按正文出现顺序）；学校要求从大到小就改成 `"desc"`
+- **配额**：全篇 ≥ 22 条；英文 ≥ 6 条（必须附 `titleZh`）；中文 ≥ 15 条；`scope` 为 `domain` 与 `tech` 的各 ≥ 5 条。不足就是没写完
+- **近五年**：文献年份 ≥ 当前年份 − 5
+- **一条只引一次、一句只引一条**：同一编号不能在两句话里重复出现，同一句也不能挂两个编号
+- **编号严格递增**：正文首次出现顺序必须是 `[1] → [2] → … → [N]`（`numbering: "asc"`）；只有学校模板明确要求从大到小才改成 `"desc"`，改前先问用户
+- **引用要撑住论点**：`[n]` 所在的句子必须能被该条 `quote` 支撑；空话、过渡句、常识句不要挂引用
+- 每条文献在 `docs/thesis/refs-source.json` 里记录原文摘录 `quote`、`scope` 与链接 `url`／`doi`
 - 禁止编造作者、期刊、年份、DOI；打不开的文献直接删掉
+- 只有 `verify-refs.mjs` 与 `check-refs.mjs` 都通过，才认为这一章写完
 
 ---
 
@@ -476,7 +520,7 @@ cd docs/thesis/figure-kit
 | uni-app | — | H5 + 小程序跨端 |
 | 微信小程序原生 | — | 小程序 |
 
-另有两个客户端：`clients/pyqt`（Python 桌面端）、`clients/rn`（React Native）。
+另有两个客户端：`clients/pyqt`（Python 桌面端）、`clients/react-native`（React Native）。
 
 ### 数据库（MySQL，库名 `scaffold_db`）
 
@@ -530,8 +574,12 @@ cd docs/thesis/figure-kit
     ├── screenshot.mjs          ← 系统页面自动截图
     ├── screenshots.example.json← 截图配置模板
     ├── citation-policy.md      ← 引用与参考文献规范
-    ├── check-refs.mjs          ← 引用校验
+    ├── check-refs.mjs          ← 引用格式校验
     └── examples/               ← 只读模板（引擎 + 14 张图数据 + 校验）
+
+.agents/skills/literature-review/   ← 前置依赖，负责真实检索
+└── reference/
+    └── verify-refs.mjs         ← 文献真实性核验（联网查 DOI / 链接）
 ```
 
 工作副本在项目里：`docs/thesis/figure-kit/`，结构与 `examples/` 一致。
@@ -551,5 +599,6 @@ cd docs/thesis/figure-kit
 8. **截图与嵌图全自动**：先跑 `screenshot.mjs`，再转换 Word；转换器会自动嵌图并缩放。不要让用户自己截图，也不要手改脚本
 9. **字数不是越多越好**。本科论文 12000-20000，超了就压缩
 10. **所有章节完成后自动运行转换脚本**，并跑 `check-refs.mjs`；报告图片数量与缺失项
-11. **只写项目真实用到的技术栈**。脚手架有 6 后端 7 前端，但你的毕设只用了一套，不要把没用的也写进论文
-12. **禁止在 skills 目录下生成任何论文内容**。输出目录永远是 `docs/thesis/`
+11. **文献一律先搜后写**。没有 `refs-source.json`，或 `verify-refs.mjs` 没跑绿，就不要开始写带引用的章节
+12. **只写项目真实用到的技术栈**。脚手架有 6 后端 7 前端，但你的毕设只用了一套，不要把没用的也写进论文
+13. **禁止在 skills 目录下生成任何论文内容**。输出目录永远是 `docs/thesis/`

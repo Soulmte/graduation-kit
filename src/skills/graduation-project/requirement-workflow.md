@@ -49,7 +49,7 @@
 2. 最终跑在什么设备上？
    浏览器  → frontends/ 下的 react / vue-antd / vue-elementplus / vue-naive
    微信小程序 → frontends/wxapp（原生）、frontends/taro（Vue 3）或 frontends/uniapp（跨端）
-   手机 APP → frontends/uniapp 或 clients/rn
+   手机 APP → frontends/uniapp 或 clients/react-native
    桌面客户端 → clients/pyqt
 ```
 
@@ -216,7 +216,7 @@
 
 ### 6.3 用户想用脚手架之外的技术栈
 
-> “脚手架目前有六个后端（springboot / express / flask / fastapi / go / dotnet）、六个 Web 与小程序前端（react / vue-antd / vue-elementplus / vue-naive / uniapp / wxapp），另外有两个客户端（clients/pyqt 桌面端、clients/rn 原生 APP）。如果你想用的不在里面，建议先从里面选一个最接近的，保证基础功能先跑起来。”
+> “脚手架目前有六个后端（springboot / express / flask / fastapi / go / dotnet）、六个 Web 与小程序前端（react / vue-antd / vue-elementplus / vue-naive / uniapp / wxapp），另外有两个客户端（clients/pyqt 桌面端、clients/react-native 原生 APP）。如果你想用的不在里面，建议先从里面选一个最接近的，保证基础功能先跑起来。”
 
 已经验证联调过的组合是 `springboot` / `express` / `flask` 配 `react` / `vue-antd` / `vue-elementplus`，**优先从这里推**。其余目录可用但未逐项验证，选它们要多花时间对齐接口与字段命名。
 

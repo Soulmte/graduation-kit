@@ -1,0 +1,27 @@
+/*
+ * 通用布局样式
+ * 页面骨架只在这里定义一次，页面里不重复写 padding / gap。
+ */
+
+@layer components {
+  /* 页面根容器：铺满 + 底色 */
+  .page {
+    @apply flex-1 bg-background;
+  }
+
+  /* 滚动区域内容：统一内边距与卡片间距 */
+  .page-content {
+    padding: var(--page-padding);
+    gap: var(--page-gap);
+  }
+
+  /* 区块标题行：左标题右操作 */
+  .section-header {
+    @apply flex-row items-center justify-between;
+  }
+
+  /* 次要说明文字 */
+  .hint {
+    @apply text-xs text-muted;
+  }
+}

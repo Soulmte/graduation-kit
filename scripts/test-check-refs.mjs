@@ -1,9 +1,10 @@
 /**
- * check-refs.mjs 的自测：一组合规文献 + 两组故意写错的文献。
+ * check-refs.mjs 的自测：一组合规文献 + 一组故意写错的文献。
  *
  *   node scripts/test-check-refs.mjs
  *
- * 全部在系统临时目录里完成，跑完即删。
+ * 合规那组按硬性配额造数：22 条、中文 15、英文 7、主题 11 / 技术 11，
+ * 正文按 [1] → [22] 顺序各引一次。全部在系统临时目录里完成，跑完即删。
  */
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -14,52 +15,44 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CHECKER = join(ROOT, 'src', 'skills', 'thesis-writer', 'reference', 'check-refs.mjs');
 
+const TOTAL = 22;
+const ZH = 15;
+const YEAR = new Date().getFullYear() - 1;
+
+const refs = Array.from({ length: TOTAL }, (_, i) => {
+  const n = i + 1;
+  const lang = n <= ZH ? 'zh' : 'en';
+  const scope = n % 2 === 1 ? 'domain' : 'tech';
+  const base = {
+    n,
+    lang,
+    scope,
+    authors: lang === 'zh' ? `作者${n}` : `Author${n} J`,
+    title: lang === 'zh' ? `高校系统研究 ${n}` : `Web Architecture Study ${n}`,
+    venue: lang === 'zh' ? '计算机应用与软件' : 'Journal of Systems and Software',
+    year: YEAR,
+    quote: `原文摘录 ${n}。`,
+  };
+  if (lang === 'en') base.titleZh = `Web 架构研究 ${n}`;
+  if (n % 2 === 1) base.url = `https://example.org/${n}`;
+  else base.doi = `10.1000/xyz${n}`;
+  return base;
+});
+
 const POLICY = JSON.stringify(
-  {
-    numbering: 'asc',
-    recentYears: 5,
-    references: [
-      {
-        n: 2,
-        lang: 'en',
-        authors: 'Smith J',
-        title: 'Web Application Architecture',
-        titleZh: 'Web 应用架构',
-        venue: 'Journal of Systems and Software',
-        year: 2023,
-        doi: '10.1000/xyz',
-        quote: 'Layered architectures separate concerns.',
-      },
-      {
-        n: 1,
-        lang: 'zh',
-        authors: '张三',
-        title: '高校管理系统设计',
-        venue: '计算机应用与软件',
-        year: 2022,
-        url: 'https://example.org/1',
-        quote: '系统采用前后端分离架构。',
-      },
-    ],
-  },
+  { numbering: 'asc', recentYears: 5, minReferences: 22, minEnglish: 6, minChinese: 15, minPerScope: 5, references: refs },
   null,
   2,
 );
 
-const BODY = `## 一、绪论
+/** 22 句话，按编号从小到大各引一次 */
+const BODY = `## 一、绪论\n\n${refs
+  .map((r) => `已有研究指出第 ${r.n} 项结论成立[${r.n}]。`)
+  .join('\n\n')}\n`;
 
-已有研究指出分层架构可以隔离关注点[1]。
-
-国内研究采用前后端分离实现管理系统[2]。
-`;
-
-const REFS = `## 八、参考文献
-
-[1] 张三. 高校管理系统设计[J]. 计算机应用与软件, 2022.
-
-[2] Smith J. Web Application Architecture[J]. Journal of Systems and Software, 2023.
-（中文译名：Web 应用架构）
-`;
+const REFS = `## 八、参考文献\n\n${refs
+  .map((r) => `[${r.n}] ${r.authors}. ${r.title}[J]. ${r.venue}, ${r.year}.`)
+  .join('\n\n')}\n`;
 
 function run(dir) {
   try {
@@ -73,17 +66,17 @@ function run(dir) {
   }
 }
 
-function makeDir({ policy = POLICY, body = BODY, refs = REFS } = {}) {
+function makeDir({ policy = POLICY, body = BODY, refsFile = REFS } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'gk-refs-'));
   writeFileSync(join(dir, 'refs-source.json'), policy);
   writeFileSync(join(dir, '01-绪论.md'), body);
-  writeFileSync(join(dir, '08-参考文献.md'), refs);
+  writeFileSync(join(dir, '08-参考文献.md'), refsFile);
   return dir;
 }
 
 const cases = [
   {
-    name: '合规文献通过',
+    name: '合规文献通过（22 条 / 英 7 中 15）',
     files: {},
     expect: 0,
   },
@@ -107,11 +100,73 @@ const cases = [
   },
   {
     name: '英文文献缺译名要报错',
-    files: {
-      policy: POLICY.replace('"titleZh": "Web 应用架构",', ''),
-    },
+    files: { policy: POLICY.replace('"titleZh": "Web 架构研究 16",', '') },
     expect: 1,
     contains: '缺 titleZh',
+  },
+  {
+    name: '总数不足 22 条要报错',
+    files: {
+      policy: JSON.stringify({ ...JSON.parse(POLICY), references: refs.slice(0, 21) }, null, 2),
+      body: BODY.replace(/已有研究指出第 22 项结论成立\[22\]。\n?/, ''),
+      refsFile: REFS.replace(/\[22\][^\n]*\n?/, ''),
+    },
+    expect: 1,
+    contains: '少于硬性要求 22 条',
+  },
+  {
+    name: '英文不足 6 条要报错',
+    files: {
+      policy: JSON.stringify(
+        {
+          ...JSON.parse(POLICY),
+          references: refs.map((r, i) => (i >= 16 ? { ...r, lang: 'zh', authors: `作者${r.n}` } : r)),
+        },
+        null,
+        2,
+      ),
+    },
+    expect: 1,
+    contains: '英文文献只有',
+  },
+  {
+    name: '中文不足 15 条要报错',
+    files: {
+      policy: JSON.stringify(
+        {
+          ...JSON.parse(POLICY),
+          references: refs.map((r, i) => (i < 5 ? { ...r, lang: 'en', titleZh: r.titleZh || '译名' } : r)),
+        },
+        null,
+        2,
+      ),
+    },
+    expect: 1,
+    contains: '中文文献只有',
+  },
+  {
+    name: '引用顺序从大到小要报错',
+    files: {
+      body: `## 一、绪论\n\n${refs
+        .slice()
+        .reverse()
+        .map((r) => `已有研究指出第 ${r.n} 项结论成立[${r.n}]。`)
+        .join('\n\n')}\n`,
+    },
+    expect: 1,
+    contains: '应从小到大',
+  },
+  {
+    name: '缺 scope 要报错',
+    files: {
+      policy: JSON.stringify(
+        { ...JSON.parse(POLICY), references: refs.map(({ scope, ...rest }) => rest) },
+        null,
+        2,
+      ),
+    },
+    expect: 1,
+    contains: 'scope 必须是',
   },
 ];
 

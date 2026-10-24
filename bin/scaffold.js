@@ -29,6 +29,7 @@ export const FRONTENDS = [
   { id: 'vue-elementplus', label: 'Vue 3 + Element Plus', kind: 'vite', ready: true },
   { id: 'vue-antd', label: 'Vue 3 + Ant Design Vue', kind: 'vite', ready: true },
   { id: 'vue-naive', label: 'Vue 3 + Naive UI（含暗色模式）', kind: 'vite', ready: true },
+  { id: 'react-native', label: 'React Native · Expo（手机 App）', kind: 'rn', dir: 'clients/react-native', ready: true },
   { id: 'uniapp', label: 'uni-app 跨端（H5 / 小程序 / App）', kind: 'uniapp', ready: true },
   { id: 'taro', label: 'Taro 4 + Vue 3（H5 / 微信小程序）', kind: 'taro', ready: true },
   { id: 'wxapp', label: '微信小程序原生', kind: 'wxapp', ready: true },
@@ -100,6 +101,11 @@ export function frontendDirName(id, total) {
   return total === 1 ? 'frontend' : `frontend-${id}`;
 }
 
+/** 前端模板源目录：多数在 frontends/<id>，客户端在 clients/<id> */
+export function frontendSrc(srcScaffolds, frontend) {
+  return join(srcScaffolds, frontend.dir || join('frontends', frontend.id));
+}
+
 function replaceInFile(file, edits) {
   if (!existsSync(file)) return false;
   let text = readFileSync(file, 'utf8');
@@ -161,6 +167,20 @@ export function patchFrontend(dir, frontend, backend) {
     go: 'Go',
     dotnet: '.NET',
   }[backend.id] || backend.label;
+
+  if (frontend.kind === 'rn') {
+    // Expo 从项目根的 .env 读配置（EXPO_PUBLIC_ 前缀才会内联进包）
+    const env = [
+      '# 后端接口地址。真机扫码调试时把 localhost 改成开发机的局域网 IP，',
+      '# Android 模拟器用 10.0.2.2；改完要重启 dev server（npm start -- --clear）。',
+      `EXPO_PUBLIC_API_BASE_URL=http://localhost:${port}/api`,
+      `EXPO_PUBLIC_STATIC_BASE_URL=http://localhost:${port}`,
+      '',
+    ].join('\n');
+    writeFileSync(join(dir, '.env'), env);
+    changed.push('.env');
+    return changed;
+  }
 
   if (frontend.kind === 'vite') {
     if (replaceInFile(join(dir, '.env.development'), [

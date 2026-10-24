@@ -1,0 +1,20 @@
+/*
+ * 字体（字面层）
+ *
+ * 只在这两个类上声明字族，就能覆盖全站：
+ * - .hero-text    HeroUI 所有文本组件的公共基础类（Text / Label / Button.Label / Dialog.Title ...）
+ * - .input__input HeroUI Input 的输入框
+ *
+ * 字族名与 src/theme/fonts.ts 的 APP_FONT 一致，改字体时两处一起改。
+ * 字重不用在这里写：expo-font 按 400 / 700 注册了两个字面，
+ * 组件里的 font-medium / font-semibold 会自动匹配到 700。
+ */
+@layer components {
+  .hero-text {
+    font-family: 'NotoSansSC';
+  }
+
+  .input__input {
+    font-family: 'NotoSansSC';
+  }
+}

@@ -1,303 +1,221 @@
 # graduation-kit
 
-毕业设计一件套：一条命令生成完整项目（后端 + 前端 + 数据库 + 文档），附赠从需求到答辩的 AI Agent Skills。
+毕业设计一件套：一条命令生成完整项目（后端 + 前端 + 数据库 + 文档），再配一套**能自己串起来的 AI Agent Skills**——说一句"帮我做毕设"或"写第三章"，从需求、建表、接口、代码、审查到论文和文献，按顺序自己往下跑。
 
-## 快速开始
+## 3 分钟上手
 
-### 方式 1：在线生成器（推荐）
+### 第 1 步：生成项目
 
-打开网页填表单，下载 zip 解压即用：
-
-**在线生成器**: https://d295bv.gicp.fun/ （⚠️ 更新后网址可能变化）
-
-填写项目名、选择技术栈（后端/前端）、配置数据库，点击生成即可下载。解压后：
-
-```bash
-# 1. 导入数据库
-mysql -uroot -p < docs/你的库名.sql
-
-# 2. 启动后端（以 Spring Boot 为例）
-cd backend
-mvn spring-boot:run
-
-# 3. 启动前端（另开终端）
-cd frontend
-npm install && npm run dev
-
-# 4. 浏览器访问前端地址，用 admin/123456 登录
-```
-
-### 方式 2：命令行生成
-
-需要 Node.js 18+：
+需要 Node.js 18+。
 
 ```bash
 npx graduation-kit create
 
-# 或指定参数跳过交互
+# 跳过交互，直接指定技术栈
 npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db
 
-# 生成后直接导入本地 MySQL，并声明项目使用 Redis
+# 顺便导入本地 MySQL，并声明项目用 Redis
 npx graduation-kit create my-project --be springboot --fe vue-antd --db my_db \
   --db-pass 123456 --import-db --redis
 ```
 
-创建时会问两件事：
+生成后跑起来：
 
-- **是否直接导入本地 MySQL**（交互默认是，非交互加 `--import-db`）。密码沿用 `--db-pass`，地址/用户/端口可用 `--db-host` / `--db-user` / `--db-port` 覆盖。没装 `mysql` 客户端或连不上时会继续生成项目，并打印手动导入命令与排查提示。
-- **是否使用 Redis**（`--redis`）。选了会检测 `redis-cli`、`redis-server` 与 6379 端口；环境齐全就确认可用，没装就按当前系统打印安装/启动命令，检测结果写进项目里的 `docs/redis.md`。Redis 有密码时交互模式会追问，非交互用 `--redis-pass`。
+```bash
+mysql -uroot -p < docs/你的库名.sql        # 没自动导入时手动导入
+cd backend  && mvn spring-boot:run         # 端口 8080
+cd frontend && npm install && npm run dev   # 另开终端
+```
 
-项目根会生成 `package-delivery.bat`，双击即可打交付包。
+浏览器打开前端地址，用 `admin / 123456` 登录。
 
-## 技术栈选项
+创建时只会问两件与项目有关的事：**要不要直接导入本地 MySQL**、**用不用 Redis**（选了会检测环境，结果写进 `docs/redis.md`）。项目根会生成 `package-delivery.bat`，双击即可打交付包。
 
-**后端（选一个）**：
+### 第 2 步：装 Skills
 
-| 选项 | 技术栈 | 端口 |
+需要支持 `.agents/skills/` 的编辑器（Zed、Cursor 等）。
+
+```bash
+install-skills.bat        # Windows：双击，或命令行运行
+bash install-skills.sh    # macOS / Linux
+```
+
+等价的命令行写法：
+
+```bash
+npx graduation-kit install        # 只装进当前项目
+npx graduation-kit install -g     # 装到全局，所有项目可用
+```
+
+`create` 会顺带装一遍：全局已装齐 7 个核心 skill 就不再重复装，项目里已有也不覆盖。需要强制装一份加 `--local-skills`，需要覆盖加 `--force-skills`，不装加 `--no-skills`。
+
+### 第 3 步：新建会话，直接说要干什么
+
+不用点名 skill，也不用自己拆步骤。
+
+| 你说 | 它自己往下做的事 | 停下来问你的地方 |
 |---|---|---|
-| `springboot` | Java 17 + MyBatis-Plus | 8080 |
-| `express` | Node.js + mysql2 | 8081 |
-| `flask` | Python + PyMySQL | 8082 |
-| `go` | Go + database/sql | 8084 |
-| `dotnet` | .NET 10 + MySql.Data | 8085 |
+| 我毕设题目是图书馆管理系统，帮我开工 | 需求确认 → 建表 → 接口 → 风格 → 代码 → 逐模块审查 | 需求确认单、风格方案 |
+| 写第三章 | 补文献 → 写正文 → 引用校验 → 转 Word | 章节范围没给、文献补不齐 |
+| 答辩前帮我看看 | 代码审查 → 项目自检 → 论文引用复核 | 无 |
+| 帮我找文献 | 真实检索 → 逐条核验 → 写出 `refs-source.json` | 配额补不齐时报缺口 |
 
-**前端（可多选）**：
+## Skills 怎么用
 
-| 选项 | 技术栈 | 端口 |
-|---|---|---|
-| `react` | React 18 + 自研组件 | 5176 |
-| `vue-elementplus` | Vue 3 + Element Plus | 5175 |
-| `vue-antd` | Vue 3 + Ant Design Vue | 5174 |
-| `vue-naive` | Vue 3 + Naive UI | 5177 |
-| `uniapp` | uni-app 跨端 | - |
-| `taro` | Taro 4 + Vue 3（H5 / 微信小程序） | 10086 |
-| `wxapp` | 微信小程序原生 | - |
+### 一句话触发，剩下的自己串
 
-**推荐组合**：`springboot` + `vue-antd`（企业级主流，面试认可度高）
+命中入口后，skill 会按 `triggers.yaml` 的 `pipelines` 自己往下走，不需要你一步步点名：
 
-## 内置功能
-
-生成的项目已包含：
-
-- ✅ **用户管理**：注册、登录、JWT 认证、角色权限
-- ✅ **公告管理**：增删改查、富文本编辑
-- ✅ **操作日志**：自动记录关键操作
-- ✅ **文件上传**：头像、图片上传
-- ✅ **仪表盘**：数据统计、图表展示
-- ✅ **个人中心**：修改密码、更新资料
-
-## 可选模板
-
-### `clean`（默认）
-干净脚手架，只包含上述基础功能。
-
-### `trade`（交易系统）
-额外包含：商家入驻、商品管理、购物车、订单流程、支付退款。
-
-```bash
-npx graduation-kit create my-shop --template trade --db shop_db
-```
-
-### `booking`（预约系统）
-额外包含：服务机构、服务项目、时段排班、预约管理、到店核销、评价系统。
-
-```bash
-npx graduation-kit create my-booking --template booking --db booking_db
-```
-
-### `agent`（AI 智能体）
-额外包含：大模型配置、拖拽编排智能体、知识库检索、流式对话。需自备 API Key（DeepSeek / Ollama）。
-
-```bash
-npx graduation-kit create rent-agent --template agent --db agent_db
-```
-
-## 交付打包
-
-项目开发完要发给客户（不是上线部署）时，用 `package` 打一个干净包：
-
-```bash
-npx graduation-kit package ./my-project
-# → my-project-delivery.zip
-```
-
-项目根已经带了 `package-delivery.bat`，双击等价于上面的命令，也可以在后面接参数（如 `package-delivery.bat --no-db`）。
-
-包内只有源码和本地库：
-
-- `backend/`、`frontend-*/`、`docs/`、`uploads/`、`README.md`
-- `database/<库名>.sql`：本地库的**结构 + 数据**全量导出，文件里自带 `CREATE DATABASE` 与 `USE`，客户直接导入即可
-- `database/README.txt`：导入步骤与字符集说明
-
-会被排除：`node_modules`、`target`、`dist`、`unpackage`、`__pycache__`、`bin`/`obj`、`.git`、`.agents`、编辑器目录、日志。
-
-数据库连接信息默认从 `backend/.env` 或 `application.yml` 读，命令行参数可覆盖：
-
-```bash
-npx graduation-kit package ./my-project --db-pass 123456 --db-port 3306
-npx graduation-kit package ./my-project --db-file ./backup.sql   # 直接用已导出的 SQL
-npx graduation-kit package ./my-project --no-db                  # 只打代码
-npx graduation-kit package ./my-project --out ./交付包.zip
-```
-
-没装 MySQL 客户端或连不上库时，会退回 `docs/` 里的建表脚本并明确告警（此时不包含本地开发新增的数据）。
-
-## Agent Skills（可选）
-
-生成项目后可安装 AI 辅助工具（需支持 `.agents/skills/` 的编辑器，如 Zed、Cursor）：
-
-**Windows**：双击 `install-skills.bat`  
-**Mac/Linux**：运行 `bash install-skills.sh`
-
-`create` 会先检查 skills 的现状：全局 `~/.agents/skills/` 已装齐 6 个核心 skill 时，默认不再往新项目里重复装一份；项目内已有 skills 时也不覆盖。需要在项目内单独装一份加 `--local-skills`，需要覆盖项目内已有的加 `--force-skills`，什么都不装加 `--no-skills`。
-
-包含 6 个 Skills：
-
-- `graduation-project` - 五阶段全流程编排
-- `thesis-writer` - 论文写作、文献引用、插图绘制、自动截图、Markdown 转 Word
-- `feature-forge` - 需求访谈、功能边界划分
-- `database-designer` - 建表设计、ER 图、索引优化
-- `api-designer` - RESTful 接口设计、错误码规范
-- `code-reviewer` - 代码审查、安全检查
-
-安装后新建 Agent 会话，直接说需求即可（如"我毕设题目是图书馆管理系统，帮我开工"）。
-
-### 关键词触发（按需加载）
-
-技能不会一上来就全加载。安装时会在 `.agents/skills/` 下落两张表：
-
-| 文件 | 体积 | 什么时候读 |
-|---|---|---|
-| `triggers.yaml` | 约 1.4k tokens | 进入毕设流程时读一次，决定加载哪个 skill |
-| `triggers.scenes.yaml` | 约 2.1k tokens | 只在两个 skill 拿不准时才读 |
-
-常驻开销不变：编辑器只把每个 skill 的 `name` + `description` 放进上下文，
-触发词不堆在 frontmatter 里，避免重复占 token。
-
-- 强关键词命中 1 个即激活；弱关键词需命中 2 个，或配合“毕设/论文”等领域词
-- `not_for` 命中时一律不激活，比如“写论文”不会拉起 `graduation-project`
-- 多个 skill 同时命中时按 `priority` 串行，不一次性读完整套
-
-比如同是“毕设”两个字：说“帮我开工/加个模块”走 `graduation-project`；
-说“写第三章/画 ER 图”走 `thesis-writer`；说“界面太乱”走 `impeccable`。
-
-中英文都支持：`review code`、`design API`、`add endpoint`、`write thesis`、
-`create table` 同样能命中对应 skill。
-
-### 更新门禁
-
-安装时会在 `.agents/skills/.graduation-kit.json` 写入版本标记。CLI 与 agent 都会检查：
-
-| 检查 | 行为 |
+| 入口 | 自动链路 |
 |---|---|
-| 注册表有新版 CLI | `create` **拒绝执行**，提示 `npx graduation-kit@latest create` |
-| 本地 skills 版本落后 | CLI 警告；agent 加载 skill 时直接停用 |
-| 无法联网查版本 | 不拦（当作已是最新） |
+| 做毕设 / 开工 / 加模块 | `feature-forge` → `database-designer` → `api-designer` → `impeccable` → `graduation-project` → `code-reviewer` → `thesis-writer` |
+| 写论文 / 写第X章 / 写摘要 | `literature-review`（缺文献先补）→ `thesis-writer` → `verify-refs` → `check-refs` → 转 Word |
+| 答辩前 | `code-reviewer` → `graduation-project` 自检 → `thesis-writer` 引用复核 |
 
-```json
-{ "name": "graduation-kit", "version": "1.3.0", "skills": ["..."] }
-```
+跨 skill 的硬约束也不能跳：没建表不写实体，没接口清单不写前端 API，没过 `code-reviewer` 不算这一模块完成，没全绿的文献清单不写带引用的章节。
 
-跳过检查：加 `--skip-version-check`，或设环境变量 `GRADUATION_KIT_SKIP_UPDATE=1`。
-查看版本：`npx graduation-kit -v`。
+### 只在这三处停下来问你
 
-### 会影响其他项目吗？
+1. **需求确认单**——功能边界要你点头，确认前不写业务代码。
+2. **风格方案**——给你 2–3 个对比卡片选一个，之后配色锁定。
+3. **文献补不齐**——按 22 条的硬配额报缺口，给出下一轮检索关键词，不会拿不相关的文献凑数。
 
-**全局安装（`-g`）会影响。** 装到 `~/.agents/skills/` 后，所有项目都能看到这几个 skill 的
-`description`，agent 可能误选。目前做了两层**软隔离**：
+其余环节（表名、字段、接口路径、目录结构、编号顺序）自己定，不再反问。
 
-- 6 个毕设专用 skill 的 `description` 开头声明“仅用于毕业设计项目，非毕设项目不要加载”
-- `triggers.yaml` 的 `scope` 门禁要求先判断项目类型，判断不了先问
+### 只想改一小块也直接说
 
-但这是提示，不是强制。**要硬隔离，二选一：**
+| 你说 | 只加载 |
+|---|---|
+| 给订单表加个索引 | `database-designer` |
+| 这个接口返回结构不对 | `api-designer` |
+| 这段代码导师会不会挑刺 | `code-reviewer` |
+| 界面太乱，重新排版 | `impeccable` |
+| 参考文献是不是编的 | `literature-review` |
+
+局部改动不会被升级成整条链，但说完会提醒你影响了哪些下游产物（比如改了表结构，要同步实体、接口和论文的数据字典）。
+
+### 论文与文献的硬性规则
+
+- 文献只能来自真实检索（Crossref / OpenAlex / Semantic Scholar / PubMed / arXiv / CNKI），`verify-refs.mjs` 会联网核验，查不到的 DOI 直接判失败
+- 配额：**≥ 22 条，英文 ≥ 6，中文 ≥ 15，主题类与技术类各 ≥ 5**
+- 正文 **一句只引一条、一条只引一次**，编号按出现顺序**严格 `1 → 2 → … → N`**
+- 引用必须撑住那句话的观点，不能给空话挂引用
+- 检索不到就如实报缺，写进 `docs/thesis/refs-gaps.md`，不编造
+
+### 装在哪、会不会误触发
+
+默认（不带 `-g`）是**项目级**，装进 `<项目>/.agents/skills/`，其他项目看不到。`install-skills.bat` / `.sh` 带的是 `-g`，图省事，代价是全局可见。
+
+全局安装时做了两层软隔离：7 个毕设 skill 的 `description` 开头声明"非毕设项目不要加载"，`triggers.yaml` 的 `scope` 门禁要求先判断项目类型。**要硬隔离**就二选一：
 
 ```bash
-# 方式一（推荐）：从全局移除，只装进毕设项目
-npx graduation-kit uninstall -g
-npx graduation-kit install -d D:/my-graduation-project
-
-# 方式二：只装不会误触发的通用能力
-npx graduation-kit install -g --only impeccable
+npx graduation-kit uninstall -g                                  # 从全局移除，只装进毕设项目
+npx graduation-kit install -g --only impeccable                  # 全局只留通用 skill
 ```
 
-默认的 `install`（不带 `-g`）就是**项目级**，装进 `<项目>/.agents/skills/`，
-其他项目看不到。`install-skills.bat` / `install-skills.sh` 带的是 `-g`，
-图省事方便，代价就是全局可见。
+### 升级
 
-`impeccable` 是通用前端设计 skill，不属于毕设专用，装全局不会影响其他项目。
+```bash
+npx graduation-kit update            # 项目内，按安装记录更新
+npx graduation-kit update -g         # 全局
+npx graduation-kit install -g --reinstall   # 不比对内容，强制重拷
+```
 
-### 绘图模板先复制再用
+> `update` 会用包内版本覆盖本地改动，不做备份。
 
-`thesis-writer` 里的绘图模板是只读的。画图前先复制到项目工作目录：
+安装时会在 `.agents/skills/.graduation-kit.json` 写版本标记：本地版本落后时 CLI 警告、agent 加载 skill 时直接停用；注册表有新版时 `create` 会拒绝执行。跳过检查加 `--skip-version-check`。
+
+### 画论文图之前先复制模板
+
+`thesis-writer` 里的绘图模板是只读的，先复制到工作目录再改：
 
 ```bash
 node .agents/skills/thesis-writer/reference/copy-template.mjs
 # → docs/thesis/figure-kit/
 ```
 
-所有改图、跑校验、导出都在 `figure-kit/` 里做，升级 skill 不会冲掉你的图。
+之后所有改图、校验、导出都在 `figure-kit/` 里做，升级 skill 不会冲掉你的图。
+
+## 技术栈
+
+**后端（选一个）**
+
+| 选项 | 技术栈 | 端口 |
+|---|---|---|
+| `springboot` | Java 17 + MyBatis-Plus | 8080 |
+| `express` | Node.js + mysql2 | 8081 |
+| `flask` | Python + PyMySQL | 8082 |
+| `go` | Gin + database/sql | 8084 |
+| `dotnet` | ASP.NET Core + MySql.Data | 8085 |
+
+**前端（可多选）**
+
+| 选项 | 技术栈 | 端口 |
+|---|---|---|
+| `react` | React 18 + 自研组件 | 5176 |
+| `vue-antd` | Vue 3 + Ant Design Vue | 5174 |
+| `vue-elementplus` | Vue 3 + Element Plus | 5175 |
+| `vue-naive` | Vue 3 + Naive UI（含暗色模式） | 5177 |
+| `react-native` | React Native · Expo SDK 58 + HeroUI Native（手机 App，Expo Go 扫码调试） | 8090 |
+| `uniapp` | uni-app 跨端（H5 / 小程序 / App） | - |
+| `taro` | Taro 4 + Vue 3（H5 / 微信小程序） | 10086 |
+| `wxapp` | 微信小程序原生 | - |
+
+推荐 `springboot` + `vue-antd`。查看全部选项：`npx graduation-kit create --list`。
+
+`react-native` 会把后端地址写进项目根的 `.env`，开发端口固定 8090（避开 express 的 8081）。真机调试时把 `.env` 里的 `localhost` 改成电脑局域网 IP。
+
+## 模板
+
+生成的项目默认带注册登录、JWT、角色权限、用户管理、公告、操作日志、文件上传、个人中心和数据看板。
+
+| 模板 | 额外包含 |
+|---|---|
+| `clean`（默认） | 只有上面这些基础功能 |
+| `trade` | 商家入驻、商品管理、购物车、订单流程、支付退款 |
+| `booking` | 服务机构、服务项目、时段排班、预约管理、到店核销、评价 |
+| `agent` | 大模型配置、拖拽编排智能体、知识库检索、流式对话（需自备 API Key） |
+
+```bash
+npx graduation-kit create my-shop --template trade --db shop_db
+```
+
+## 打包交给老师 / 客户
+
+```bash
+npx graduation-kit package ./my-project
+# → my-project-delivery.zip
+```
+
+包里是源码 + `database/<库名>.sql`（结构 + 数据，自带 `CREATE DATABASE`）、`docs/`、`uploads/` 和导入说明；自动排除 `node_modules`、`target`、`dist`、`.agents`、日志等。没装 `mysqldump` 或连不上库时会退回 `docs/` 里的建表脚本并告警。
 
 ## 常见问题
 
-**Q: 启动后端报数据库连接失败？**  
-A: 确保已导入 SQL 文件，并检查 `backend/.env` 或 `application.yml` 中的数据库密码是否正确。
+**后端报数据库连接失败** — 确认 SQL 已导入，密码与 `backend/.env`（或 `application.yml`）一致。
 
-**Q: 前端头像图片 404？**  
-A: 头像路径通过 Vite 代理转发到后端，确保后端已启动。
+**前端头像 404** — 头像是走后端 `/uploads` 的，先确认后端已启动。
 
-**Q: 小程序真机调试请求失败？**  
-A: 手机访问不了 `localhost`，需修改 `config/index.js` 中的 `LAN_HOST` 为电脑局域网 IP。
+**小程序真机请求失败** — 手机访问不了 `localhost`，把 `config/index.js` 里的 `LAN_HOST` 改成电脑局域网 IP。
 
-**Q: 端口被占用？**  
-A: 修改后端配置文件（`.env` 或 `application.yml`）和前端 `.env.development` 中的端口号。
+**升级后还是旧版本** — 跑 `npx graduation-kit@latest update`；仍不行就先 `npx clear-npx-cache`。
 
-**Q: 升级后还是旧版本？**
-A: 直接跑更新命令：`npx graduation-kit@latest update`（全局安装加 `-g`）。它会按安装记录更新当初装的那批 skill，已是最新的会自动跳过。若拉到的仍是旧版，先清 npx 缓存：`npx clear-npx-cache` 或改用 `npx graduation-kit@latest`。
-
-## 其他命令
+## 命令速查
 
 ```bash
-# 列出可选技术栈
-npx graduation-kit create --list
-
-# 只安装 Skills（不生成项目）
-npx graduation-kit install
-
-# 更新已安装的 skills（项目内，按安装记录更新）
-npx graduation-kit update
-
-# 安装到全局（所有项目可用）
-npx graduation-kit install -g
-
-# 更新全局 skills
-npx graduation-kit update -g
-
-# 注意：update 会用包内版本覆盖本地改动，不做备份
-
-# 忽略内容比对，强制重拷一遍
-npx graduation-kit install -g --reinstall
-
-# 验证项目完整性
-npx graduation-kit verify
-
-# 打包发给客户（含本地数据库）
-npx graduation-kit package ./my-project
-
-# 跑触发路由回归（开发者）
-npm run eval
-
-# 跑引用校验器自测（开发者）
-npm run refs
-
-# 诊断系统环境
-npx graduation-kit diagnose
+npx graduation-kit create [名称]     # 生成项目（向导）
+npx graduation-kit create --list     # 列出后端 / 前端 / 模板
+npx graduation-kit install [-g]      # 装 skills（项目级 / 全局）
+npx graduation-kit update [-g]       # 更新 skills
+npx graduation-kit uninstall [-g]    # 移除 skills
+npx graduation-kit verify [目录]     # 校验项目结构
+npx graduation-kit package [目录]    # 打交付包
+npx graduation-kit diagnose          # 诊断环境
+npx graduation-kit doctor            # 校验 skill frontmatter（开发者）
+npx graduation-kit list              # 列出包内 skill
 ```
 
-## 仓库地址
+## 仓库与许可
 
-- GitHub: https://github.com/Soulmte/graduation-kit
-- Gitee: https://gitee.com/rain-drops/graduation-kit
-
-## 许可
-
-MIT License
+- GitHub：https://github.com/Soulmte/graduation-kit
+- Gitee：https://gitee.com/rain-drops/graduation-kit
+- MIT License，第三方组件归属见 `NOTICE.md`
