@@ -115,7 +115,7 @@ function readManifest(dir) {
   }
 }
 
-function writeManifest(dir, { skills, upstream }) {
+function writeManifest(dir, { skills, upstream, removed = [] }) {
   const data = {
     name: 'graduation-kit',
     version: PKG.version,
@@ -123,6 +123,8 @@ function writeManifest(dir, { skills, upstream }) {
     skills,
     upstream,
   };
+  // 用户主动卸掉的，记下来，update 时不要再自动补回去
+  if (removed.length) data.removed = [...new Set(removed)].sort();
   writeFileSync(join(dir, MANIFEST), `${JSON.stringify(data, null, 2)}\n`);
 }
 
@@ -560,13 +562,19 @@ async function updateSkills(opts) {
     return;
   }
 
-  // 从安装时的版本开始，逐版把新增的核心 skill 补进来
+  // 安装记录不可靠：早期版本会先把 version 写新，却漏装当版本新增的 skill。
+  // 所以按磁盘上真的有没有来决定要不要补，不只看 manifest 里的版本号。
+  const present = new Set(installedSkills(dest));
+  const dropped = new Set(manifest.removed || []);
   const added = [];
-  for (const [version, entries] of Object.entries(CORE_ADDED_IN)) {
-    if (cmpVersion(manifest.version || '0.0.0', version) >= 0) continue;
+  for (const entries of Object.values(CORE_ADDED_IN)) {
     for (const entry of entries) {
-      if (entry.after && !ids.includes(entry.after)) continue;
-      if (!ids.includes(entry.id) && !added.includes(entry.id)) added.push(entry.id);
+      // after：本地没装过被依赖的那个，就不补（例如只装 impeccable 的用户）
+      if (entry.after && !ids.includes(entry.after) && !present.has(entry.after)) continue;
+      if (dropped.has(entry.id)) continue;
+      if (!present.has(entry.id) && !ids.includes(entry.id) && !added.includes(entry.id)) {
+        added.push(entry.id);
+      }
     }
   }
 
@@ -590,6 +598,16 @@ function uninstall(opts) {
     }
   }
   info(`移除 ${n} 个。`);
+
+  // 同步安装记录：删掉的移出清单，并记进 removed，下次 update 不会再装回来
+  const manifest = readManifest(dest);
+  if (manifest && n) {
+    const drop = new Set(wanted);
+    const skills = (manifest.skills || []).filter((id) => !drop.has(id));
+    const upstream = (manifest.upstream || []).filter((id) => !drop.has(id));
+    const removed = [...(manifest.removed || []), ...drop];
+    if (skills.length || upstream.length) writeManifest(dest, { skills, upstream, removed });
+  }
   // 一个 skill 都不剩时，触发路由表也没用了，别留个悬空的 yaml
   const left = existsSync(dest)
     ? readdirSync(dest).filter((x) => statSync(join(dest, x)).isDirectory())
