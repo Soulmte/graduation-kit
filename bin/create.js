@@ -141,7 +141,7 @@ const FE_HINT = {
   rn: 'npm install && npm start（手机装 Expo Go 扫码）',
   uniapp: 'HBuilderX 打开项目，运行到浏览器 / 微信开发者工具',
   taro: 'npm install && npm run dev:h5（H5）/ dev:weapp（微信开发者工具导入 dist）',
-  wxapp: '微信开发者工具直接导入此目录',
+  wxapp: 'npm install，再在微信开发者工具里「构建 npm」',
 };
 
 /** 交易 demo 独有的说明，附在 README 里，答辩前能直接对着看 */
@@ -403,6 +403,10 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
     if (f.kind === 'uniapp') {
       return `**${dir}/**\n\n${code('text', `HBuilderX 打开 ${dir}/，运行到浏览器 / 微信开发者工具 / 真机`)}`;
     }
+    if (f.kind === 'wxapp') {
+      return `**${dir}/**\n\n${code('bash', `cd ${dir}\nnpm install`)}`
+        + `\n然后在微信开发者工具里打开本目录，点一次「工具 → 构建 npm」生成 \`miniprogram_npm/\`。`;
+    }
     return `**${dir}/**\n\n${code('text', `微信开发者工具直接导入 ${dir}/`)}`;
   });
 
@@ -460,6 +464,7 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
         ['HBuilderX 打开本目录', '运行到浏览器 / 微信开发者工具 / 真机'],
       ],
       wxapp: [
+        ['npm install', '安装 TDesign 等依赖（不装就没法构建 npm）'],
         ['微信开发者工具导入本目录', '编译预览'],
         ['工具 → 构建 npm', '生成 miniprogram_npm（第一次必须先做，否则 TDesign 组件加载不出来）'],
       ],

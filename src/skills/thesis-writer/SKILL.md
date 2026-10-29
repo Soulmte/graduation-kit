@@ -1,7 +1,7 @@
 ---
 name: thesis-writer
 description: 仅用于本科毕业论文与毕设项目，非论文/非毕设项目不要加载。本科毕业论文全流程自动化：写章节正文、检索并引用近五年文献、生成摘要、绘制论文插图、自动截图、转换 Word。当用户提到写论文、毕业论文、毕设、开题、写某一章、写摘要、改论文措辞、论文查重降 AI 味，或需要绘制/修改论文配图（架构图、ER 图、用例图、流程图、时序图、功能模块图、技术栈图、性能对比图），或需要把 Markdown 论文转成 docx 时，必须使用本 skill。文献检索一律交给 literature-review（真实检索 + 在线核验），本 skill 只负责引用标注与格式校验，禁止编造文献。它包含强制格式规范（三线表、图表编号、参考文献与引用校验）、写作风格约束（禁用词黑名单、句长上限、被动率上限）、带校验的 Canvas 绘图系统，以及系统页面自动截图与 Word 自动嵌图。English keywords — write thesis, thesis chapter, abstract, thesis figure, convert to Word.
-version: 1.6.3
+version: 1.6.4
 priority: 90
 triggers: triggers.yaml
 ---

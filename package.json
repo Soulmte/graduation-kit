@@ -1,6 +1,6 @@
 {
   "name": "graduation-kit",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "毕业设计一件套 agent skills：需求定义、数据库/接口设计、代码生成、代码审查、UI 设计、论文写作与配图绘制",
   "keywords": [
     "agent-skills",
@@ -31,6 +31,8 @@
     "bin",
     "src",
     "!**/node_modules/**",
+    "!**/miniprogram_npm/**",
+    "!**/project.private.config.json",
     "!**/unpackage/**",
     "!**/target/**",
     "!**/dist/**",
