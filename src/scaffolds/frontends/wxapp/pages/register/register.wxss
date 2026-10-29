@@ -1,1 +1,1 @@
-/* 通用样式见 app.wxss → styles/common.wxss，本页无需额外样式 */
+/* 注册页：骨架与按钮都在 app.wxss，这里无额外样式 */

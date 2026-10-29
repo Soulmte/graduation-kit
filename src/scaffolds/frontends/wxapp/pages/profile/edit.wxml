@@ -1,0 +1,43 @@
+<view class="page">
+  <view class="block profile-head">
+    <view class="avatar-frame">
+      <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+      <button
+        class="avatar-btn"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatar"
+      ></button>
+    </view>
+    <view class="profile-info">
+      <view class="profile-name">{{userInfo.nickname || userInfo.username}}</view>
+      <view class="profile-sub">{{uploading ? '头像上传中…' : '点击头像使用微信头像'}}</view>
+    </view>
+  </view>
+
+  <view class="block">
+    <t-cell-group theme="default">
+      <t-input label="用户名" value="{{userInfo.username}}" disabled borderless />
+      <t-input
+        label="昵称"
+        type="nickname"
+        placeholder="点击后可一键填入微信昵称"
+        value="{{nickname}}"
+        data-field="nickname"
+        bind:change="onInput"
+        borderless
+      />
+      <t-input label="手机号" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bind:change="onInput" borderless />
+      <t-input label="邮箱" placeholder="请输入邮箱" value="{{email}}" data-field="email" bind:change="onInput" borderless />
+    </t-cell-group>
+  </view>
+
+  <view class="actions">
+    <view
+      class="app-btn app-btn--primary {{loading ? 'app-btn--disabled' : ''}}"
+      hover-class="app-btn--hover"
+      bindtap="handleSave"
+    >
+      {{loading ? '保存中…' : '保存修改'}}
+    </view>
+  </view>
+</view>

@@ -1,0 +1,9 @@
+{
+  "name": "wxapp-scaffold",
+  "version": "1.0.0",
+  "private": true,
+  "description": "微信小程序脚手架（TDesign）",
+  "dependencies": {
+    "tdesign-miniprogram": "^1.17.0"
+  }
+}

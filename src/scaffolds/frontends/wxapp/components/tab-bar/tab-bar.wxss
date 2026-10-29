@@ -1,0 +1,65 @@
+/* 自定义底部导航：白底 + 顶部细线 + 安全区留白 */
+:host {
+  display: block;
+  /* 图标 + 文字这一块的高度，想再矮/再高只改这一个数 */
+  --tabbar-height: 72rpx;
+}
+
+/* ==========================================================================
+   底部留白
+   iOS 的 env(safe-area-inset-bottom) 是 34pt（≈65rpx），全留的话文字下面
+   会空出一大块白，整个栏看起来特别厚。这里在安全区基础上收掉 24rpx，并保底
+   16rpx（没有安全区的机型不会贴到边）。
+   不支持 max() 的环境用第一行的 16rpx 兜底。
+   ========================================================================== */
+.tabbar-spacer {
+  display: block;
+  height: calc(var(--tabbar-height) + 16rpx);
+  height: calc(var(--tabbar-height) + max(16rpx, calc(env(safe-area-inset-bottom) - 24rpx)));
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: var(--tabbar-height);
+  /* 让高度只算图标文字区，底部留白另加，避免被全局 border-box 压扁 */
+  box-sizing: content-box;
+  padding-bottom: 16rpx;
+  padding-bottom: max(16rpx, calc(env(safe-area-inset-bottom) - 24rpx));
+  background-color: #ffffff;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.tabbar__item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.tabbar__icon {
+  line-height: 0;
+}
+
+.tabbar__label {
+  margin-top: 2rpx;
+  font-size: 20rpx;
+  line-height: 24rpx;
+  color: #999999;
+}
+
+.tabbar__item--active .tabbar__label {
+  color: #1890ff;
+  font-weight: 600;
+}

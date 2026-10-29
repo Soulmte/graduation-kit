@@ -13,3 +13,8 @@ unpackage/
 
 # 脚手架本地开发用的 env（新项目由 create 按所选后端生成）
 src/scaffolds/clients/react-native/.env
+
+# 小程序：构建 npm 的产物与锁文件，换机器会失效
+src/scaffolds/frontends/wxapp/miniprogram_npm/
+src/scaffolds/frontends/wxapp/package-lock.json
+src/scaffolds/frontends/wxapp/project.private.config.json

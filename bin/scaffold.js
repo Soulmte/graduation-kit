@@ -5,17 +5,23 @@
 import { existsSync, mkdirSync, readdirSync, cpSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, basename } from 'node:path';
 
-/** 拷贝时跳过的依赖与构建产物，避免把带绝对路径的旧缓存带进新项目 */
+/**
+ * 拷贝时跳过的依赖与构建产物，避免把带绝对路径的旧缓存带进新项目。
+ * miniprogram_npm 是开发者工具「构建 npm」的产物，换机器会失效，不跟着拷。
+ */
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.idea', '.vscode',
-  'unpackage', 'dist', 'build', 'target', 'coverage',
+  'unpackage', 'dist', 'build', 'target', 'coverage', 'miniprogram_npm',
   '.next', '.nuxt', '.preview', 'oh_modules',
 ]);
-const shouldSkip = (name) => SKIP_DIRS.has(name);
+/** 开发者工具自己写的本地工程配置，换机器就失效，不跟着拷 */
+const SKIP_FILES = new Set(['project.private.config.json']);
+const shouldSkip = (name) => SKIP_DIRS.has(name) || SKIP_FILES.has(name);
 
 /** 可用后端。port 必须与脚手架内实际配置一致 */
 export const BACKENDS = [
   { id: 'springboot', label: 'Spring Boot 3', port: 8080, lang: 'Java 17 + MyBatis-Plus', ready: true },
+  { id: 'springboot-wxapp', label: 'Spring Boot 3（小程序专用）', port: 8080, lang: 'Java 17 + MyBatis-Plus + 微信登录', ready: true, sql: 'scaffold_db_wxapp.sql', wechat: true },
   { id: 'express', label: 'Express 4', port: 8081, lang: 'Node.js + mysql2', ready: true },
   { id: 'flask', label: 'Flask 3', port: 8082, lang: 'Python + PyMySQL', ready: true },
   { id: 'fastapi', label: 'FastAPI', port: 8083, lang: 'Python 异步', ready: false },
@@ -135,6 +141,7 @@ export function patchBackend(dir, backend, db) {
   if (replaceInFile(yml, [
     ['__DB_PASSWORD__', escapedPassword],
     ['/scaffold_db?', `/${db.name}?`],
+    ['/wxapp_db?', `/${db.name}?`],
     ['path: ../../uploads', 'path: ../uploads'],
   ])) changed.push('application.yml');
 
@@ -217,9 +224,38 @@ export function sqlFileName(dbName) {
 export function patchSql(file, dbName) {
   return replaceInFile(file, [
     ['`scaffold_db`', `\`${dbName}\``],
+    ['`wxapp_db`', `\`${dbName}\``],
     ['数据库：scaffold_db', `数据库：${dbName}`],
+    ['数据库：wxapp_db', `数据库：${dbName}`],
     ['< scaffold_db.sql', `< docs/${sqlFileName(dbName)}`],
+    ['< wxapp_db.sql', `< docs/${sqlFileName(dbName)}`],
   ]);
+}
+
+/**
+ * 小程序专用后端：把 create 时填的微信 AppID / AppSecret 写进 application.yml。
+ * 留空就保留 __WECHAT_APPID__ / __WECHAT_SECRET__ 占位符，一眼能看出还没配。
+ */
+export function patchWeChat(dir, wechat) {
+  if (!wechat || !wechat.appid) return false;
+  const edits = [['__WECHAT_APPID__', wechat.appid]];
+  if (wechat.secret) edits.push(['__WECHAT_SECRET__', wechat.secret]);
+  return replaceInFile(join(dir, 'src', 'main', 'resources', 'application.yml'), edits);
+}
+
+/** 小程序前端的 project.config.json 跟后端用同一个 AppID（模板里是 touristappid） */
+export function patchWxAppProject(dir, appid) {
+  if (!appid) return false;
+  return replaceInFile(join(dir, 'project.config.json'), [
+    ['"appid": "touristappid"', `"appid": "${appid}"`],
+  ]);
+}
+
+/** 小程序 AppID：wx 开头的 18 位串，允许留空（先用测试号） */
+export function validAppId(value) {
+  const v = (value || '').trim();
+  if (!v) return '';
+  return /^wx[0-9a-z]{16}$/i.test(v) ? '' : 'AppID 一般是 wx 开头的 18 位串；没准备好可留空，之后再改 application.yml';
 }
 
 export function assertEmptyTarget(dir) {

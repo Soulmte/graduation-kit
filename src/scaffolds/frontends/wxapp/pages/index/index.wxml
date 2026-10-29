@@ -1,39 +1,45 @@
-<view class="container">
-  <view class="card" wx:if="{{userInfo}}">
-    <view class="flex">
-      <image src="{{avatarUrl}}" class="avatar avatar--sm" mode="aspectFill" />
-      <view>
-        <view class="cell-title">{{userInfo.nickname || userInfo.username}}</view>
-        <view class="text-muted">{{userInfo.role === 'admin' ? '管理员' : '普通用户'}}</view>
+<view class="page">
+  <view class="index-hero">
+    <view class="hero-card" wx:if="{{userInfo}}">
+      <view class="avatar-frame">
+        <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
+      </view>
+      <view class="profile-info">
+        <view class="hero-name">{{userInfo.nickname || userInfo.username}}</view>
+        <view class="hero-sub">{{userInfo.role === 'admin' ? '管理员' : '普通用户'}}</view>
       </view>
     </view>
-  </view>
 
-  <view class="card" wx:if="{{!userInfo}}">
-    <view class="empty">
-      <view class="mb-md">未登录</view>
-      <navigator url="/pages/login/login" class="link">点击登录</navigator>
-    </view>
-  </view>
-
-  <view class="card">
-    <view class="section-title">公告列表</view>
-    <block wx:if="{{list.length > 0}}">
-      <view class="cell-item" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
-        <view class="cell-title">{{item.title}}</view>
-        <view class="cell-desc">{{item.content}}</view>
-        <view class="cell-meta">{{item.createTime}}</view>
+    <view class="hero-card" wx:else bindtap="goLogin">
+      <view class="avatar-frame">
+        <image class="avatar-img" src="{{avatarUrl}}" mode="aspectFill" />
       </view>
-    </block>
-    <view wx:else class="empty">暂无公告</view>
-  </view>
-
-  <view class="flex gap-md mt-md" wx:if="{{userInfo}}">
-    <navigator url="/pages/profile/profile" class="card card--action">
-      <view class="text-secondary">个人信息</view>
-    </navigator>
-    <view class="card card--action" bindtap="handleLogout">
-      <view class="text-danger">退出登录</view>
+      <view class="profile-info">
+        <view class="hero-name">未登录</view>
+        <view class="hero-sub">点击登录后查看公告</view>
+      </view>
+      <t-icon name="chevron-right" size="40rpx" color="#ffffff" />
     </view>
   </view>
+
+  <view class="block">
+    <t-cell-group theme="default" title="最新公告">
+      <t-cell
+        wx:for="{{list}}"
+        wx:key="id"
+        title="{{item.title}}"
+        description="{{item.createTime}}"
+        arrow
+        data-id="{{item.id}}"
+        bind:click="goDetail"
+      />
+      <t-cell wx:if="{{list.length}}" title="查看全部公告" arrow bind:click="goNoticeList" />
+    </t-cell-group>
+  </view>
+
+  <view class="empty-wrap">
+    <t-empty wx:if="{{!list.length}}" icon="info-circle" description="暂无公告" />
+  </view>
+
+  <tab-bar active="home" />
 </view>

@@ -1,0 +1,13 @@
+<view class="page">
+  <view wx:if="{{detail}}" class="block block-pad">
+    <view class="article-title">{{detail.title}}</view>
+    <view class="article-meta">发布于 {{detail.createTime}}</view>
+    <rich-text class="article-content" nodes="{{detail.content}}"></rich-text>
+  </view>
+
+  <view wx:elif="{{loading}}" class="article-loading">
+    <t-loading theme="circular" size="48rpx" text="加载中" inherit-color />
+  </view>
+
+  <t-empty wx:else icon="info-circle" description="公告不存在或已删除" />
+</view>

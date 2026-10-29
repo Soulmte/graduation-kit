@@ -1,1 +1,15 @@
-/* 通用样式见 app.wxss → styles/common.wxss，本页无需额外样式 */
+/* 登录页：品牌区与说明文字 */
+.login-hero {
+  padding: 88rpx 32rpx 40rpx;
+}
+
+.login-panel {
+  padding: 32rpx;
+}
+
+.login-tip {
+  margin-top: 24rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}

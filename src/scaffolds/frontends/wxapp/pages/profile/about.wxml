@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="block block-pad about-head">
+    <view class="about-logo">S</view>
+    <view class="about-name">毕业设计脚手架</view>
+    <view class="about-version">版本 {{version}}</view>
+  </view>
+
+  <view class="block">
+    <t-cell-group theme="default" title="技术栈">
+      <t-cell wx:for="{{rows}}" wx:key="label" title="{{item.label}}" note="{{item.value}}" />
+    </t-cell-group>
+  </view>
+
+  <view class="block">
+    <t-cell-group theme="default" title="接口地址">
+      <t-cell title="{{baseUrl}}" />
+    </t-cell-group>
+  </view>
+
+  <view class="about-tip">毕业设计脚手架 · 仅供学习使用</view>
+</view>

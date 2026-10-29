@@ -1,10 +1,219 @@
 @import "styles/common.wxss";
 
-button {
-  margin: 0;
-  padding: 0;
+/* ==========================================================================
+   TDesign 主题覆盖
+   只改品牌色与圆角，其余保持 TDesign 默认，保证组件之间视觉一致
+   ========================================================================== */
+page {
+  --td-brand-color: #1890ff;
+  --td-brand-color-active: #096dd9;
+  --td-brand-color-focus: #e6f4ff;
+  --td-brand-color-light: #e6f4ff;
+  --td-brand-color-disabled: #a3d3ff;
+  --td-error-color: #ff4d4f;
+  --td-radius-default: 8rpx;
+  --td-radius-large: 16rpx;
 }
 
-button::after {
+/* 登录页：品牌区 */
+.login-hero {
+  padding: 88rpx 0 56rpx;
+}
+
+.login-logo {
+  width: 128rpx;
+  height: 128rpx;
+  margin: 0 auto 32rpx;
+  border-radius: 32rpx;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 56rpx;
+  font-weight: 700;
+  line-height: 128rpx;
+  text-align: center;
+}
+
+/* 首页：用户卡片 */
+.hero-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  border-radius: var(--radius-lg);
+  color: #fff;
+}
+
+.hero-name {
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.hero-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  opacity: 0.85;
+}
+
+/* 表单：TDesign 输入框之间的分隔线由组件自己画，这里只管外边距 */
+.form-block {
+  margin-bottom: 24rpx;
+}
+
+/* 修改密码弹窗里的输入框 */
+.pwd-form {
+  padding: 8rpx 0;
+}
+
+/* 底部文字入口 */
+.foot-link {
+  margin-top: 32rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: var(--color-text-muted);
+}
+
+.foot-link .link {
+  margin-left: 8rpx;
+  color: var(--color-primary);
+}
+
+/* ==========================================================================
+   页面骨架：灰底 + 白块（扁平分组，不用卡片）
+   二级页统一用这套，不再用 .card 带圆角的悬浮块
+   ========================================================================== */
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding-bottom: 32rpx;
+}
+
+.block {
+  background: #ffffff;
+}
+
+/* 相邻的两个白块之间留一条灰缝 */
+.block + .block {
+  margin-top: 20rpx;
+}
+
+/* 白块内部默认内边距 */
+.block-pad {
+  padding: 32rpx;
+}
+
+/* 页面底部操作区 */
+.actions {
+  padding: 32rpx;
+}
+
+/* ==========================================================================
+   用户信息头：我的、个人资料、首页共用
+   头像统一用原生 image（t-avatar 尺寸是固定档位，和二级页对不上），
+   外面套一层 .avatar-frame 负责圆形裁剪；选头像的 button 绝对定位铺在框上，
+   不参与布局。
+   ========================================================================== */
+.profile-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24rpx;
+  padding: 40rpx 32rpx;
+}
+
+.avatar-frame {
+  position: relative;
+  flex: 0 0 auto;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.avatar-img {
+  display: block;
+  width: 128rpx;
+  height: 128rpx;
+  /* 框子已经 overflow:hidden，这里再写一遍是防止某些基础库不裁 image 子节点 */
+  border-radius: 50%;
+}
+
+/* min-width: 0 是必须的，否则长昵称会把 flex 子项撑破，右侧箭头被挤出去 */
+.profile-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.profile-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-sub {
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}
+
+/* TDesign 组件在旧版基础库下的兜底：保证宿主节点撑满一行 */
+t-cell,
+t-input {
+  display: block;
+}
+
+/* ==========================================================================
+   自建按钮
+   TDesign 的 t-button 宿主节点是 inline，block 属性在部分基础库上撑不满宽；
+   样式隔离也让全局类不好改。主要动作按钮改用纯 view + 这套类，宽高和颜色都可控。
+   ========================================================================== */
+.app-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 88rpx;
+  padding: 0 32rpx;
   border: none;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+/* 主按钮：品牌蓝 */
+.app-btn--primary {
+  background: #1890ff;
+  color: #ffffff;
+  box-shadow: 0 8rpx 20rpx rgba(24, 144, 255, 0.24);
+}
+
+/* 次按钮：白底蓝字蓝框 */
+.app-btn--ghost {
+  background: #ffffff;
+  color: #1890ff;
+  border: 1rpx solid #1890ff;
+}
+
+/* 危险软色：退出登录这类，不吓人但一眼能看出是负向操作 */
+.app-btn--danger {
+  background: #fff1f0;
+  color: #e34d59;
+}
+
+/* 不可点：loading / 禁用 */
+.app-btn--disabled {
+  opacity: 0.6;
+}
+
+/* 按下态 */
+.app-btn--hover {
+  opacity: 0.85;
 }

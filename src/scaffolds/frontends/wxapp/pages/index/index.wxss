@@ -1,1 +1,8 @@
-/* 通用样式见 app.wxss → styles/common.wxss，本页无需额外样式 */
+/* 首页：顶部渐变卡片留白 + 空状态 */
+.index-hero {
+  padding: 24rpx;
+}
+
+.empty-wrap {
+  padding: 80rpx 0;
+}

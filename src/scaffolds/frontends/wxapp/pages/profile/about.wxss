@@ -1,0 +1,36 @@
+/* 关于应用：头部品牌区 */
+.about-head {
+  text-align: center;
+  padding: 56rpx 32rpx;
+}
+
+.about-logo {
+  width: 112rpx;
+  height: 112rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 28rpx;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 112rpx;
+}
+
+.about-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.about-version {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}
+
+.about-tip {
+  margin-top: 32rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}

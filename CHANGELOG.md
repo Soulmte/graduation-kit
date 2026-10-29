@@ -2,6 +2,23 @@
 
 本项目的版本号遵循语义化版本。npm 上每个版本对应仓库中的同名 tag。
 
+## 1.6.3
+
+### 新增
+
+- **微信小程序脚手架 `--fe wxapp` 重做**：改用 TDesign（`tdesign-miniprogram`），平坦列表风格；
+  自建底部导航（不占 5 个 tabBar 名额，也不再受原生 tabBar 高度限制）；「我的」改成二级入口；
+  支持微信一键登录、头像上传（`chooseAvatar` + `/api/file/upload`）、`input type="nickname"` 取昵称。
+- **小程序专用后端 `--be springboot-wxapp`**：多 `user.openid` 与 `POST /api/user/wxLogin`，
+  自动使用 `docs/scaffold_db_wxapp.sql`（带 `openid` 与 `uk_openid`）。只配**原生小程序**前端。
+- `create` 现在会问微信 AppID / AppSecret（或 `--appid` / `--secret`），
+  直接写进 `backend/src/main/resources/application.yml` 与小程序的 `project.config.json`。
+
+### 变更
+
+- 脚手架里的微信 appid/secret 改成 `__WECHAT_APPID__` / `__WECHAT_SECRET__` 占位符，
+  小程序 `project.config.json` 默认 `touristappid`，不再随包带出任何真实凭证。
+
 ## 1.6.2
 
 ### 修复

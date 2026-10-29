@@ -1,0 +1,19 @@
+/* ==========================================================================
+   选微信头像的按钮
+   open-type="chooseAvatar" 只能挂在原生 button 上，而原生 button 默认整行宽、
+   自带 padding / text-align / 伪元素描边，塞进 flex 会把头像和文字挤变形。
+   这里直接绝对定位铺满 .avatar-frame：不参与布局，自身尺寸再怪也影响不到外面，
+   圆形裁剪由 .avatar-frame 负责。
+   ========================================================================== */
+.avatar-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  opacity: 0;
+}

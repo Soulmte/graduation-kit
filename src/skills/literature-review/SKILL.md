@@ -1,7 +1,7 @@
 ---
 name: literature-review
 description: 仅用于本科毕业论文与毕设项目的文献检索与核验，非论文/非毕设项目不要加载。当用户说要找文献、查文献、检索文献、文献综述、补引用、参考文献太少、怀疑参考文献是编的，或需要核实某条文献的作者/期刊/年份/DOI 是否真实存在时使用。强制真实检索：每条文献都必须能在 Crossref、OpenAlex、Semantic Scholar、PubMed、arXiv、CNKI 等真实来源查到，禁止生成看似合理的假文献；产出 docs/thesis/refs-source.json（原文摘录 + 链接 + 英文译名），再用 reference/verify-refs.mjs 在线复核，供 thesis-writer 直接引用。English keywords — find literature, search papers, literature review, verify references, citation check, doi lookup.
-version: 1.6.2
+version: 1.6.3
 priority: 85
 triggers: triggers.yaml
 ---

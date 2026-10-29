@@ -147,6 +147,7 @@ node .agents/skills/thesis-writer/reference/copy-template.mjs
 | 选项 | 技术栈 | 端口 |
 |---|---|---|
 | `springboot` | Java 17 + MyBatis-Plus | 8080 |
+| `springboot-wxapp` | Java 17 + MyBatis-Plus（小程序专用，带微信登录与 `openid`） | 8080 |
 | `express` | Node.js + mysql2 | 8081 |
 | `flask` | Python + PyMySQL | 8082 |
 | `go` | Gin + database/sql | 8084 |
@@ -163,9 +164,16 @@ node .agents/skills/thesis-writer/reference/copy-template.mjs
 | `react-native` | React Native · Expo SDK 58 + HeroUI Native（手机 App，Expo Go 扫码调试） | 8090 |
 | `uniapp` | uni-app 跨端（H5 / 小程序 / App） | - |
 | `taro` | Taro 4 + Vue 3（H5 / 微信小程序） | 10086 |
-| `wxapp` | 微信小程序原生 | - |
+| `wxapp` | 微信小程序原生 + TDesign | - |
 
 推荐 `springboot` + `vue-antd`。查看全部选项：`npx graduation-kit create --list`。
+
+`springboot-wxapp` 只配**原生小程序**（`--fe wxapp`）：多一个 `openid` 字段和 `POST /api/user/wxLogin`，建库脚本自动用 `scaffold_db_wxapp.sql`。
+创建时会问 AppID / AppSecret 并直接写进 `backend/src/main/resources/application.yml` 和小程序的 `project.config.json`（也可用 `--appid` / `--secret` 提前给）：
+
+```bash
+npx graduation-kit create mini --be springboot-wxapp --fe wxapp --db wxapp_db --appid wx1234567890abcdef --secret 你的AppSecret
+```
 
 `react-native` 会把后端地址写进项目根的 `.env`，开发端口固定 8090（避开 express 的 8081）。真机调试时把 `.env` 里的 `localhost` 改成电脑局域网 IP。
 

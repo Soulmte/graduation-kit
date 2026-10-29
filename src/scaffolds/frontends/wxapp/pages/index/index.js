@@ -11,15 +11,16 @@ Page({
 
   onShow() {
     const userInfo = store.getUserInfo();
-    const avatarUrl = resolveAvatar(userInfo?.avatar);
+    const avatarUrl = resolveAvatar(userInfo && userInfo.avatar);
     this.setData({ userInfo, avatarUrl });
     this.fetchNotices();
   },
 
   async fetchNotices() {
     try {
-      const res = await noticeApi.pageQuery({ pageNum: 1, pageSize: 20 });
-      this.setData({ list: res.data.records });
+      // 首页只放最新 3 条，完整列表在「公告」tab
+      const res = await noticeApi.pageQuery({ pageNum: 1, pageSize: 3 });
+      this.setData({ list: res.data.records || [] });
     } catch (err) {
       // 未登录时忽略
     }
@@ -27,12 +28,14 @@ Page({
 
   goDetail(e) {
     const id = e.currentTarget.dataset.id;
-    wx.navigateTo({ url: `/pages/notice/notice?id=${id}` });
+    wx.navigateTo({ url: `/pages/notice/detail?id=${id}` });
   },
 
-  handleLogout() {
-    store.logout();
-    this.setData({ userInfo: null });
-    wx.showToast({ title: '已退出', icon: 'none' });
+  goNoticeList() {
+    wx.reLaunch({ url: '/pages/notice/list' });
+  },
+
+  goLogin() {
+    wx.navigateTo({ url: '/pages/login/login' });
   }
 });

@@ -1,112 +1,62 @@
-const api = require('../../api/user');
 const store = require('../../utils/store');
 const { resolveAvatar } = require('../../utils/util');
 
+/**
+ * 我的（一级页面）
+ * 只做导航与概览：头像、角色、入口列表；改资料、改密码都在二级页
+ */
 Page({
   data: {
     userInfo: {},
-    avatar: '',
-    avatarUrl: '',
-    nickname: '',
-    phone: '',
-    email: '',
-    loading: false,
-    pwdVisible: false,
-    pwdLoading: false,
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    name: '',
+    roleText: '普通用户',
+    avatarUrl: ''
   },
 
   onShow() {
-    const u = store.getUserInfo() || {};
-    const avatarUrl = resolveAvatar(u.avatar);
+    const userInfo = store.getUserInfo() || {};
     this.setData({
-      userInfo: u,
-      avatar: u.avatar || '',
-      avatarUrl,
-      nickname: u.nickname || '',
-      phone: u.phone || '',
-      email: u.email || ''
+      userInfo,
+      name: userInfo.nickname || userInfo.username || '未登录',
+      roleText: userInfo.role === 'admin' ? '管理员' : '普通用户',
+      avatarUrl: resolveAvatar(userInfo.avatar)
     });
   },
 
-  onInput(e) {
-    const field = e.currentTarget.dataset.field;
-    this.setData({ [field]: e.detail.value });
-  },
-
-  async handleSave() {
-    const { userInfo, nickname, phone, email } = this.data;
-    if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
-      wx.showToast({ title: '手机号格式不正确', icon: 'none' });
+  goEdit() {
+    if (!this.data.userInfo.id) {
+      wx.navigateTo({ url: '/pages/login/login' });
       return;
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      wx.showToast({ title: '邮箱格式不正确', icon: 'none' });
+    wx.navigateTo({ url: '/pages/profile/edit' });
+  },
+
+  goPassword() {
+    if (!this.data.userInfo.id) {
+      wx.navigateTo({ url: '/pages/login/login' });
       return;
     }
-
-    this.setData({ loading: true });
-    try {
-      await api.updateUser({ id: userInfo.id, nickname, phone, email });
-      // updateUserInfo 是整体覆盖，要传合并后的完整对象
-      const next = { ...userInfo, nickname, phone, email };
-      store.updateUserInfo(next);
-      this.setData({ userInfo: next });
-      wx.showToast({ title: '更新成功', icon: 'success' });
-    } catch (err) {
-      // 错误已在 request 中处理
-    } finally {
-      this.setData({ loading: false });
-    }
+    wx.navigateTo({ url: '/pages/profile/password' });
   },
 
-  openPwd() {
-    this.setData({ pwdVisible: true });
+  goAgreement(e) {
+    const type = e.currentTarget.dataset.type;
+    wx.navigateTo({ url: `/pages/profile/agreement?type=${type}` });
   },
 
-  closePwd() {
-    this.setData({
-      pwdVisible: false,
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: ''
+  goAbout() {
+    wx.navigateTo({ url: '/pages/profile/about' });
+  },
+
+  handleLogout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定退出当前账号吗？',
+      success: (res) => {
+        if (!res.confirm) return;
+        store.logout();
+        wx.reLaunch({ url: '/pages/login/login' });
+      }
     });
-  },
-
-  // 拦截弹窗内的点击，避免冒泡到遮罩把弹窗关掉
-  noop() {},
-
-  onPwdInput(e) {
-    const field = e.currentTarget.dataset.field;
-    this.setData({ [field]: e.detail.value });
-  },
-
-  async handleUpdatePassword() {
-    const { oldPassword, newPassword, confirmPassword } = this.data;
-    if (!oldPassword || !newPassword) {
-      wx.showToast({ title: '请填写完整', icon: 'none' });
-      return;
-    }
-    if (newPassword.length < 6 || newPassword.length > 20) {
-      wx.showToast({ title: '新密码长度 6-20 位', icon: 'none' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      wx.showToast({ title: '两次密码不一致', icon: 'none' });
-      return;
-    }
-
-    this.setData({ pwdLoading: true });
-    try {
-      await api.updatePassword(oldPassword, newPassword);
-      wx.showToast({ title: '修改成功', icon: 'success' });
-      this.closePwd();
-    } catch (err) {
-      // 错误已在 request 中处理
-    } finally {
-      this.setData({ pwdLoading: false });
-    }
   }
 });

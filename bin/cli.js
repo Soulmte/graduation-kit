@@ -742,10 +742,14 @@ create 专属（全部给出则跳过向导，适合脚本）：
   -t, --template <id>   模板：clean（干净脚手架）| trade（交易 demo）| booking（预约 demo）
                         | agent（AI Agent demo，需自备大模型 API Key）
                         选 demo 时技术栈已固定，--be / --fe 会被忽略
-      --be <id>         后端，只能一个：springboot | express | flask
-                                      | go | dotnet
+      --be <id>         后端，只能一个：springboot | springboot-wxapp
+                                      | express | flask | go | dotnet
+                        springboot-wxapp 是小程序专用后端（多 wxLogin + openid），
+                        只配原生小程序（--fe wxapp）
       --fe <a,b>        前端，可多个：react | vue-elementplus | vue-antd
                                     | vue-naive | uniapp | taro | wxapp
+      --appid <appid>   微信小程序 AppID，写进后端 yml 与小程序 project.config.json
+      --secret <s>      微信小程序 AppSecret，只写进后端 yml（不入前端）
       --db <name>       数据库名（默认 scaffold_db，生成的 SQL 同名）
       --db-pass <pwd>   MySQL 密码，会写进后端配置；导入时也用它
       --db-user <u>     导入用的 MySQL 用户（默认 root，不改后端配置）
@@ -769,6 +773,8 @@ create 专属（全部给出则跳过向导，适合脚本）：
   npx github:Soulmte/graduation-kit create rent-agent --template agent --db agent_db
   npx github:Soulmte/graduation-kit create smart-library --be springboot --fe react
   npx github:Soulmte/graduation-kit create demo --be express --fe vue-antd,wxapp --db lib_db
+  npx github:Soulmte/graduation-kit create mini --be springboot-wxapp --fe wxapp --db wxapp_db \
+      --appid wx1234567890abcdef --secret your-secret
   npx github:Soulmte/graduation-kit create shop --be express --fe vue-antd --db shop_db --import-db --redis
   npx github:Soulmte/graduation-kit install -g
   npx github:Soulmte/graduation-kit install --only thesis-writer
@@ -793,6 +799,8 @@ function parse(argv) {
     else if (a === '-t' || a === '--template') opts.template = argv[++i];
     else if (a === '--be') opts.be = argv[++i];
     else if (a === '--fe') opts.fe = argv[++i];
+    else if (a === '--appid') opts.appid = argv[++i];
+    else if (a === '--secret') opts.secret = argv[++i];
     else if (a === '--db') opts.db = argv[++i];
     else if (a === '--db-pass') opts.dbPass = argv[++i];
     else if (a === '--import-db') opts.importDb = true;

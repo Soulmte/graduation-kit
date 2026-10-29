@@ -1,0 +1,4 @@
+/* 公告列表：空状态留白 */
+.empty-wrap {
+  padding: 80rpx 0;
+}

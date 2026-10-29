@@ -2,7 +2,7 @@
  * graduation-kit create —— 分步向导生成毕设项目骨架。
  * 落盘结构与 graduation-project skill 的 §1.5 约定一致。
  */
-import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, renameSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -13,7 +13,8 @@ import {
   BACKENDS, FRONTENDS, TEMPLATES, readyBackends, readyFrontends, readyTemplates,
   findTemplate, demoPaths, frontendDirName, frontendSrc,
   patchBackend, patchFrontend, patchSql, sqlFileName, assertEmptyTarget, copyTree,
-  validName, validDbName, validDbPassword, escapePasswordForYaml,
+  patchWeChat, patchWxAppProject,
+  validName, validDbName, validDbPassword, validAppId, escapePasswordForYaml,
 } from './scaffold.js';
 
 const C = { 
@@ -330,8 +331,11 @@ const DEMO_INFO = {
   },
 };
 
+/** springboot-wxapp 的启动命令、运行时、端口提示都跟 springboot 一致 */
+const backendKey = (be) => (be.id.startsWith('springboot') ? 'springboot' : be.id);
+
 /** 项目根 README：环境、启动步骤、常用命令、交付与 Skills 都写进去 */
-function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true, withRedis = false, dbImported = false }) {
+function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true, withRedis = false, dbImported = false, wechat = null }) {
   const F = '```';
   const code = (lang, body) => `${F}${lang}\n${body}\n${F}`;
   const row = (cells) => `| ${cells.join(' | ')} |`;
@@ -354,7 +358,7 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
     flask: 'Python 3.9+',
     go: 'Go 1.21+',
     dotnet: '.NET 10 SDK',
-  }[be.id] || be.lang;
+  }[backendKey(be)] || be.lang;
 
   // 运行说明按后端拆成多行，比一行 && 拼起来好复制
   const beRun = {
@@ -363,7 +367,7 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
     flask: 'pip install -r requirements.txt\npython app.py',
     go: 'go mod tidy\ngo run .',
     dotnet: 'dotnet restore\ndotnet run',
-  }[be.id] || RUN_HINT[be.id] || '# 见该目录说明';
+  }[backendKey(be)] || RUN_HINT[be.id] || '# 见该目录说明';
 
   const envRows = [
     row(['Node.js', '18+', fes.some((f) => f.kind === 'vite' || f.kind === 'taro')
@@ -427,7 +431,7 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
       ['dotnet run', `启动（:${be.port}）`],
       ['dotnet publish -c Release -o publish', '发布到 publish/'],
     ],
-  }[be.id] || [];
+  }[backendKey(be)] || [];
 
   const feCmdSections = fes.map((f) => {
     const dir = frontendDirName(f.id, fes.length);
@@ -457,16 +461,30 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
       ],
       wxapp: [
         ['微信开发者工具导入本目录', '编译预览'],
+        ['工具 → 构建 npm', '生成 miniprogram_npm（第一次必须先做，否则 TDesign 组件加载不出来）'],
       ],
     }[f.kind] || [];
     return `### ${dir}/（${f.label}）\n\n| 命令 | 说明 |\n| --- | --- |\n${rows.map(([c, d]) => row([`\`${c}\``, d])).join('\n')}`;
   });
 
+  const wxappDir = frontendDirName('wxapp', fes.length);
+  const wechatLines = wechat
+    ? [
+        '- 后端：`backend/src/main/resources/application.yml` 里的 `wechat.appid` / `wechat.secret`'
+          + (wechat.appid ? `（当前 AppID \`${wechat.appid}\`）` : '（**还是占位符**，微信登录会失败）'),
+        ...(fes.some((f) => f.kind === 'wxapp')
+          ? [`- 小程序：\`${wxappDir}/project.config.json\` 里的 \`appid\``]
+          : []),
+        '- 这套后端是给**原生小程序**（`--fe wxapp`）配的；uni-app / Taro 可以直连接口，但 `wx.login` 换 openid 要自己在各自项目里接',
+        '- AppID / AppSecret 在微信公众平台 → 开发管理 → 开发设置里拿；secret 只放后端，不要写进前端',
+      ].join('\n')
+    : '';
+
   const dbTarget = dbImported
     ? `数据库已经导入本地 MySQL（库名 \`${db.name}\`），直接启动后端即可。`
     : `先导入数据库（库名 \`${db.name}\`）：\n\n${code('bash', `mysql -u ${db.user} -p --default-character-set=utf8mb4 < docs/${sqlFile}`)}`;
 
-  const dbConfigText = be.id === 'springboot'
+  const dbConfigText = be.id.startsWith('springboot')
     ? '数据库连接配置在 `backend/src/main/resources/application.yml`，库名、账号、密码要与本机一致。'
     : (be.id === 'go' || be.id === 'dotnet')
       ? '数据库连接从环境变量读（`DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`）；项目里没有 `backend/.env` 时按这几个名字新建一个。'
@@ -488,6 +506,10 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
   if (fes.some((f) => f.kind === 'rn')) {
     faq.push('- **React Native 请求失败**：真机连不上 `localhost`，把前端目录 `.env` 里的地址改成开发机局域网 IP，再 `npm start -- --clear` 重启（`EXPO_PUBLIC_*` 在启动时内联）。');
   }
+  if (wechat) {
+    faq.push('- **微信一键登录报 `invalid code` / `40029`**：`application.yml` 里的 `wechat.appid` / `wechat.secret` 与小程序不是同一套，或 AppSecret 重置过。');
+    faq.push('- **小程序里 TDesign 组件不显示**：开发者工具没执行「工具 → 构建 npm」，或改了依赖版本后没重新构建。');
+  }
   faq.push('- **端口被占用**：改后端配置和前端配置里的端口，再重启。');
   faq.push('- **CLI 命令找不到或版本旧**：用 `npx graduation-kit@latest ...`，或先 `npx clear-npx-cache`。');
 
@@ -506,11 +528,12 @@ function projectReadme({ name, be, fes, db, sqlFile, template, withSkills = true
     '',
     '| 目录 | 技术 | 启动方式 |',
     '| --- | --- | --- |',
-    row(['`backend/`', `${be.label}（${be.lang}）`, RUN_HINT[be.id] || '见该目录说明']),
+    row(['`backend/`', `${be.label}（${be.lang}）`, RUN_HINT[backendKey(be)] || '见该目录说明']),
     ...feRows,
     '',
     `后端端口 **${be.port}**，前端已配好指向它；改端口时前后端要一起改。`,
     '',
+    ...(wechat ? ['## 微信小程序登录', '', wechatLines, ''] : []),
     '## 使用说明',
     '',
     '### 1. 准备数据库',
@@ -1048,6 +1071,27 @@ export async function create(opts, ctx) {
     line('');
   }
 
+  // 小程序专用后端：只配原生小程序，AppID / Secret 直接写进后端配置
+  let wechat = null;
+  if (be.wechat) {
+    if (!fes.some((f) => f.kind === 'wxapp')) {
+      warn(`${be.label} 只适用于原生小程序前端（--fe wxapp）`);
+      line(`  ${paint('dim', 'uni-app / Taro 也能直连这套接口，但 wx.login 那套要在各自项目里自己接')}`);
+      line('');
+    }
+    wechat = { appid: (opts.appid || '').trim(), secret: (opts.secret || '').trim() };
+    if (interactive) {
+      info('微信登录需要小程序自己的 AppID / AppSecret（公众平台 → 开发管理 → 开发设置）');
+      line(`  ${paint('dim', '直接回车可留空，之后改 backend/src/main/resources/application.yml 的 wechat 段')}`);
+      wechat.appid = await text('微信 AppID', { def: '', validate: validAppId });
+      wechat.secret = await text('微信 AppSecret', { def: '' });
+      if (wechat.appid && wechat.secret) {
+        ok('AppID / Secret 会写进后端 yml 与小程序的 project.config.json');
+      }
+      line('');
+    }
+  }
+
   const sqlFile = sqlFileName(db.name);
   assertEmptyTarget(root);
 
@@ -1068,6 +1112,9 @@ export async function create(opts, ctx) {
   }
   line(`    docs/${sqlFile}`.padEnd(26) + paint('dim', `库名 ${db.name}`));
   line(`    uploads/`);
+  if (wechat) {
+    line(`    微信 AppID`.padEnd(26) + paint('dim', wechat.appid || '未填，yml 里留 __WECHAT_APPID__ 占位符'));
+  }
   if (importDb) line(`    数据库导入`.padEnd(26) + paint('dim', `${db.user}@${db.host}:${db.port}`));
   if (useRedis) line(`    Redis`.padEnd(26) + paint('dim', redisState?.usable ? '已就绪' : '环境未就绪，见 docs/redis.md'));
   if (withSkills) line(`    .agents/skills/`.padEnd(26) + paint('dim', '7 个核心 skill + 上游增强'));
@@ -1089,6 +1136,9 @@ export async function create(opts, ctx) {
 
     copyTree(demo ? demo.backend : join(SRC_SCAFFOLDS, 'backends', be.id), join(root, 'backend'));
     const bePatched = patchBackend(join(root, 'backend'), be, db);
+    if (wechat && patchWeChat(join(root, 'backend'), wechat) && !bePatched.includes('application.yml')) {
+      bePatched.push('application.yml');
+    }
     ok(`backend/ ${paint('dim', `← ${demo ? `${template.id} demo` : be.id}`)}`);
     if (bePatched.length) line(`  ${paint('dim', `已改写 ${bePatched.join('、')}`)}`);
 
@@ -1096,21 +1146,31 @@ export async function create(opts, ctx) {
       const dirName = frontendDirName(f.id, fes.length);
       copyTree(demo ? demo.frontend : frontendSrc(SRC_SCAFFOLDS, f), join(root, dirName));
       const changed = patchFrontend(join(root, dirName), f, be);
+      if (wechat && f.kind === 'wxapp') {
+        patchWxAppProject(join(root, dirName), wechat.appid);
+      }
       ok(`${dirName}/ ${paint('dim', `← ${demo ? `${template.id} demo` : f.id}`)}`);
       if (changed.length) line(`  ${paint('dim', `已指向 :${be.port}（${changed.join('、')}）`)}`);
     }
 
     mkdirSync(join(root, 'docs'), { recursive: true });
     copyTree(demo ? demo.docs : join(SRC_SCAFFOLDS, 'docs'), join(root, 'docs'));
+    // 后端可能自带专用建库脚本（小程序版多一个 openid 字段），优先用它
+    const sqlSource = demo ? 'scaffold_db.sql' : be.sql || 'scaffold_db.sql';
+    const sqlFrom = join(root, 'docs', sqlSource);
     const sqlTo = join(root, 'docs', sqlFile);
-    if (sqlFile !== 'scaffold_db.sql') {
+    // docs 里只留本次用的那份 SQL，避免用户导错库
+    for (const f of readdirSync(join(root, 'docs'))) {
+      if (f.endsWith('.sql') && f !== sqlSource) rmSync(join(root, 'docs', f), { force: true });
+    }
+    if (sqlFile !== sqlSource) {
       try {
-        renameSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
+        renameSync(sqlFrom, sqlTo);
       } catch (err) {
         // 如果重命名失败，尝试拷贝再删除
         const { copyFileSync, unlinkSync } = await import('node:fs');
-        copyFileSync(join(root, 'docs', 'scaffold_db.sql'), sqlTo);
-        unlinkSync(join(root, 'docs', 'scaffold_db.sql'));
+        copyFileSync(sqlFrom, sqlTo);
+        unlinkSync(sqlFrom);
       }
     }
     patchSql(sqlTo, db.name);
@@ -1145,7 +1205,7 @@ export async function create(opts, ctx) {
     writeFileSync(join(root, '.gitignore'), GITIGNORE);
     ok(`.gitignore ${paint('dim', '已挡住依赖与构建产物')}`);
 
-    writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template, withSkills, withRedis: useRedis, dbImported }));
+    writeFileSync(join(root, 'README.md'), projectReadme({ name, be, fes, db, sqlFile, template, withSkills, withRedis: useRedis, dbImported, wechat }));
     ok(`README.md ${paint('dim', '端口、库名、启动命令存档')}`);
 
     writeFileSync(join(root, 'package-delivery.bat'), PACKAGE_BAT);
@@ -1208,7 +1268,7 @@ export async function create(opts, ctx) {
   }
   line('');
   line(paint('bold', '3. 启动后端'));
-  line(`   cd backend && ${RUN_HINT[be.id] || '见该目录说明'}`);
+  line(`   cd backend && ${RUN_HINT[backendKey(be)] || '见该目录说明'}`);
   line(paint('dim', `   后端端口：${be.port}`));
   line('');
   line(paint('bold', '4. 启动前端（另开终端）'));
@@ -1236,6 +1296,14 @@ export async function create(opts, ctx) {
   }
   if (fes.some((f) => ['uniapp', 'taro', 'wxapp'].includes(f.kind))) {
     warn('小程序真机调试时，需将 config/index.js（Taro 为 src/config/index.js）中的 LAN_HOST 改为电脑局域网 IP');
+    line('');
+  }
+  if (fes.some((f) => f.kind === 'wxapp')) {
+    warn('小程序首次打开：开发者工具里先「工具 → 构建 npm」生成 miniprogram_npm，否则 TDesign 组件加载不出来');
+    line('');
+  }
+  if (wechat && (!wechat.appid || !wechat.secret)) {
+    warn('微信 AppID / AppSecret 没填全，微信一键登录会失败；补到 backend/src/main/resources/application.yml 的 wechat 段');
     line('');
   }
   if (fes.some((f) => f.kind === 'rn')) {

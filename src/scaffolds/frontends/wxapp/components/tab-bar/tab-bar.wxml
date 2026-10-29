@@ -1,0 +1,23 @@
+<!-- 占位块：和底部栏等高，避免 fixed 栏盖住页面最后一段内容 -->
+<view class="tabbar-spacer"></view>
+
+<view class="tabbar">
+  <view
+    wx:for="{{list}}"
+    wx:key="key"
+    class="tabbar__item {{active === item.key ? 'tabbar__item--active' : ''}}"
+    hover-class="none"
+    data-key="{{item.key}}"
+    data-url="{{item.url}}"
+    bindtap="onTap"
+  >
+    <view class="tabbar__icon">
+      <t-icon
+        name="{{item.icon}}"
+        size="36rpx"
+        color="{{active === item.key ? '#1890ff' : '#999999'}}"
+      />
+    </view>
+    <view class="tabbar__label">{{item.text}}</view>
+  </view>
+</view>

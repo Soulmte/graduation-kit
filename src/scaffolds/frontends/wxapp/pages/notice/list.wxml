@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="block">
+    <t-cell-group theme="default">
+      <t-cell
+        wx:for="{{list}}"
+        wx:key="id"
+        title="{{item.title}}"
+        description="{{item.createTime}}"
+        arrow
+        data-id="{{item.id}}"
+        bind:click="goDetail"
+      />
+    </t-cell-group>
+  </view>
+
+  <view class="empty-wrap">
+    <t-empty wx:if="{{!list.length && !loading}}" icon="info-circle" description="暂无公告" />
+  </view>
+
+  <tab-bar active="notice" />
+</view>

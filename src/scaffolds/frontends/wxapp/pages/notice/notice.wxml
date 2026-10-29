@@ -1,8 +1,0 @@
-<view class="container">
-  <view wx:if="{{detail}}" class="card">
-    <view class="article-title">{{detail.title}}</view>
-    <view class="article-meta">发布于 {{detail.createTime}}</view>
-    <rich-text class="article-content" nodes="{{detail.content}}"></rich-text>
-  </view>
-  <view wx:else class="empty">{{loading ? '加载中...' : '公告不存在'}}</view>
-</view>

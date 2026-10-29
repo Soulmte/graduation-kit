@@ -1,0 +1,24 @@
+/* 协议页：条款排版 */
+.agree-item {
+  margin-bottom: 32rpx;
+}
+
+.agree-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 12rpx;
+}
+
+.agree-body {
+  font-size: 28rpx;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.agree-tip {
+  margin-top: 24rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: var(--color-text-muted);
+}

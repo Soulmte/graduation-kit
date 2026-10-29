@@ -1,0 +1,13 @@
+<view class="page">
+  <view class="block block-pad">
+    <view class="article-title">{{title}}</view>
+    <view class="article-meta">最近更新：2026 年 10 月</view>
+
+    <view class="agree-item" wx:for="{{list}}" wx:key="title">
+      <view class="agree-title">{{index + 1}}. {{item.title}}</view>
+      <view class="agree-body">{{item.body}}</view>
+    </view>
+  </view>
+
+  <view class="agree-tip">示例条款，请按项目实际情况替换</view>
+</view>

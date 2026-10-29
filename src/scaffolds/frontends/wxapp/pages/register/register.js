@@ -42,6 +42,10 @@ Page({
       wx.showToast({ title: '手机号格式不正确', icon: 'none' });
       return;
     }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      wx.showToast({ title: '邮箱格式不正确', icon: 'none' });
+      return;
+    }
 
     this.setData({ loading: true });
     try {
@@ -49,11 +53,15 @@ Page({
       wx.showToast({ title: '注册成功', icon: 'success' });
       setTimeout(() => {
         wx.navigateBack();
-      }, 1000);
+      }, 800);
     } catch (err) {
-      // 错误已在 request 中处理
+      // 错误已在 request 中提示
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  goLogin() {
+    wx.navigateBack();
   }
 });

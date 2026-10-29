@@ -75,7 +75,7 @@ const FE_EXPECT = {
   uniapp: ['pages.json', 'App.vue', 'main.js', 'pages/login/index.vue', 'components/TabBar.vue', 'pages/settings/index.vue', 'pages/message/index.vue', 'data/messages.js', 'utils/message.js', 'utils/assets.js', 'static/tab/tab-home.png', 'static/avatar/default-avatar.png', 'common/styles/common.scss'],
   'react-native': ['package.json', 'app.json', 'global.css', 'src/app/_layout.tsx', 'src/app/login.tsx', 'src/app/profile/password.tsx', 'src/theme/tabbar.css', 'src/theme/typography.css', 'src/components/AppToast.tsx', 'src/components/ConfirmDialog.tsx', '.env'],
   taro: ['package.json', 'config/index.js', 'src/app.config.js', 'src/pages/login/index.vue', 'src/static/tab/tab-home.png', 'src/assets/index.js', 'src/components/TabBar.vue', 'src/pages/settings/index.vue', 'src/pages/settings/index.config.js', 'src/pages/message/index.vue', 'src/data/messages.js', 'src/utils/message.js', 'src/styles/common.scss', 'src/styles/_variables.scss', 'src/styles/_mixins.scss'],
-  wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'utils/assets.js', 'static/avatar/default-avatar.png', 'styles/common.wxss'],
+  wxapp: ['app.json', 'project.config.json', 'pages/login/login.js', 'pages/notice/list.js', 'components/tab-bar/tab-bar.js', 'utils/assets.js', 'static/avatar/default-avatar.png', 'styles/common.wxss'],
 };
 
 /** 各前端把后端端口写在哪里，用于确认 patchFrontend 真的改到了 */
@@ -265,6 +265,10 @@ try {
       const appConfig = readFileSync(join(dir, 'src', 'app.config.js'), 'utf8');
       check('taro 没有原生 tabBar', !/tabBar\s*:/.test(appConfig));
     }
+    if (fe.id === 'wxapp') {
+      const appJson = JSON.parse(readFileSync(join(dir, 'app.json'), 'utf8'));
+      check('wxapp 没有原生 tabBar（底部栏自建）', !('tabBar' in appJson));
+    }
 
     const mobileStyle = {
       uniapp: 'common/styles/common.scss',
@@ -288,6 +292,38 @@ try {
           text.includes("'Spring Boot'") && !text.includes("'Express'"));
       }
     }
+  }
+
+  // 小程序专用后端：AppID / AppSecret 直接写进后端与小程序工程
+  console.log('\n微信小程序组合');
+  {
+    const name = 'smoke-wx';
+    const appid = 'wx0123456789abcdef';
+    const secret = 'smoketestsecret0123456789abcdef0110';
+    execFileSync(process.execPath, [
+      CLI, 'create', name, '--be', 'springboot-wxapp', '--fe', 'wxapp',
+      '--db', DB, '--db-pass', PASS, '--appid', appid, '--secret', secret,
+      '--no-skills', '-d', work,
+    ], { stdio: 'pipe' });
+
+    const root = join(work, name);
+    const yml = readFileSync(join(root, 'backend', 'src', 'main', 'resources', 'application.yml'), 'utf8');
+    check('后端 yml 写入 AppID / Secret',
+      yml.includes(`appid: ${appid}`) && yml.includes(`secret: ${secret}`));
+    check('后端 yml 无微信占位符残留', !yml.includes('__WECHAT_'));
+
+    const proj = join(root, 'frontend', 'project.config.json');
+    const projText = readFileSync(proj, 'utf8');
+    check('小程序 project.config.json 写入 AppID', projText.includes(`"appid": "${appid}"`));
+    check('Secret 只留在后端，不进小程序工程',
+      !projText.includes(secret)
+      && !readFileSync(join(root, 'frontend', 'config', 'index.js'), 'utf8').includes(secret));
+    check('未拷贝开发者工具本地工程配置',
+      !existsSync(join(root, 'frontend', 'project.private.config.json')));
+
+    const sqlText = readFileSync(join(root, 'docs', sqlFileName(DB)), 'utf8');
+    check('小程序建库脚本带 openid 与唯一索引',
+      sqlText.includes('`openid`') && sqlText.includes('uk_openid'));
   }
 
   // 创建选项：Redis 说明与交付脚本
